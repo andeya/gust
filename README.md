@@ -10,9 +10,7 @@ go≥1.18
 
 ### Result
 
-Go-generics result module inspired by rust.
-
-Avoid ifelse, handle result with chain methods, will you choose her?
+Avoid ifelse, handle result with chain methods.
 
 - Result Example
 
@@ -55,9 +53,7 @@ func ExampleResult_UnwrapOr() {
 
 ### Option
 
-Go-generics option module inspired by rust.
-
-Avoid `(T, bool)`, handle value with `Option` type, will you choose her?
+Avoid `(T, bool)`, handle value with `Option` type.
 
 - Option Example
 
@@ -95,9 +91,7 @@ func ExampleOption() {
 
 ### OptNil
 
-Go-generics option module inspired by rust.
-
-Avoid `(*T)(nil)`, handle value with `OptNil` type, will you choose her?
+Avoid `(*T)(nil)`, handle value with `OptNil` type.
 
 - OptNil Example
 
