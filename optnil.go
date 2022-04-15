@@ -4,6 +4,21 @@ import (
 	"fmt"
 )
 
+// Ptr wraps a value pointer.
+func Ptr[T any](value *T) OptNil[T] {
+	return OptNil[T]{value: value}
+}
+
+// Nil returns a nil.
+func Nil[T any]() OptNil[T] {
+	return OptNil[T]{value: nil}
+}
+
+// OptPtr converts `Option[T]` to `OptNil[T]`.
+func OptPtr[T any](o Option[T]) OptNil[T] {
+	return Ptr[T](o.value)
+}
+
 // OptNil represents an optional value:
 // every [`OptNil`] is either [`NonNil`](which is nonnil *T), or [`Nil`](which is nil).
 type OptNil[T any] struct {
@@ -16,16 +31,6 @@ func (o OptNil[T]) String() string {
 		return "Nil"
 	}
 	return fmt.Sprintf("NonNil(%v)", o.value)
-}
-
-// Ptr wraps a value pointer.
-func Ptr[T any](value *T) OptNil[T] {
-	return OptNil[T]{value: value}
-}
-
-// Nil returns a nil.
-func Nil[T any]() OptNil[T] {
-	return OptNil[T]{value: nil}
 }
 
 // ToOption converts to Option[T].
@@ -123,6 +128,24 @@ func (o OptNil[T]) MapOrElse(defaultFn func() *T, f func(*T) *T) *T {
 		return f(o.value)
 	}
 	return defaultFn()
+}
+
+// OkOr transforms the `Option[T]` into a [`Result[T]`], mapping [`Some(v)`] to
+// [`Ok(v)`] and [`None`] to [`Err(err)`].
+func (o OptNil[T]) OkOr(err error) Result[*T] {
+	if o.NotNil() {
+		return Ok(o.Unwrap())
+	}
+	return Err[*T](err)
+}
+
+// OkOrElse transforms the `Option[T]` into a [`Result[T]`], mapping [`Some(v)`] to
+// [`Ok(v)`] and [`None`] to [`Err(errFn())`].
+func (o OptNil[T]) OkOrElse(errFn func() error) Result[*T] {
+	if o.NotNil() {
+		return Ok(o.Unwrap())
+	}
+	return Err[*T](errFn())
 }
 
 // And returns [`Nil`] if the option is [`Nil`], otherwise returns `optb`.

@@ -63,7 +63,7 @@ func (r Result[T]) IsErrAnd(f func(error) bool) bool {
 	return false
 }
 
-// Ok converts from `Result[T]` to [`Option[T]`].
+// Ok converts from `Result[T]` to `Option[T]`.
 func (r Result[T]) Ok() Option[T] {
 	if r.IsOk() {
 		return Some(r.ok)

@@ -4,20 +4,6 @@ import (
 	"fmt"
 )
 
-// Option represents an optional value:
-// every [`Option`] is either [`Some`](which is nonnull T), or [`None`](which is nil).
-type Option[T any] struct {
-	value *T
-}
-
-// String returns the string representation.
-func (o Option[T]) String() string {
-	if o.IsNone() {
-		return "None"
-	}
-	return fmt.Sprintf("Some(%v)", *o.value)
-}
-
 // Opt wraps a value.
 func Opt[T any](value *T) Option[T] {
 	return Option[T]{value: value}
@@ -33,9 +19,18 @@ func None[T any]() Option[T] {
 	return Option[T]{value: nil}
 }
 
-// ToOptNil converts to OptNil[T].
-func (o Option[T]) ToOptNil() OptNil[T] {
-	return Ptr[T](o.value)
+// Option represents an optional value:
+// every [`Option`] is either [`Some`](which is nonnull T), or [`None`](which is nil).
+type Option[T any] struct {
+	value *T
+}
+
+// String returns the string representation.
+func (o Option[T]) String() string {
+	if o.IsNone() {
+		return "None"
+	}
+	return fmt.Sprintf("Some(%v)", *o.value)
 }
 
 // IsSome returns `true` if the option has value.
@@ -128,6 +123,24 @@ func (o Option[T]) MapOrElse(defaultFn func() T, f func(T) T) T {
 		return f(*o.value)
 	}
 	return defaultFn()
+}
+
+// OkOr transforms the `Option[T]` into a [`Result[T]`], mapping [`Some(v)`] to
+// [`Ok(v)`] and [`None`] to [`Err(err)`].
+func (o Option[T]) OkOr(err error) Result[T] {
+	if o.IsSome() {
+		return Ok(o.Unwrap())
+	}
+	return Err[T](err)
+}
+
+// OkOrElse transforms the `Option[T]` into a [`Result[T]`], mapping [`Some(v)`] to
+// [`Ok(v)`] and [`None`] to [`Err(errFn())`].
+func (o Option[T]) OkOrElse(errFn func() error) Result[T] {
+	if o.IsSome() {
+		return Ok(o.Unwrap())
+	}
+	return Err[T](errFn())
 }
 
 // And returns [`None`] if the option is [`None`], otherwise returns `optb`.
