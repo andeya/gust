@@ -1,6 +1,6 @@
 # gust [![Docs](https://img.shields.io/badge/Docs-pkg.go.dev-blue.svg?style=flat-square)](https://pkg.go.dev/github.com/henrylee2cn/gust)
 
-Go-generics declarative basic module inspired by rust.
+Golang ergonomic declarative generics module inspired by Rust.
 
 ## Go Version
 
