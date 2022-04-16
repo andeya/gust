@@ -1,6 +1,6 @@
 # gust [![Docs](https://img.shields.io/badge/Docs-pkg.go.dev-blue.svg?style=flat-square)](https://pkg.go.dev/github.com/henrylee2cn/gust)
 
-Golang basic module inspired by rust.
+Golang declarative basic module inspired by rust.
 
 ## Go Version
 
