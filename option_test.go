@@ -21,19 +21,26 @@ func ExampleOption() {
 	var x = b.UnwrapOr(A{X: 2})
 	fmt.Println(x)
 
+	var c *A
+	fmt.Println(gust.Ptr(c).IsNone())
+	c = new(A)
+	fmt.Println(gust.Ptr(c).IsNone())
+
 	type B struct {
 		Y string
 	}
-	var c = opt.Map(a, func(t A) B {
+	var d = opt.Map(a, func(t A) B {
 		return B{
 			Y: strconv.Itoa(t.X),
 		}
 	})
-	fmt.Println(c)
+	fmt.Println(d)
 
 	// Output:
 	// true false
 	// false true
 	// {2}
+	// true
+	// false
 	// Some({1})
 }

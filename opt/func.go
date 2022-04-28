@@ -56,9 +56,9 @@ func Contains[T comparable](o gust.Option[T], x T) bool {
 //
 // If `value` is `Some(s)` and `other` is `Some(o)`, this method returns `Some(f(s, o))`.
 // Otherwise, `None` is returned.
-func ZipWith[T any, U any, R any](some gust.Option[T], other gust.Option[U], f func(T, U) *R) gust.Option[R] {
+func ZipWith[T any, U any, R any](some gust.Option[T], other gust.Option[U], f func(T, U) R) gust.Option[R] {
 	if some.IsSome() && other.IsSome() {
-		return gust.Opt(f(some.Unwrap(), other.Unwrap()))
+		return gust.Some(f(some.Unwrap(), other.Unwrap()))
 	}
 	return gust.None[R]()
 }

@@ -4,17 +4,29 @@ import (
 	"fmt"
 )
 
-// Opt wraps a value.
-func Opt[T any](value *T) Option[T] {
-	return Option[T]{value: value}
+// Ptr wraps a pointer value.
+// NOTE:
+//  non-nil pointer is equivalent to Some,
+//  and nil pointer is equivalent to None.
+func Ptr[U any, T *U](ptr T) Option[T] {
+	if ptr == nil {
+		return Option[T]{value: nil}
+	}
+	return Option[T]{value: &ptr}
 }
 
-// Some wraps a nonnull value.
+// Some wraps a non-none value.
+// NOTE:
+//  Option[T].IsSome() returns true.
+//  and Option[T].IsNone() returns false.
 func Some[T any](value T) Option[T] {
 	return Option[T]{value: &value}
 }
 
 // None returns a none.
+// NOTE:
+//  Option[T].IsNone() returns true,
+//  and Option[T].IsSome() returns false.
 func None[T any]() Option[T] {
 	return Option[T]{value: nil}
 }
