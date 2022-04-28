@@ -23,7 +23,8 @@ func Err[T any](err any) Result[T] {
 	return Result[T]{err: newAnyError(err)}
 }
 
-// Result is a type that represents either success (T) or failure (error).
+// Result can be used to avoid `if err != nil`,
+// represents either success (T) or failure (error).
 type Result[T any] struct {
 	ok  T
 	err error

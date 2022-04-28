@@ -31,8 +31,9 @@ func None[T any]() Option[T] {
 	return Option[T]{value: nil}
 }
 
-// Option represents an optional value:
-// every [`Option`] is either [`Some`](which is nonnull T), or [`None`](which is nil).
+// Option can be used to avoid `(T, bool)` and `if *U != nil`,
+// represents an optional value:
+//  every [`Option`] is either [`Some`](which is non-none T), or [`None`](which is none).
 type Option[T any] struct {
 	value *T
 }
@@ -64,7 +65,7 @@ func (o Option[T]) IsNone() bool {
 }
 
 // Expect returns the contained [`Some`] value.
-// Panics if the value is null with a custom panic message provided by `msg`.
+// Panics if the value is none with a custom panic message provided by `msg`.
 func (o Option[T]) Expect(msg string) T {
 	if o.IsNone() {
 		panic(fmt.Errorf("%s", msg))
@@ -73,13 +74,13 @@ func (o Option[T]) Expect(msg string) T {
 }
 
 // Unwrap returns the contained value.
-// Panics if the value is null.
+// Panics if the value is none.
 func (o Option[T]) Unwrap() T {
 	if o.IsSome() {
 		return *o.value
 	}
 	var t T
-	panic(fmt.Sprintf("call Option[%T].Unwrap() on nonnull", t))
+	panic(fmt.Sprintf("call Option[%T].Unwrap() on none", t))
 }
 
 // UnwrapOr returns the contained value or a provided default.

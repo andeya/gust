@@ -10,7 +10,7 @@ go≥1.18
 
 ### Result
 
-Avoid ifelse, handle result with chain methods.
+Avoid `if err != nil`, handle result with chain methods.
 
 - Result Example
 
@@ -53,7 +53,7 @@ func ExampleResult_UnwrapOr() {
 
 ### Option
 
-Avoid `(T, bool)`, handle value with `Option` type.
+Avoid `(T, bool)` and `if *U != nil`, handle value with `Option` type.
 
 - Option Example
 
@@ -71,20 +71,27 @@ func ExampleOption() {
 	var x = b.UnwrapOr(A{X: 2})
 	fmt.Println(x)
 
+	var c *A
+	fmt.Println(gust.Ptr(c).IsNone())
+	c = new(A)
+	fmt.Println(gust.Ptr(c).IsNone())
+
 	type B struct {
 		Y string
 	}
-	var c = opt.Map(a, func(t A) B {
+	var d = opt.Map(a, func(t A) B {
 		return B{
 			Y: strconv.Itoa(t.X),
 		}
 	})
-	fmt.Println(c)
+	fmt.Println(d)
 
 	// Output:
 	// true false
 	// false true
 	// {2}
+	// true
+	// false
 	// Some({1})
 }
 ```
