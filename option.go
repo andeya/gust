@@ -120,6 +120,14 @@ func (o Option[T]) Inspect(f func(T)) Option[T] {
 	return o
 }
 
+// InspectNone calls the provided closure (if it is none).
+func (o Option[T]) InspectNone(f func()) Option[T] {
+	if o.IsNone() {
+		f()
+	}
+	return o
+}
+
 // MapOr returns the provided default value (if none),
 // or applies a function to the contained value (if any).
 func (o Option[T]) MapOr(defaultSome T, f func(T) T) T {
