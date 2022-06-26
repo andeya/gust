@@ -1,4 +1,4 @@
-# gust [![Docs](https://img.shields.io/badge/Docs-pkg.go.dev-blue.svg?style=flat-square)](https://pkg.go.dev/github.com/henrylee2cn/gust)
+# gust [![Docs](https://img.shields.io/badge/Docs-pkg.go.dev-blue.svg?style=flat-square)](https://pkg.go.dev/github.com/andeya/gust)
 
 Golang ergonomic declarative generics module inspired by Rust.
 

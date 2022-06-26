@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/henrylee2cn/gust"
-	"github.com/henrylee2cn/gust/ret"
+	"github.com/andeya/gust"
+	"github.com/andeya/gust/ret"
 	"github.com/stretchr/testify/assert"
 )
 

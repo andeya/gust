@@ -1,6 +1,6 @@
 package opt
 
-import "github.com/henrylee2cn/gust"
+import "github.com/andeya/gust"
 
 // Map maps an `gust.Option[T]` to `gust.Option[U]` by applying a function to a contained value.
 func Map[T any, U any](o gust.Option[T], f func(T) U) gust.Option[U] {

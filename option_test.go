@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/henrylee2cn/gust"
-	"github.com/henrylee2cn/gust/opt"
+	"github.com/andeya/gust"
+	"github.com/andeya/gust/opt"
 )
 
 func ExampleOption() {

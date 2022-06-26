@@ -1,6 +1,6 @@
 package ret
 
-import "github.com/henrylee2cn/gust"
+import "github.com/andeya/gust"
 
 // Map maps a gust.Result[T] to gust.Result[U] by applying a function to a contained Ok value, leaving an error untouched.
 // This function can be used to compose the results of two functions.

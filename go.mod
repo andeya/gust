@@ -1,4 +1,4 @@
-module github.com/henrylee2cn/gust
+module github.com/andeya/gust
 
 go 1.18
 
