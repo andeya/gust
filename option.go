@@ -264,7 +264,10 @@ func (o Option[T]) MarshalJSON() ([]byte, error) {
 }
 
 func (o *Option[T]) UnmarshalJSON(b []byte) error {
-	var value = new(T)
+	var value = o.value
+	if value == nil {
+		value = new(T)
+	}
 	err := json.Unmarshal(b, value)
 	if err == nil {
 		o.value = value
