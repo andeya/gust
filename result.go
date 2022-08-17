@@ -1,6 +1,7 @@
 package gust
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 )
@@ -246,4 +247,19 @@ func (r Result[T]) ContainsErr(err error) bool {
 		return true
 	}
 	return errors.Is(r.err, err)
+}
+
+func (r Result[T]) MarshalJSON() ([]byte, error) {
+	if r.IsErr() {
+		return nil, r.err
+	}
+	return json.Marshal(r.ok)
+}
+
+func (r *Result[T]) UnmarshalJSON(b []byte) error {
+	err := json.Unmarshal(b, &r.ok)
+	if err == nil {
+		r.err = nil
+	}
+	return err
 }

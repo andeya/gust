@@ -1,13 +1,15 @@
 package gust
 
 import (
+	"encoding/json"
 	"fmt"
 )
 
 // Ptr wraps a pointer value.
 // NOTE:
-//  non-nil pointer is equivalent to Some,
-//  and nil pointer is equivalent to None.
+//
+//	non-nil pointer is equivalent to Some,
+//	and nil pointer is equivalent to None.
 func Ptr[U any, T *U](ptr T) Option[T] {
 	if ptr == nil {
 		return Option[T]{value: nil}
@@ -17,23 +19,26 @@ func Ptr[U any, T *U](ptr T) Option[T] {
 
 // Some wraps a non-none value.
 // NOTE:
-//  Option[T].IsSome() returns true.
-//  and Option[T].IsNone() returns false.
+//
+//	Option[T].IsSome() returns true.
+//	and Option[T].IsNone() returns false.
 func Some[T any](value T) Option[T] {
 	return Option[T]{value: &value}
 }
 
 // None returns a none.
 // NOTE:
-//  Option[T].IsNone() returns true,
-//  and Option[T].IsSome() returns false.
+//
+//	Option[T].IsNone() returns true,
+//	and Option[T].IsSome() returns false.
 func None[T any]() Option[T] {
 	return Option[T]{value: nil}
 }
 
 // Option can be used to avoid `(T, bool)` and `if *U != nil`,
 // represents an optional value:
-//  every [`Option`] is either [`Some`](which is non-none T), or [`None`](which is none).
+//
+//	every [`Option`] is either [`Some`](which is non-none T), or [`None`](which is none).
 type Option[T any] struct {
 	value *T
 }
@@ -249,4 +254,20 @@ func (o *Option[T]) GetOrInsertWith(f func() T) T {
 func (o *Option[T]) Replace(some T) *Option[T] {
 	o.value = &some
 	return o
+}
+
+func (o Option[T]) MarshalJSON() ([]byte, error) {
+	if o.IsNone() {
+		return []byte("null"), nil
+	}
+	return json.Marshal(o.value)
+}
+
+func (o *Option[T]) UnmarshalJSON(b []byte) error {
+	var value = new(T)
+	err := json.Unmarshal(b, value)
+	if err == nil {
+		o.value = value
+	}
+	return err
 }
