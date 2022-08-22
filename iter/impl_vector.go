@@ -26,8 +26,9 @@ func (v *VecNext[T]) ToIter() *AnyIter[T] {
 
 func (v *VecNext[T]) Next() gust.Option[T] {
 	if v.nextIndex < len(v.slice) {
+		opt := gust.Some(v.slice[v.nextIndex])
 		v.nextIndex++
-		return gust.Some(v.slice[v.nextIndex])
+		return opt
 	}
 	return gust.None[T]()
 }
