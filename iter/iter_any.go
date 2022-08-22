@@ -6,15 +6,15 @@ import (
 	"github.com/andeya/gust"
 )
 
-func newAnyIter[T any](step uint, filter func(T) bool, nextList ...Nextor[T]) *AnyIter[T] {
-	return &AnyIter[T]{nextChain: nextList, nextChainIndex: 0, filter: filter, firstTake: true, step: step}
+func newAnyIter[T any](step uint, filterMap func(T) gust.Option[T], nextList ...Nextor[T]) *AnyIter[T] {
+	return &AnyIter[T]{nextChain: nextList, nextChainIndex: 0, filterMap: filterMap, firstTake: true, step: step}
 }
 
 type AnyIter[T any] struct {
 	step           uint
 	nextChainIndex int
 	nextChain      []Nextor[T]
-	filter         func(T) bool
+	filterMap      func(T) gust.Option[T]
 	firstTake      bool
 }
 
@@ -33,15 +33,15 @@ type AnyIter[T any] struct {
 //
 // var iter = IterAnyFromVec(a);
 //
-// // A call to next() returns the next value...
+// A call to next() returns the next value...
 // assert.Equal(t, gust.Some(1), iter.Next());
 // assert.Equal(t, gust.Some(2), iter.Next());
 // assert.Equal(t, gust.Some(3), iter.Next());
 //
-// // ... and then None once it's over.
+// ... and then None once it's over.
 // assert.Equal(t, gust.None[int](), iter.Next());
 //
-// // More calls may or may not return `gust.None[T]()`. Here, they always will.
+// More calls may or may not return `gust.None[T]()`. Here, they always will.
 // assert.Equal(t, gust.None[int](), iter.Next());
 // assert.Equal(t, gust.None[int](), iter.Next());
 func (iter *AnyIter[T]) Next() gust.Option[T] {
@@ -69,9 +69,10 @@ func (iter *AnyIter[T]) elemNext() gust.Option[T] {
 		for iter.nextChainIndex < len(iter.nextChain) {
 			next := iter.nextChain[iter.nextChainIndex]
 			v := next.Next()
-			if iter.filter != nil {
+			if iter.filterMap != nil {
 				for v.IsSome() {
-					if !iter.filter(v.Unwrap()) {
+					v = iter.filterMap(v.Unwrap())
+					if v.IsSome() {
 						break
 					}
 					v = next.Next()
@@ -124,23 +125,23 @@ func (iter *AnyIter[T]) elemNext() gust.Option[T] {
 //
 // A more complex example:
 //
-// // The even numbers in the range of zero to nine.
+// The even numbers in the range of zero to nine.
 // var iter = IterAnyFromRange(0..10).Filter(func(x T) {return x % 2 == 0});
 //
-// // We might iterate from zero to ten times. Knowing that it's five
-// // exactly wouldn't be possible without executing filter().
+// We might iterate from zero to ten times. Knowing that it's five
+// exactly wouldn't be possible without executing filter().
 // assert.Equal(t, (0, gust.Some(10)), iter.SizeHint());
 //
-// // Let's add five more numbers with chain()
+// Let's add five more numbers with chain()
 // var iter = IterAnyFromRange(0, 10).Filter(func(x T) {return x % 2 == 0}).Chain(IterAnyFromRange(15, 20));
 //
-// // now both bounds are increased by five
+// now both bounds are increased by five
 // assert.Equal(t, (5, gust.Some(15)), iter.SizeHint());
 //
 // Returning `gust.None[int]()` for an upper bound:
 //
-// // an infinite next has no upper bound
-// // and the maximum possible lower bound
+// an infinite next has no upper bound
+// and the maximum possible lower bound
 // var iter = IterAnyFromRange(0, math.MaxInt);
 //
 // assert.Equal(t, (math.MaxInt, gust.None[int]()), iter.SizeHint());
@@ -215,7 +216,7 @@ func (iter *AnyIter[T]) SizeHint() (uint64, gust.Option[uint64]) {
 //
 // var a = []int{1, 2, 3};
 //
-// // the sum of all the elements of the array
+// the sum of all the elements of the array
 // var sum = IterAnyFromVec(a).Fold((0, func(acc any, x T) any { return acc.(int) + x });
 //
 // assert.Equal(t, sum, 6);
@@ -251,7 +252,7 @@ func (iter *AnyIter[T]) Fold(init any, f func(any, T) any) any {
 //
 // var a = []int{1, 2, 3};
 //
-// // the checked sum of all the elements of the array
+// the checked sum of all the elements of the array
 // var sum = IterAnyFromVec(a).TryFold(0, func(acc any, x T) { return Ok(acc.(int)+x) });
 //
 // assert.Equal(t, sum, Ok(6));
@@ -334,7 +335,7 @@ func (iter *AnyIter[T]) Last() gust.Option[T] {
 // length of the next). Note that `k` is always less than `n`.
 //
 // Calling `AdvanceBy(0)` can do meaningful work, for example [`Flatten`]
-// can advance its outer next until it finds an inner next that is not empty, which
+// can advance its outer next until it finds an core next that is not empty, which
 // then often allows it to return a more accurate `SizeHint()` than in its initial state.
 // `AdvanceBy(0)` may either return `T()` or `Err(0)`. The former conveys no information
 // whether the next is or is not exhausted, the latter can be treated as if [`Nextor`]
@@ -463,7 +464,38 @@ func (iter *AnyIter[T]) ForEach(f func(T)) {
 	_ = iter.Fold(nil, call(f))
 }
 
+// Filter creates an iterator which uses a closure to determine if an element
+// should be yielded.
+//
+// Given an element the closure must return `true` or `false`. The returned
+// iterator will yield only the elements for which the closure returns
+// true.
+//
+// # Examples
+//
+// Basic usage:
+//
+// ```
+// var a = []int{0, 1, 2};
+//
+// var iter = IterAnyFromVec(a).Filter(func(x int)bool{return x>0});
+//
+// assert_eq!(iter.Next(), gust.Some(&1));
+// assert_eq!(iter.Next(), gust.Some(&2));
+// assert_eq!(iter.Next(), gust.None[int]());
+// ```
+//
+// Note that `iter.Filter(f).Next()` is equivalent to `iter.Find(f)`.
 func (iter *AnyIter[T]) Filter(f func(T) bool) *AnyIter[T] {
+	return newAnyIter[T](1, func(t T) gust.Option[T] {
+		if f(t) {
+			return gust.Some(t)
+		}
+		return gust.None[T]()
+	}, iter)
+}
+
+func (iter *AnyIter[T]) FilterMap(f func(T) gust.Option[T]) *AnyIter[T] {
 	return newAnyIter[T](1, f, iter)
 }
 
@@ -534,7 +566,7 @@ func (iter *AnyIter[T]) Reduce(f func(accum T, item T) T) gust.Option[T] {
 //
 // assert.True(t, !iter.All(func(x T) bool { return x != 2}));
 //
-// // we can still use `iter`, as there are more elements.
+// we can still use `iter`, as there are more elements.
 // assert.Equal(t, iter.Next(), gust.Some(3));
 func (iter *AnyIter[T]) All(predicate func(T) bool) bool {
 	var check = func(f func(T) bool) func(any, T) gust.Result[any] {
@@ -580,7 +612,7 @@ func (iter *AnyIter[T]) All(predicate func(T) bool) bool {
 //
 // assert.True(t, iter.Any(func(x T) bool { return x != 2}));
 //
-// // we can still use `iter`, as there are more elements.
+// we can still use `iter`, as there are more elements.
 // assert.Equal(t, iter.Next(), gust.Some(2));
 func (iter *AnyIter[T]) Any(predicate func(T) bool) bool {
 	var check = func(f func(T) bool) func(any, T) gust.Result[any] {
@@ -630,7 +662,7 @@ func (iter *AnyIter[T]) Any(predicate func(T) bool) bool {
 //
 // assert.Equal(t, iter.Find(func(x T) bool{return x==2}), gust.Some(2));
 //
-// // we can still use `iter`, as there are more elements.
+// we can still use `iter`, as there are more elements.
 // assert.Equal(t, iter.Next(), gust.Some(3));
 //
 // Note that `iter.Find(f)` is equivalent to `iter.Filter(f).Next()`.
@@ -761,10 +793,10 @@ func (iter *AnyIter[T]) TryFind(predicate func(T) gust.Result[bool]) gust.Result
 //
 // assert.Equal(t, iter.Position(func(x int)bool{return x >= 2}), gust.Some(1));
 //
-// // we can still use `iter`, as there are more elements.
+// we can still use `iter`, as there are more elements.
 // assert.Equal(t, iter.Next(), gust.Some(3));
 //
-// // The returned index depends on next state
+// The returned index depends on next state
 // assert.Equal(t, iter.Position(func(x int)bool{return x == 4}), gust.Some(0));
 func (iter *AnyIter[T]) Position(predicate func(T) bool) gust.Option[int] {
 	var check = func(f func(T) bool) func(int, T) gust.Result[int] {
