@@ -1,8 +1,6 @@
 package iter
 
 import (
-	"fmt"
-
 	"github.com/andeya/gust"
 )
 
@@ -73,7 +71,7 @@ func (iter iterTrait[T]) AdvanceBy(n uint) gust.Result[struct{}] {
 	}
 	for i := uint(0); i < n; i++ {
 		if iter.Next().IsNone() {
-			return gust.Err[struct{}](fmt.Errorf("%d", i))
+			return gust.Err[struct{}](i)
 		}
 	}
 	return gust.Ok(struct{}{})
