@@ -230,10 +230,10 @@ type (
 		// | 3       | 3   | 3 | 6      |
 		//
 		// And so, our final result, `6`.
-		Fold(init any, f func(any, T) any) any
+		Fold(init any, fold func(any, T) any) any
 	}
 	iRealFold[T any] interface {
-		realFold(init any, f func(any, T) any) any
+		realFold(init any, fold func(any, T) any) any
 	}
 )
 type (
@@ -251,10 +251,10 @@ type (
 		// var sum = FromVec(a).TryFold(0, func(acc any, x T) { return Ok(acc.(int)+x) });
 		//
 		// assert.Equal(t, sum, Ok(6));
-		TryFold(init any, f func(any, T) gust.Result[any]) gust.Result[any]
+		TryFold(init any, fold func(any, T) gust.Result[any]) gust.Result[any]
 	}
 	iRealTryFold[T any] interface {
-		realTryFold(init any, f func(any, T) gust.Result[any]) gust.Result[any]
+		realTryFold(init any, fold func(any, T) gust.Result[any]) gust.Result[any]
 	}
 )
 type (

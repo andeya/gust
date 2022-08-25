@@ -18,3 +18,19 @@ func TryFold[T any, B any](next iNext[T], init B, f func(B, T) gust.Result[B]) g
 	}
 	return accum
 }
+
+func Fold[T any, B any](next iNext[T], init B, f func(B, T) B) B {
+	var accum = init
+	for {
+		x := next.Next()
+		if x.IsNone() {
+			break
+		}
+		accum = f(accum, x.Unwrap())
+	}
+	return accum
+}
+
+func Map[T any, B any](iter Iterator[T], f func(T) B) *MapIterator[T, B] {
+	return newMapIterator(iter, f)
+}
