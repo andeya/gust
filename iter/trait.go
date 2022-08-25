@@ -10,6 +10,7 @@ type iterTrait[T any] struct {
 	facade iRealNext[T]
 }
 
+//goland:noinspection GoMixedReceiverTypes
 func (iter *iterTrait[T]) setFacade(facade iRealNext[T]) {
 	iter.facade = facade
 }
@@ -234,30 +235,30 @@ func (iter iterTrait[T]) Position(predicate func(T) bool) gust.Option[int] {
 	return gust.None[int]()
 }
 
-func (iter iterTrait[T]) StepBy(step uint) *StepBy[T] {
+func (iter iterTrait[T]) StepBy(step uint) *StepByIterator[T] {
 	if cover, ok := iter.facade.(iRealStepBy[T]); ok {
 		return cover.realStepBy(step)
 	}
-	return newStepBy[T](iter, step)
+	return newStepByIterator[T](iter, step)
 }
 
-func (iter iterTrait[T]) Filter(f func(T) bool) *Filter[T] {
+func (iter iterTrait[T]) Filter(f func(T) bool) *FilterIterator[T] {
 	if cover, ok := iter.facade.(iRealFilter[T]); ok {
 		return cover.realFilter(f)
 	}
-	return newFilter[T](iter, f)
+	return newFilterIterator[T](iter, f)
 }
 
-func (iter iterTrait[T]) FilterMap(f func(T) gust.Option[T]) *FilterMap[T] {
+func (iter iterTrait[T]) FilterMap(f func(T) gust.Option[T]) *FilterMapIterator[T] {
 	if cover, ok := iter.facade.(iRealFilterMap[T]); ok {
 		return cover.realFilterMap(f)
 	}
-	return newFilterMap[T](iter, f)
+	return newFilterMapIterator[T](iter, f)
 }
 
-func (iter iterTrait[T]) Chain(other Iterator[T]) *Chain[T] {
+func (iter iterTrait[T]) Chain(other Iterator[T]) *ChainIterator[T] {
 	if cover, ok := iter.facade.(iRealChain[T]); ok {
 		return cover.realChain(other)
 	}
-	return newChain[T](iter, other)
+	return newChainIterator[T](iter, other)
 }

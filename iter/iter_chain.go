@@ -7,25 +7,25 @@ import (
 )
 
 var (
-	_ Iterator[any]  = (*Chain[any])(nil)
-	_ iRealNext[any] = (*Chain[any])(nil)
-	_ iRealSizeHint  = (*Chain[any])(nil)
-	_ iRealCount     = (*Chain[any])(nil)
+	_ Iterator[any]  = (*ChainIterator[any])(nil)
+	_ iRealNext[any] = (*ChainIterator[any])(nil)
+	_ iRealSizeHint  = (*ChainIterator[any])(nil)
+	_ iRealCount     = (*ChainIterator[any])(nil)
 )
 
-func newChain[T any](inner Iterator[T], other Iterator[T]) *Chain[T] {
-	iter := &Chain[T]{inner: inner, other: other}
+func newChainIterator[T any](inner Iterator[T], other Iterator[T]) *ChainIterator[T] {
+	iter := &ChainIterator[T]{inner: inner, other: other}
 	iter.setFacade(iter)
 	return iter
 }
 
-type Chain[T any] struct {
+type ChainIterator[T any] struct {
 	iterTrait[T]
 	inner Iterator[T]
 	other Iterator[T]
 }
 
-func (s *Chain[T]) realNext() gust.Option[T] {
+func (s *ChainIterator[T]) realNext() gust.Option[T] {
 	if s.inner != nil {
 		item := s.inner.Next()
 		if item.IsSome() {
@@ -57,7 +57,7 @@ func checkedAdd(a, b uint64) gust.Option[uint64] {
 	return gust.None[uint64]()
 }
 
-func (s *Chain[T]) realSizeHint() (uint64, gust.Option[uint64]) {
+func (s *ChainIterator[T]) realSizeHint() (uint64, gust.Option[uint64]) {
 	if s.inner != nil && s.other != nil {
 		var aLower, aUpper = s.inner.SizeHint()
 		var bLower, bUpper = s.other.SizeHint()
@@ -77,7 +77,7 @@ func (s *Chain[T]) realSizeHint() (uint64, gust.Option[uint64]) {
 	return 0, gust.Some[uint64](0)
 }
 
-func (s *Chain[T]) realCount() uint64 {
+func (s *ChainIterator[T]) realCount() uint64 {
 	var aCount uint64
 	if s.inner != nil {
 		aCount = s.inner.Count()

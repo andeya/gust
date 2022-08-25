@@ -43,16 +43,16 @@ type (
 		// var iter = FromVec(a);
 		//
 		// // A call to next() returns the next value...
-		// assert.Equal(t, gust.Some(1), iter.iNext());
-		// assert.Equal(t, gust.Some(2), iter.iNext());
-		// assert.Equal(t, gust.Some(3), iter.iNext());
+		// assert.Equal(t, gust.Some(1), iter.Next());
+		// assert.Equal(t, gust.Some(2), iter.Next());
+		// assert.Equal(t, gust.Some(3), iter.Next());
 		//
 		// // ... and then None once it's over.
-		// assert.Equal(t, gust.None[int](), iter.iNext());
+		// assert.Equal(t, gust.None[int](), iter.Next());
 		//
 		// // More calls may or may not return `gust.None[T]()`. Here, they always will.
-		// assert.Equal(t, gust.None[int](), iter.iNext());
-		// assert.Equal(t, gust.None[int](), iter.iNext());
+		// assert.Equal(t, gust.None[int](), iter.Next());
+		// assert.Equal(t, gust.None[int](), iter.Next());
 		Next() gust.Option[T]
 	}
 	iRealNext[T any] interface {
@@ -66,8 +66,8 @@ type (
 	iCount interface {
 		// Count consumes the next, counting the number of iterations and returning it.
 		//
-		// This method will call [`iNext`] repeatedly until [`gust.None[T]()`] is encountered,
-		// returning the number of times it saw [`gust.Some`]. Note that [`iNext`] has to be
+		// This method will call [`Next`] repeatedly until [`gust.None[T]()`] is encountered,
+		// returning the number of times it saw [`gust.Some`]. Note that [`Next`] has to be
 		// called at least once even if the next does not have any elements.
 		//
 		// # Overflow Behavior
@@ -87,10 +87,10 @@ type (
 		// Basic usage:
 		//
 		// var a = []int{1, 2, 3};
-		// assert.Equal(t, FromVec(a).iCount(), 3);
+		// assert.Equal(t, FromVec(a).Count(), 3);
 		//
 		// var a = []int{1, 2, 3, 4, 5};
-		// assert.Equal(t, FromVec(a).iCount(), 5);
+		// assert.Equal(t, FromVec(a).Count(), 5);
 		Count() uint64
 	}
 	iRealCount interface {
@@ -104,7 +104,7 @@ type (
 	iSizeHint interface {
 		// SizeHint returns the bounds on the remaining length of the next.
 		//
-		// Specifically, `iSizeHint()` returns a tuple where the first element
+		// Specifically, `SizeHint()` returns a tuple where the first element
 		// is the lower bound, and the second element is the upper bound.
 		//
 		// The second half of the tuple that is returned is an <code>Option[T]</code>.
@@ -117,10 +117,10 @@ type (
 		// number of elements. A buggy next may yield less than the lower bound
 		// or more than the upper bound of elements.
 		//
-		// `iSizeHint()` is primarily intended to be used for optimizations such as
+		// `SizeHint()` is primarily intended to be used for optimizations such as
 		// reserving space for the elements of the next, but must not be
 		// trusted to e.g., omit bounds checks in unsafe code. An incorrect
-		// implementation of `iSizeHint()` should not lead to memory safety
+		// implementation of `SizeHint()` should not lead to memory safety
 		// violations.
 		//
 		// That said, the implementation should provide a correct estimation,
@@ -136,7 +136,7 @@ type (
 		// var a = []int{1, 2, 3};
 		// var iter = FromVec(a);
 		//
-		// assert.Equal(t, (3, gust.Some(3)), iter.iSizeHint());
+		// assert.Equal(t, (3, gust.Some(3)), iter.SizeHint());
 		//
 		// A more complex example:
 		//
@@ -145,13 +145,13 @@ type (
 		//
 		// // We might iterate from zero to ten times. Knowing that it's five
 		// // exactly wouldn't be possible without executing filter().
-		// assert.Equal(t, (0, gust.Some(10)), iter.iSizeHint());
+		// assert.Equal(t, (0, gust.Some(10)), iter.SizeHint());
 		//
 		// // Let's add five more numbers with chain()
 		// var iter = FromRange(0, 10).Filter(func(x T) {return x % 2 == 0}).Chain(FromRange(15, 20));
 		//
 		// // now both bounds are increased by five
-		// assert.Equal(t, (5, gust.Some(15)), iter.iSizeHint());
+		// assert.Equal(t, (5, gust.Some(15)), iter.SizeHint());
 		//
 		// Returning `gust.None[int]()` for an upper bound:
 		//
@@ -159,7 +159,7 @@ type (
 		// // and the maximum possible lower bound
 		// var iter = FromRange(0, math.MaxInt);
 		//
-		// assert.Equal(t, (math.MaxInt, gust.None[int]()), iter.iSizeHint());
+		// assert.Equal(t, (math.MaxInt, gust.None[int]()), iter.SizeHint());
 		SizeHint() (uint64, gust.Option[uint64])
 	}
 	iRealSizeHint interface {
@@ -216,7 +216,7 @@ type (
 		// var a = []int{1, 2, 3};
 		//
 		// the sum of iAll the elements of the array
-		// var sum = FromVec(a).iFold((0, func(acc any, x T) any { return acc.(int) + x });
+		// var sum = FromVec(a).Fold((0, func(acc any, x T) any { return acc.(int) + x });
 		//
 		// assert.Equal(t, sum, 6);
 		//
@@ -284,7 +284,7 @@ type (
 	iAdvanceBy[T any] interface {
 		// AdvanceBy advances the next by `n` elements.
 		//
-		// This method will eagerly skip `n` elements by calling [`iNext`] up to `n`
+		// This method will eagerly skip `n` elements by calling [`Next`] up to `n`
 		// times until [`None[T]()`] is encountered.
 		//
 		// `AdvanceBy(n)` will return [`Ok[struct{}](struct{}{})`] if the next successfully advances by
@@ -293,10 +293,10 @@ type (
 		// length of the next). Note that `k` is always less than `n`.
 		//
 		// Calling `AdvanceBy(0)` can do meaningful work, for example [`Flatten`]
-		// can advance its outer next until it finds an facade next that is not empty, which
-		// then often allows it to return a more accurate `iSizeHint()` than in its initial state.
+		// can advance its outer next until it finds a facade next that is not empty, which
+		// then often allows it to return a more accurate `SizeHint()` than in its initial state.
 		// `AdvanceBy(0)` may either return `T()` or `Err(0)`. The former conveys no information
-		// whether the next is or is not exhausted, the latter can be treated as if [`iNext`]
+		// whether the next is or is not exhausted, the latter can be treated as if [`Next`]
 		// had returned `None[T]()`. Replacing a `Err(0)` with `T` is only correct for `n = 0`.
 		//
 		// # Examples
@@ -307,7 +307,7 @@ type (
 		// var iter = FromVec(a);
 		//
 		// assert.Equal(t, iter.AdvanceBy(2), Ok[struct{}](struct{}{}));
-		// assert.Equal(t, iter.iNext(), Some(3));
+		// assert.Equal(t, iter.Next(), Some(3));
 		// assert.Equal(t, iter.AdvanceBy(0), Ok[struct{}](struct{}{}));
 		// assert.Equal(t, iter.AdvanceBy(100), Err[struct{}](fmt.Errorf("%d", 1))); // only `4` was skipped
 		AdvanceBy(n uint) gust.Result[struct{}]
@@ -366,7 +366,7 @@ type (
 		// more idiomatic to use a `for` loop, but `ForEach` may be more legible
 		// when processing items at the end of longer next chains. In some
 		// cases `ForEach` may also be faster than a loop, because it will use
-		// internal iteration on adapters like `Chain`.
+		// internal iteration on adapters like `ChainIterator`.
 		//
 		// # Examples
 		//
@@ -453,7 +453,7 @@ type (
 		// assert.True(t, !iter.All(func(x T) bool { return x != 2}));
 		//
 		// we can still use `iter`, as there are more elements.
-		// assert.Equal(t, iter.iNext(), gust.Some(3));
+		// assert.Equal(t, iter.Next(), gust.Some(3));
 		All(predicate func(T) bool) bool
 	}
 	iRealAll[T any] interface {
@@ -494,7 +494,7 @@ type (
 		// assert.True(t, iter.Any(func(x T) bool { return x != 2}));
 		//
 		// we can still use `iter`, as there are more elements.
-		// assert.Equal(t, iter.iNext(), gust.Some(2));
+		// assert.Equal(t, iter.Next(), gust.Some(2));
 		Any(predicate func(T) bool) bool
 	}
 	iRealAny[T any] interface {
@@ -539,9 +539,9 @@ type (
 		// assert.Equal(t, iter.Find(func(x T) bool{return x==2}), gust.Some(2));
 		//
 		// we can still use `iter`, as there are more elements.
-		// assert.Equal(t, iter.iNext(), gust.Some(3));
+		// assert.Equal(t, iter.Next(), gust.Some(3));
 		//
-		// Note that `iter.Find(f)` is equivalent to `iter.Filter(f).iNext()`.
+		// Note that `iter.Find(f)` is equivalent to `iter.Filter(f).Next()`.
 		Find(predicate func(T) bool) gust.Option[T]
 	}
 	iRealFind[T any] interface {
@@ -553,7 +553,7 @@ type (
 		// FindMap applies function to the elements of next and returns
 		// the first non-none
 		//
-		// `iter.FindMap(f)` is equivalent to `iter.FilterMap(f).iNext()`.
+		// `iter.FindMap(f)` is equivalent to `iter.FilterMap(f).Next()`.
 		//
 		// # Examples
 		//
@@ -637,7 +637,7 @@ type (
 		// assert.Equal(t, iter.Position(func(x int)bool{return x >= 2}), gust.Some(1));
 		//
 		// we can still use `iter`, as there are more elements.
-		// assert.Equal(t, iter.iNext(), gust.Some(3));
+		// assert.Equal(t, iter.Next(), gust.Some(3));
 		//
 		// The returned index depends on next state
 		// assert.Equal(t, iter.Position(func(x int)bool{return x == 4}), gust.Some(0));
@@ -656,7 +656,7 @@ type (
 		// regardless of the step given.
 		//
 		// Note 2: The time at which ignored elements are pulled is not fixed.
-		// `StepBy` behaves like the sequence `iter.iNext()`, `iter.Nth(step-1)`,
+		// `StepByIterator` behaves like the sequence `iter.Next()`, `iter.Nth(step-1)`,
 		// `iter.Nth(step-1)`, …, but is also free to behave like the sequence.
 		//
 		// # Examples
@@ -666,14 +666,14 @@ type (
 		// var a = []int{0, 1, 2, 3, 4, 5};
 		// var iter = FromVec(a).StepBy(2);
 		//
-		// assert.Equal(t, iter.iNext(), Some(0));
-		// assert.Equal(t, iter.iNext(), Some(2));
-		// assert.Equal(t, iter.iNext(), Some(4));
-		// assert.Equal(t, iter.iNext(), None[T]());
-		StepBy(step uint) *StepBy[T]
+		// assert.Equal(t, iter.Next(), Some(0));
+		// assert.Equal(t, iter.Next(), Some(2));
+		// assert.Equal(t, iter.Next(), Some(4));
+		// assert.Equal(t, iter.Next(), None[T]());
+		StepBy(step uint) *StepByIterator[T]
 	}
 	iRealStepBy[T any] interface {
-		realStepBy(step uint) *StepBy[T]
+		realStepBy(step uint) *StepByIterator[T]
 	}
 )
 type (
@@ -694,16 +694,16 @@ type (
 		//
 		// var iter = FromVec(a).Filter(func(x int)bool{return x>0});
 		//
-		// assert_eq!(iter.iNext(), gust.Some(&1));
-		// assert_eq!(iter.iNext(), gust.Some(&2));
-		// assert_eq!(iter.iNext(), gust.None[int]());
+		// assert_eq!(iter.Next(), gust.Some(&1));
+		// assert_eq!(iter.Next(), gust.Some(&2));
+		// assert_eq!(iter.Next(), gust.None[int]());
 		// ```
 		//
-		// Note that `iter.Filter(f).iNext()` is equivalent to `iter.Find(f)`.
-		Filter(f func(T) bool) *Filter[T]
+		// Note that `iter.Filter(f).Next()` is equivalent to `iter.Find(f)`.
+		Filter(f func(T) bool) *FilterIterator[T]
 	}
 	iRealFilter[T any] interface {
-		realFilter(f func(T) bool) *Filter[T]
+		realFilter(f func(T) bool) *FilterIterator[T]
 	}
 )
 type (
@@ -730,10 +730,10 @@ type (
 		// assert_eq!(iter.next(), gust.Some(5));
 		// assert_eq!(iter.next(), gust.None[string]());
 		// ```
-		FilterMap(f func(T) gust.Option[T]) *FilterMap[T]
+		FilterMap(f func(T) gust.Option[T]) *FilterMapIterator[T]
 	}
 	iRealFilterMap[T any] interface {
-		realFilterMap(f func(T) gust.Option[T]) *FilterMap[T]
+		realFilterMap(f func(T) gust.Option[T]) *FilterMapIterator[T]
 	}
 )
 type (
@@ -759,17 +759,17 @@ type (
 		//
 		// var iter = FromVec(a1).Chain(FromVec(a2));
 		//
-		// assert.Equal(t, iter.iNext(), Some(1));
-		// assert.Equal(t, iter.iNext(), Some(2));
-		// assert.Equal(t, iter.iNext(), Some(3));
-		// assert.Equal(t, iter.iNext(), Some(4));
-		// assert.Equal(t, iter.iNext(), Some(5));
-		// assert.Equal(t, iter.iNext(), Some(6));
-		// assert.Equal(t, iter.iNext(), None[int]());
+		// assert.Equal(t, iter.Next(), Some(1));
+		// assert.Equal(t, iter.Next(), Some(2));
+		// assert.Equal(t, iter.Next(), Some(3));
+		// assert.Equal(t, iter.Next(), Some(4));
+		// assert.Equal(t, iter.Next(), Some(5));
+		// assert.Equal(t, iter.Next(), Some(6));
+		// assert.Equal(t, iter.Next(), None[int]());
 		//
-		Chain(other Iterator[T]) *Chain[T]
+		Chain(other Iterator[T]) *ChainIterator[T]
 	}
 	iRealChain[T any] interface {
-		realChain(other Iterator[T]) *Chain[T]
+		realChain(other Iterator[T]) *ChainIterator[T]
 	}
 )

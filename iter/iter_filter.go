@@ -5,25 +5,25 @@ import (
 )
 
 var (
-	_ Iterator[any]  = (*Filter[any])(nil)
-	_ iRealNext[any] = (*Filter[any])(nil)
-	// _ iRealSizeHint  = (*Filter[any])(nil)
-	// _ iRealCount     = (*Filter[any])(nil)
+	_ Iterator[any]  = (*FilterIterator[any])(nil)
+	_ iRealNext[any] = (*FilterIterator[any])(nil)
+	// _ iRealSizeHint  = (*FilterIterator[any])(nil)
+	// _ iRealCount     = (*FilterIterator[any])(nil)
 )
 
-func newFilter[T any](inner Iterator[T], filter func(T) bool) *Filter[T] {
-	iter := &Filter[T]{inner: inner, filter: filter}
+func newFilterIterator[T any](inner Iterator[T], filter func(T) bool) *FilterIterator[T] {
+	iter := &FilterIterator[T]{inner: inner, filter: filter}
 	iter.setFacade(iter)
 	return iter
 }
 
-type Filter[T any] struct {
+type FilterIterator[T any] struct {
 	iterTrait[T]
 	inner  Iterator[T]
 	filter func(T) bool
 }
 
-func (f Filter[T]) realNext() gust.Option[T] {
+func (f FilterIterator[T]) realNext() gust.Option[T] {
 	// TODO implement me
 	panic("implement me")
 }
