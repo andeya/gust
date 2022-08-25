@@ -6,9 +6,9 @@ import (
 )
 
 var (
-	_ Nextor[uint64] = new(RangeNext[uint64])
-	_ SizeHint       = new(RangeNext[uint64])
-	_ counter        = new(RangeNext[uint64])
+	_ NextForIter[uint64] = (*RangeNext[uint64])(nil)
+	_ SizeHintForIter     = (*RangeNext[uint64])(nil)
+	_ CountForIter        = (*RangeNext[uint64])(nil)
 )
 
 type RangeNext[T digit.Integer] struct {
@@ -36,11 +36,11 @@ func NewRangeNext[T digit.Integer](start T, end T, rightClosed ...bool) *RangeNe
 	}
 }
 
-func (r *RangeNext[T]) ToIter() *AnyIter[T] {
-	return IterAny[T](r)
+func (r *RangeNext[T]) ToIter() *Iter[T] {
+	return newIter[T](r)
 }
 
-func (r *RangeNext[T]) Next() gust.Option[T] {
+func (r *RangeNext[T]) NextForIter() gust.Option[T] {
 	if r.ended {
 		return gust.None[T]()
 	}
@@ -53,12 +53,12 @@ func (r *RangeNext[T]) Next() gust.Option[T] {
 	return gust.Some(value)
 }
 
-func (r *RangeNext[T]) SizeHint() (uint64, gust.Option[uint64]) {
+func (r *RangeNext[T]) SizeHintForIter() (uint64, gust.Option[uint64]) {
 	size := uint64(r.max - r.nextValue + 1)
 	return size, gust.Some(size)
 }
 
-func (r *RangeNext[T]) count() uint64 {
+func (r *RangeNext[T]) CountForIter() uint64 {
 	if !r.ended {
 		return 0
 	}
