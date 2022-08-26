@@ -24,6 +24,7 @@ type Iterator[T any] interface {
 	iFilterMap[T]
 	iChain[T]
 	iMap[T]
+	iInspect[T]
 	// Collect collects all the items in the iterator into a slice.
 	Collect() []T
 }
