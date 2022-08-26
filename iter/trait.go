@@ -30,12 +30,12 @@ func (iter iterTrait[T]) Count() uint64 {
 	if cover, ok := iter.facade.(iRealCount); ok {
 		return cover.realCount()
 	}
-	return iter.Fold(
+	return Fold[T, uint64](iter,
 		uint64(0),
-		func(count any, _ T) any {
-			return count.(uint64) + 1
+		func(count uint64, _ T) uint64 {
+			return count + 1
 		},
-	).(uint64)
+	)
 }
 
 func (iter iterTrait[T]) Fold(init any, f func(any, T) any) any {
@@ -56,7 +56,12 @@ func (iter iterTrait[T]) Last() gust.Option[T] {
 	if cover, ok := iter.facade.(iRealLast[T]); ok {
 		return cover.realLast()
 	}
-	return iter.Fold(gust.None[T](), func(_ any, x T) any { return gust.Some(x) }).(gust.Option[T])
+	return Fold[T, gust.Option[T]](
+		iter,
+		gust.None[T](),
+		func(_ gust.Option[T], x T) gust.Option[T] {
+			return gust.Some(x)
+		})
 }
 
 func (iter iterTrait[T]) AdvanceBy(n uint) gust.Result[struct{}] {
@@ -104,9 +109,9 @@ func (iter iterTrait[T]) Reduce(f func(accum T, item T) T) gust.Option[T] {
 	if first.IsNone() {
 		return first
 	}
-	return gust.Some(iter.Fold(first, func(accum any, item T) any {
-		return f(accum.(T), item)
-	}).(T))
+	return gust.Some(Fold[T, T](iter, first.Unwrap(), func(accum T, item T) T {
+		return f(accum, item)
+	}))
 }
 
 func (iter iterTrait[T]) All(predicate func(T) bool) bool {
