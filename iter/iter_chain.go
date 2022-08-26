@@ -1,8 +1,6 @@
 package iter
 
 import (
-	"math"
-
 	"github.com/andeya/gust"
 )
 
@@ -150,20 +148,6 @@ func (s *ChainIterator[T]) realNext() gust.Option[T] {
 		return s.other.Next()
 	}
 	return gust.None[T]()
-}
-
-func saturatingAdd(a, b uint64) uint64 {
-	if a < math.MaxUint64-b {
-		return a + b
-	}
-	return math.MaxUint64
-}
-
-func checkedAdd(a, b uint64) gust.Option[uint64] {
-	if a <= math.MaxUint64-b {
-		return gust.Some(a + b)
-	}
-	return gust.None[uint64]()
 }
 
 func (s *ChainIterator[T]) realSizeHint() (uint64, gust.Option[uint64]) {

@@ -173,21 +173,7 @@ func (iter iterTrait[T]) FindMap(f func(T) gust.Option[any]) gust.Option[any] {
 	if cover, ok := iter.facade.(iRealFindMap[T]); ok {
 		return cover.realFindMap(f)
 	}
-	var check = func(f func(T) gust.Option[any]) func(any, T) gust.Result[any] {
-		return func(_ any, x T) gust.Result[any] {
-			r := f(x)
-			if r.IsSome() {
-				return gust.Err[any](x)
-			} else {
-				return gust.Ok[any](nil)
-			}
-		}
-	}
-	r := iter.TryFold(nil, check(f))
-	if r.IsErr() {
-		return gust.Some(r.ErrVal())
-	}
-	return gust.None[any]()
+	return FindMap[T, any](iter, f)
 }
 
 func (iter iterTrait[T]) TryFind(predicate func(T) gust.Result[bool]) gust.Result[gust.Option[T]] {

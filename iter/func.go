@@ -34,3 +34,17 @@ func Fold[T any, B any](next iNext[T], init B, f func(B, T) B) B {
 func Map[T any, B any](iter Iterator[T], f func(T) B) *MapIterator[T, B] {
 	return newMapIterator(iter, f)
 }
+
+func FindMap[T any, B any](iter Iterator[T], f func(T) gust.Option[B]) gust.Option[B] {
+	for {
+		x := iter.Next()
+		if x.IsNone() {
+			break
+		}
+		y := f(x.Unwrap())
+		if y.IsSome() {
+			return y
+		}
+	}
+	return gust.None[B]()
+}
