@@ -61,3 +61,17 @@ func FindMap[T any, B any](iter Iterator[T], f func(T) gust.Option[B]) gust.Opti
 	}
 	return gust.None[B]()
 }
+
+// FromIterator conversion from an [`Iterator`].
+//
+// By implementing `FromIterator` for a type, you define how it will be
+// created from an iterator. This is common for types which describe a
+// collection of some kind.
+type FromIterator[T any, R any] interface {
+	FromIter(Iterator[T]) R
+}
+
+// Collect collects all the items in the iterator into a slice.
+func Collect[T any, R any](iter Iterator[T], fromIter FromIterator[T, R]) R {
+	return fromIter.FromIter(iter)
+}
