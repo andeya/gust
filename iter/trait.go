@@ -42,15 +42,7 @@ func (iter iterTrait[T]) Fold(init any, f func(any, T) any) any {
 	if cover, ok := iter.facade.(iRealFold[T]); ok {
 		return cover.realFold(init, f)
 	}
-	var accum = init
-	for {
-		x := iter.Next()
-		if x.IsNone() {
-			break
-		}
-		accum = f(accum, x.Unwrap())
-	}
-	return accum
+	return Fold[T, any](iter, init, f)
 }
 
 func (iter iterTrait[T]) TryFold(init any, f func(any, T) gust.Result[any]) gust.Result[any] {
@@ -254,4 +246,11 @@ func (iter iterTrait[T]) Map(f func(T) any) *MapIterator[T, any] {
 		return cover.realMap(f)
 	}
 	return newMapIterator[T, any](iter, f)
+}
+
+func (iter iterTrait[T]) Collect() []T {
+	lower, _ := iter.SizeHint()
+	return Fold[T, []T](iter, make([]T, 0, lower), func(slice []T, x T) []T {
+		return append(slice, x)
+	})
 }
