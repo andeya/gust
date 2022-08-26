@@ -44,16 +44,12 @@ func (f FilterIterator[T]) realTryFold(init any, fold func(any, T) gust.Result[a
 }
 
 func (f FilterIterator[T]) realCount() uint64 {
-	var toUsize = func(predicate func(T) bool) func(T) uint64 {
-		return func(x T) uint64 {
-			if predicate(x) {
-				return 1
-			} else {
-				return 0
-			}
+	return Map[T, uint64](f.iter, func(x T) uint64 {
+		if f.predicate(x) {
+			return 1
 		}
-	}
-	return Map(f.iter, toUsize(f.predicate)).Fold(uint64(0), func(count any, x uint64) any {
+		return 0
+	}).Fold(uint64(0), func(count any, x uint64) any {
 		return count.(uint64) + x
 	}).(uint64)
 }

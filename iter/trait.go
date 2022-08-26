@@ -4,6 +4,8 @@ import (
 	"github.com/andeya/gust"
 )
 
+var _ Iterator[any] = iterTrait[any]{}
+
 type iterTrait[T any] struct {
 	facade iRealNext[T]
 }
@@ -259,4 +261,11 @@ func (iter iterTrait[T]) Chain(other Iterator[T]) *ChainIterator[T] {
 		return cover.realChain(other)
 	}
 	return newChainIterator[T](iter, other)
+}
+
+func (iter iterTrait[T]) Map(f func(T) any) *MapIterator[T, any] {
+	if cover, ok := iter.facade.(iRealMap[T]); ok {
+		return cover.realMap(f)
+	}
+	return newMapIterator[T, any](iter, f)
 }

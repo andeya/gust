@@ -23,6 +23,7 @@ type Iterator[T any] interface {
 	iFilter[T]
 	iFilterMap[T]
 	iChain[T]
+	iMap[T]
 }
 
 type (
@@ -261,8 +262,8 @@ type (
 	iLast[T any] interface {
 		// Last consumes the next, returning the iLast element.
 		//
-		// This method will evaluate the next until it returns [`None[T]()`]. While
-		// doing so, it keeps track of the current element. After [`None[T]()`] is
+		// This method will evaluate the next until it returns [`gust.None[T]()`]. While
+		// doing so, it keeps track of the current element. After [`gust.None[T]()`] is
 		// returned, `Last()` will then return the iLast element it saw.
 		//
 		// # Examples
@@ -270,10 +271,10 @@ type (
 		// Basic usage:
 		//
 		// var a = []int{1, 2, 3};
-		// assert.Equal(t, FromVec(a).Last(), Some(3));
+		// assert.Equal(t, FromVec(a).Last(), gust.Some(3));
 		//
 		// var a = [1, 2, 3, 4, 5];
-		// assert.Equal(t, FromVec(a).Last(), Some(5));
+		// assert.Equal(t, FromVec(a).Last(), gust.Some(5));
 		Last() gust.Option[T]
 	}
 	iRealLast[T any] interface {
@@ -285,10 +286,10 @@ type (
 		// AdvanceBy advances the next by `n` elements.
 		//
 		// This method will eagerly skip `n` elements by calling [`Next`] up to `n`
-		// times until [`None[T]()`] is encountered.
+		// times until [`gust.None[T]()`] is encountered.
 		//
 		// `AdvanceBy(n)` will return [`Ok[struct{}](struct{}{})`] if the next successfully advances by
-		// `n` elements, or [`Err[struct{}](err)`] if [`None[T]()`] is encountered, where `k` is the number
+		// `n` elements, or [`Err[struct{}](err)`] if [`gust.None[T]()`] is encountered, where `k` is the number
 		// of elements the next is advanced by before running out of elements (i.e. the
 		// length of the next). Note that `k` is always less than `n`.
 		//
@@ -297,7 +298,7 @@ type (
 		// then often allows it to return a more accurate `SizeHint()` than in its initial state.
 		// `AdvanceBy(0)` may either return `T()` or `Err(0)`. The former conveys no information
 		// whether the next is or is not exhausted, the latter can be treated as if [`Next`]
-		// had returned `None[T]()`. Replacing a `Err(0)` with `T` is only correct for `n = 0`.
+		// had returned `gust.None[T]()`. Replacing a `Err(0)` with `T` is only correct for `n = 0`.
 		//
 		// # Examples
 		//
@@ -307,7 +308,7 @@ type (
 		// var iter = FromVec(a);
 		//
 		// assert.Equal(t, iter.AdvanceBy(2), Ok[struct{}](struct{}{}));
-		// assert.Equal(t, iter.Next(), Some(3));
+		// assert.Equal(t, iter.Next(), gust.Some(3));
 		// assert.Equal(t, iter.AdvanceBy(0), Ok[struct{}](struct{}{}));
 		// assert.Equal(t, iter.AdvanceBy(100), Err[struct{}](fmt.Errorf("%d", 1))); // only `4` was skipped
 		AdvanceBy(n uint) gust.Result[struct{}]
@@ -328,7 +329,7 @@ type (
 		// discarded, and also that calling `iNth(0)` multiple times on the same next
 		// will return different elements.
 		//
-		// `Nth()` will return [`None[T]()`] if `n` is greater than or equal to the length of the
+		// `Nth()` will return [`gust.None[T]()`] if `n` is greater than or equal to the length of the
 		// next.
 		//
 		// # Examples
@@ -336,7 +337,7 @@ type (
 		// Basic usage:
 		//
 		// var a = []int{1, 2, 3};
-		// assert.Equal(t, FromVec(a).Nth(1), Some(2));
+		// assert.Equal(t, FromVec(a).Nth(1), gust.Some(2));
 		//
 		// Calling `Nth()` multiple times doesn't rewind the next:
 		//
@@ -344,13 +345,13 @@ type (
 		//
 		// var iter = FromVec(a);
 		//
-		// assert.Equal(t, iter.Nth(1), Some(2));
-		// assert.Equal(t, iter.Nth(1), None[int]());
+		// assert.Equal(t, iter.Nth(1), gust.Some(2));
+		// assert.Equal(t, iter.Nth(1), gust.None[int]());
 		//
-		// Returning `None[T]()` if there are less than `n + 1` elements:
+		// Returning `gust.None[T]()` if there are less than `n + 1` elements:
 		//
 		// var a = []int{1, 2, 3};
-		// assert.Equal(t, FromVec(a).Nth(10), None[int]());
+		// assert.Equal(t, FromVec(a).Nth(10), gust.None[int]());
 		Nth(n uint) gust.Option[T]
 	}
 	iRealNth[T any] interface {
@@ -666,10 +667,10 @@ type (
 		// var a = []int{0, 1, 2, 3, 4, 5};
 		// var iter = FromVec(a).StepBy(2);
 		//
-		// assert.Equal(t, iter.Next(), Some(0));
-		// assert.Equal(t, iter.Next(), Some(2));
-		// assert.Equal(t, iter.Next(), Some(4));
-		// assert.Equal(t, iter.Next(), None[T]());
+		// assert.Equal(t, iter.Next(), gust.Some(0));
+		// assert.Equal(t, iter.Next(), gust.Some(2));
+		// assert.Equal(t, iter.Next(), gust.Some(4));
+		// assert.Equal(t, iter.Next(), gust.None[T]());
 		StepBy(step uint) *StepByIterator[T]
 	}
 	iRealStepBy[T any] interface {
@@ -711,7 +712,7 @@ type (
 		// FilterMap creates an iterator that both filters and maps.
 		//
 		// The returned iterator yields only the `value`s for which the supplied
-		// closure returns `Some(value)`.
+		// closure returns `gust.Some(value)`.
 		//
 		// `FilterMap` can be used to make chains of [`filter`] and [`map`] more
 		// concise. The example below shows how a `map().filter().map()` can be
@@ -726,9 +727,9 @@ type (
 		//
 		// var iter = FromVec(a).FilterMap(|s| s.parse().ok());
 		//
-		// assert_eq!(iter.next(), gust.Some(1));
-		// assert_eq!(iter.next(), gust.Some(5));
-		// assert_eq!(iter.next(), gust.None[string]());
+		// assert_eq!(iter.Next(), gust.Some(1));
+		// assert_eq!(iter.Next(), gust.Some(5));
+		// assert_eq!(iter.Next(), gust.None[string]());
 		// ```
 		FilterMap(f func(T) gust.Option[T]) *FilterMapIterator[T]
 	}
@@ -759,17 +760,57 @@ type (
 		//
 		// var iter = FromVec(a1).Chain(FromVec(a2));
 		//
-		// assert.Equal(t, iter.Next(), Some(1));
-		// assert.Equal(t, iter.Next(), Some(2));
-		// assert.Equal(t, iter.Next(), Some(3));
-		// assert.Equal(t, iter.Next(), Some(4));
-		// assert.Equal(t, iter.Next(), Some(5));
-		// assert.Equal(t, iter.Next(), Some(6));
-		// assert.Equal(t, iter.Next(), None[int]());
+		// assert.Equal(t, iter.Next(), gust.Some(1));
+		// assert.Equal(t, iter.Next(), gust.Some(2));
+		// assert.Equal(t, iter.Next(), gust.Some(3));
+		// assert.Equal(t, iter.Next(), gust.Some(4));
+		// assert.Equal(t, iter.Next(), gust.Some(5));
+		// assert.Equal(t, iter.Next(), gust.Some(6));
+		// assert.Equal(t, iter.Next(), gust.None[int]());
 		//
 		Chain(other Iterator[T]) *ChainIterator[T]
 	}
 	iRealChain[T any] interface {
 		realChain(other Iterator[T]) *ChainIterator[T]
+	}
+)
+type (
+	iMap[T any] interface {
+		// Map takes a closure and creates an iterator which calls that closure on each
+		// element.
+		//
+		// `Map()` transforms one iterator into another, by means of its argument:
+		// something that implements [`FnMut`]. It produces a new iterator which
+		// calls this closure on each element of the original iterator.
+		//
+		// If you are good at thinking in types, you can think of `Map()` like this:
+		// If you have an iterator that gives you elements of some type `A`, and
+		// you want an iterator of some other type `B`, you can use `Map()`,
+		// passing a closure that takes an `A` and returns a `B`.
+		//
+		// `Map()` is conceptually similar to a [`for`] loop. However, as `Map()` is
+		// lazy, it is best used when you're already working with other iterators.
+		// If you're doing some sort of looping for a side effect, it's considered
+		// more idiomatic to use [`for`] than `Map()`.
+		//
+		// # Examples
+		//
+		// Basic usage:
+		//
+		// ```
+		// var a = []int{1, 2, 3};
+		//
+		// var iter = FromVec(a).Map(func(x)int{ return 2 * x});
+		//
+		// assert_eq!(iter.Next(), gust.Some(2));
+		// assert_eq!(iter.Next(), gust.Some(4));
+		// assert_eq!(iter.Next(), gust.Some(6));
+		// assert_eq!(iter.Next(), gust.None[int]());
+		// ```
+		//
+		Map(f func(T) any) *MapIterator[T, any]
+	}
+	iRealMap[T any] interface {
+		realMap(f func(T) any) *MapIterator[T, any]
 	}
 )
