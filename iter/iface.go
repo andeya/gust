@@ -816,3 +816,9 @@ type (
 		realMap(f func(T) any) *MapIterator[T, any]
 	}
 )
+type (
+	iInspect[T any] interface {
+		// Inspect takes a closure and executes it with each element.
+		Inspect(f func(T)) *InspectIterator[T]
+	}
+)

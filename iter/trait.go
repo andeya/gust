@@ -253,6 +253,10 @@ func (iter iterTrait[T]) Map(f func(T) any) *MapIterator[T, any] {
 	return newMapIterator[T, any](iter, f)
 }
 
+func (iter iterTrait[T]) Inspect(f func(T)) *InspectIterator[T] {
+	return newInspectIterator[T](iter, f)
+}
+
 func (iter iterTrait[T]) Collect() []T {
 	lower, _ := iter.SizeHint()
 	return Fold[T, []T](iter, make([]T, 0, lower), func(slice []T, x T) []T {
