@@ -34,9 +34,9 @@ type (
 	iNext[T any] interface {
 		// Next advances the next and returns the next value.
 		//
-		// Returns [`gust.None[T]()`] when iteration is finished. Individual next
+		// Returns [`gust.None[A]()`] when iteration is finished. Individual next
 		// implementations may choose to resume iteration, and so calling `next()`
-		// again may or may not eventually min returning [`gust.Some(T)`] again at some
+		// again may or may not eventually min returning [`gust.Some(A)`] again at some
 		// point.
 		//
 		// # Examples
@@ -55,7 +55,7 @@ type (
 		// // ... and then None once it's over.
 		// assert.Equal(t, gust.None[int](), iter.Next());
 		//
-		// // More calls may or may not return `gust.None[T]()`. Here, they always will.
+		// // More calls may or may not return `gust.None[A]()`. Here, they always will.
 		// assert.Equal(t, gust.None[int](), iter.Next());
 		// assert.Equal(t, gust.None[int](), iter.Next());
 		Next() gust.Option[T]
@@ -71,7 +71,7 @@ type (
 	iCount interface {
 		// Count consumes the next, counting the number of iterations and returning it.
 		//
-		// This method will call [`Next`] repeatedly until [`gust.None[T]()`] is encountered,
+		// This method will call [`Next`] repeatedly until [`gust.None[A]()`] is encountered,
 		// returning the number of times it saw [`gust.Some`]. Note that [`Next`] has to be
 		// called at least once even if the next does not have any elements.
 		//
@@ -112,8 +112,8 @@ type (
 		// Specifically, `SizeHint()` returns a tuple where the first element
 		// is the lower bound, and the second element is the upper bound.
 		//
-		// The second half of the tuple that is returned is an <code>Option[T]</code>.
-		// A [`gust.None[T]()`] here means that either there is no known upper bound, or the
+		// The second half of the tuple that is returned is an <code>Option[A]</code>.
+		// A [`gust.None[A]()`] here means that either there is no known upper bound, or the
 		// upper bound is larger than [`int`].
 		//
 		// # Implementation notes
@@ -146,14 +146,14 @@ type (
 		// A more complex example:
 		//
 		// // The even numbers in the range of zero to nine.
-		// var iter = FromRange(0..10).Filter(func(x T) {return x % 2 == 0});
+		// var iter = FromRange(0..10).Filter(func(x A) {return x % 2 == 0});
 		//
 		// // We might iterate from zero to ten times. Knowing that it's five
 		// // exactly wouldn't be possible without executing filter().
 		// assert.Equal(t, (0, gust.Some(10)), iter.SizeHint());
 		//
 		// // Let's add five more numbers with chain()
-		// var iter = FromRange(0, 10).Filter(func(x T) {return x % 2 == 0}).Chain(FromRange(15, 20));
+		// var iter = FromRange(0, 10).Filter(func(x A) {return x % 2 == 0}).Chain(FromRange(15, 20));
 		//
 		// // now both bounds are increased by five
 		// assert.Equal(t, (5, gust.Some(15)), iter.SizeHint());
@@ -179,14 +179,14 @@ type (
 		// Fold folds every element into an accumulator by applying an operation,
 		// returning the final
 		//
-		// `iFold()` takes two arguments: an initial value, and a closure with two
+		// `Fold()` takes two arguments: an initial value, and a closure with two
 		// arguments: an 'accumulator', and an element. The closure returns the value that
 		// the accumulator should have for the next iteration.
 		//
 		// The initial value is the value the accumulator will have on the first
 		// call.
 		//
-		// After applying this closure to every element of the next, `iFold()`
+		// After applying this closure to every element of the next, `Fold()`
 		// returns the accumulator.
 		//
 		// This operation is sometimes called 'iReduce' or 'inject'.
@@ -194,14 +194,14 @@ type (
 		// Folding is useful whenever you have a collection of something, and want
 		// to produce a single value from it.
 		//
-		// Note: `iFold()`, and similar methods that traverse the entire next,
+		// Note: `Fold()`, and similar methods that traverse the entire next,
 		// might not terminate for infinite iterators, even on interfaces for which a
 		// result is determinable in finite time.
 		//
 		// Note: [`Reduce()`] can be used to use the first element as the initial
 		// value, if the accumulator type and item type is the same.
 		//
-		// Note: `iFold()` combines elements in a *left-associative* fashion. For associative
+		// Note: `Fold()` combines elements in a *left-associative* fashion. For associative
 		// operators like `+`, the order the elements are combined in is not important, but for non-associative
 		// operators like `-` the order will affect the final
 		//
@@ -211,7 +211,7 @@ type (
 		// terms of this one, so try to implement this explicitly if it can
 		// do something better than the default `for` loop implementation.
 		//
-		// In particular, try to have this call `iFold()` on the internal parts
+		// In particular, try to have this call `Fold()` on the internal parts
 		// from which this next is composed.
 		//
 		// # Examples
@@ -221,7 +221,7 @@ type (
 		// var a = []int{1, 2, 3};
 		//
 		// the sum of iAll the elements of the array
-		// var sum = FromVec(a).Fold((0, func(acc any, x T) any { return acc.(int) + x });
+		// var sum = FromVec(a).Fold((0, func(acc any, x int) any { return acc.(int) + x });
 		//
 		// assert.Equal(t, sum, 6);
 		//
@@ -253,7 +253,7 @@ type (
 		// var a = []int{1, 2, 3};
 		//
 		// the checked sum of iAll the elements of the array
-		// var sum = FromVec(a).TryFold(0, func(acc any, x T) { return Ok(acc.(int)+x) });
+		// var sum = FromVec(a).TryFold(0, func(acc any, x int) { return Ok(acc.(int)+x) });
 		//
 		// assert.Equal(t, sum, Ok(6));
 		TryFold(init any, fold func(any, T) gust.Result[any]) gust.Result[any]
@@ -266,8 +266,8 @@ type (
 	iLast[T any] interface {
 		// Last consumes the next, returning the iLast element.
 		//
-		// This method will evaluate the next until it returns [`gust.None[T]()`]. While
-		// doing so, it keeps track of the current element. After [`gust.None[T]()`] is
+		// This method will evaluate the next until it returns [`gust.None[A]()`]. While
+		// doing so, it keeps track of the current element. After [`gust.None[A]()`] is
 		// returned, `Last()` will then return the iLast element it saw.
 		//
 		// # Examples
@@ -290,19 +290,19 @@ type (
 		// AdvanceBy advances the next by `n` elements.
 		//
 		// This method will eagerly skip `n` elements by calling [`Next`] up to `n`
-		// times until [`gust.None[T]()`] is encountered.
+		// times until [`gust.None[A]()`] is encountered.
 		//
 		// `AdvanceBy(n)` will return [`Ok[struct{}](struct{}{})`] if the next successfully advances by
-		// `n` elements, or [`Err[struct{}](err)`] if [`gust.None[T]()`] is encountered, where `k` is the number
+		// `n` elements, or [`Err[struct{}](err)`] if [`gust.None[A]()`] is encountered, where `k` is the number
 		// of elements the next is advanced by before running out of elements (i.e. the
 		// length of the next). Note that `k` is always less than `n`.
 		//
 		// Calling `AdvanceBy(0)` can do meaningful work, for example [`Flatten`]
 		// can advance its outer next until it finds a facade next that is not empty, which
 		// then often allows it to return a more accurate `SizeHint()` than in its initial state.
-		// `AdvanceBy(0)` may either return `T()` or `Err(0)`. The former conveys no information
+		// `AdvanceBy(0)` may either return `A()` or `Err(0)`. The former conveys no information
 		// whether the next is or is not exhausted, the latter can be treated as if [`Next`]
-		// had returned `gust.None[T]()`. Replacing a `Err(0)` with `T` is only correct for `n = 0`.
+		// had returned `gust.None[A]()`. Replacing a `Err(0)` with `A` is only correct for `n = 0`.
 		//
 		// # Examples
 		//
@@ -333,7 +333,7 @@ type (
 		// discarded, and also that calling `iNth(0)` multiple times on the same next
 		// will return different elements.
 		//
-		// `Nth()` will return [`gust.None[T]()`] if `n` is greater than or equal to the length of the
+		// `Nth()` will return [`gust.None[A]()`] if `n` is greater than or equal to the length of the
 		// next.
 		//
 		// # Examples
@@ -352,7 +352,7 @@ type (
 		// assert.Equal(t, iter.Nth(1), gust.Some(2));
 		// assert.Equal(t, iter.Nth(1), gust.None[int]());
 		//
-		// Returning `gust.None[T]()` if there are less than `n + 1` elements:
+		// Returning `gust.None[A]()` if there are less than `n + 1` elements:
 		//
 		// var a = []int{1, 2, 3};
 		// assert.Equal(t, FromVec(a).Nth(10), gust.None[int]());
@@ -378,7 +378,7 @@ type (
 		// Basic usage:
 		//
 		// var c = make(chan int, 1000)
-		// FromRange(0, 5).Map(func(x T)any{return x * 2 + 1})
+		// FromRange(0, 5).Map(func(x A)any{return x * 2 + 1})
 		//
 		//	.ForEach(func(x any){ c<-x });
 		//
@@ -395,11 +395,11 @@ type (
 		// Reduce reduces the elements to a single one, by repeatedly applying a reducing
 		// operation.
 		//
-		// If the next is empty, returns [`gust.None[T]()`]; otherwise, returns the
+		// If the next is empty, returns [`gust.None[A]()`]; otherwise, returns the
 		// result of the reduction.
 		//
 		// The reducing function is a closure with two arguments: an 'accumulator', and an element.
-		// For iterators with at least one element, this is the same as [`iFold()`]
+		// For iterators with at least one element, this is the same as [`Fold()`]
 		// with the first element of the next as the initial accumulator value, folding
 		// every subsequent element into it.
 		//
@@ -407,8 +407,8 @@ type (
 		//
 		// Find the maximum value:
 		//
-		//	func findMax[T any](iter: Iterator[T])  Option[T] {
-		//	    iter.Reduce(func(accum T, item T) T {
+		//	func findMax[A any](iter: Iterator[A])  Option[A] {
+		//	    iter.Reduce(func(accum A, item A) A {
 		//	        if accum >= item { accum } else { item }
 		//	    })
 		//	}
@@ -445,9 +445,9 @@ type (
 		//
 		// var a = []int{1, 2, 3};
 		//
-		// assert.True(t, FromVec(a).All(func(x T) bool { return x > 0}));
+		// assert.True(t, FromVec(a).All(func(x A) bool { return x > 0}));
 		//
-		// assert.True(t, !FromVec(a).All(func(x T) bool { return x > 2}));
+		// assert.True(t, !FromVec(a).All(func(x A) bool { return x > 2}));
 		//
 		// Stopping at the first `false`:
 		//
@@ -455,7 +455,7 @@ type (
 		//
 		// var iter = FromVec(a);
 		//
-		// assert.True(t, !iter.All(func(x T) bool { return x != 2}));
+		// assert.True(t, !iter.All(func(x A) bool { return x != 2}));
 		//
 		// we can still use `iter`, as there are more elements.
 		// assert.Equal(t, iter.Next(), gust.Some(3));
@@ -486,9 +486,9 @@ type (
 		//
 		// var a = []int{1, 2, 3};
 		//
-		// assert.True(t, FromVec(a).Any(func(x T) bool{return x>0}));
+		// assert.True(t, FromVec(a).Any(func(x A) bool{return x>0}));
 		//
-		// assert.True(t, !FromVec(a).Any(func(x T) bool{return x>5}));
+		// assert.True(t, !FromVec(a).Any(func(x A) bool{return x>5}));
 		//
 		// Stopping at the first `true`:
 		//
@@ -496,7 +496,7 @@ type (
 		//
 		// var iter = FromVec(a);
 		//
-		// assert.True(t, iter.Any(func(x T) bool { return x != 2}));
+		// assert.True(t, iter.Any(func(x A) bool { return x != 2}));
 		//
 		// we can still use `iter`, as there are more elements.
 		// assert.Equal(t, iter.Next(), gust.Some(2));
@@ -513,7 +513,7 @@ type (
 		// `Find()` takes a closure that returns `true` or `false`. It applies
 		// this closure to each element of the next, and if any of them return
 		// `true`, then `Find()` returns [`gust.Some(element)`]. If they iAll return
-		// `false`, it returns [`gust.None[T]()`].
+		// `false`, it returns [`gust.None[A]()`].
 		//
 		// `Find()` is short-circuiting; in other words, it will stop processing
 		// as soon as the closure returns `true`.
@@ -531,9 +531,9 @@ type (
 		//
 		// var a = []int{1, 2, 3};
 		//
-		// assert.Equal(t, FromVec(a).Find(func(x T) bool{return x==2}), gust.Some(2));
+		// assert.Equal(t, FromVec(a).Find(func(x A) bool{return x==2}), gust.Some(2));
 		//
-		// assert.Equal(t, FromVec(a).Find(func(x T) bool{return x==5}), gust.None[int]());
+		// assert.Equal(t, FromVec(a).Find(func(x A) bool{return x==5}), gust.None[int]());
 		//
 		// Stopping at the first `true`:
 		//
@@ -541,7 +541,7 @@ type (
 		//
 		// var iter = FromVec(a);
 		//
-		// assert.Equal(t, iter.Find(func(x T) bool{return x==2}), gust.Some(2));
+		// assert.Equal(t, iter.Find(func(x A) bool{return x==2}), gust.Some(2));
 		//
 		// we can still use `iter`, as there are more elements.
 		// assert.Equal(t, iter.Next(), gust.Some(3));
@@ -564,7 +564,7 @@ type (
 		//
 		// var a = []string{"lol", "NaN", "2", "5"};
 		//
-		// var first_number = FromVec(a).FindMap(func(s T) Option[any]{ return Wrap[any](strconv.Atoi(s))});
+		// var first_number = FromVec(a).FindMap(func(s A) Option[any]{ return Wrap[any](strconv.Atoi(s))});
 		//
 		// assert.Equal(t, first_number, gust.Some(2));
 		FindMap(f func(T) gust.Option[any]) gust.Option[any]
@@ -587,7 +587,7 @@ type (
 		//	}
 		//
 		// var result = FromVec(a).TryFind(func(s string)bool{return is_my_num(s, 2)});
-		// assert.Equal(t, result, T(Some("2")));
+		// assert.Equal(t, result, A(Some("2")));
 		//
 		// var result = FromVec(a).TryFind(func(s string)bool{return is_my_num(s, 5)});
 		// assert.True(t, IsErr());
@@ -604,7 +604,7 @@ type (
 		// `Position()` takes a closure that returns `true` or `false`. It applies
 		// this closure to each element of the next, and if one of them
 		// returns `true`, then `Position()` returns [`gust.Some(index)`]. If iAll of
-		// them return `false`, it returns [`gust.None[T]()`].
+		// them return `false`, it returns [`gust.None[A]()`].
 		//
 		// `Position()` is short-circuiting; in other words, it will stop
 		// processing as soon as it finds a `true`.
@@ -674,7 +674,7 @@ type (
 		// assert.Equal(t, iter.Next(), gust.Some(0));
 		// assert.Equal(t, iter.Next(), gust.Some(2));
 		// assert.Equal(t, iter.Next(), gust.Some(4));
-		// assert.Equal(t, iter.Next(), gust.None[T]());
+		// assert.Equal(t, iter.Next(), gust.None[A]());
 		StepBy(step uint) *StepByIterator[T]
 	}
 	iRealStepBy[T any] interface {
@@ -699,9 +699,9 @@ type (
 		//
 		// var iter = FromVec(a).Filter(func(x int)bool{return x>0});
 		//
-		// assert_eq!(iter.Next(), gust.Some(&1));
-		// assert_eq!(iter.Next(), gust.Some(&2));
-		// assert_eq!(iter.Next(), gust.None[int]());
+		// assert.Equal(iter.Next(), gust.Some(&1));
+		// assert.Equal(iter.Next(), gust.Some(&2));
+		// assert.Equal(iter.Next(), gust.None[int]());
 		// ```
 		//
 		// Note that `iter.Filter(f).Next()` is equivalent to `iter.Find(f)`.
@@ -731,9 +731,9 @@ type (
 		//
 		// var iter = FromVec(a).FilterMap(|s| s.parse().ok());
 		//
-		// assert_eq!(iter.Next(), gust.Some(1));
-		// assert_eq!(iter.Next(), gust.Some(5));
-		// assert_eq!(iter.Next(), gust.None[string]());
+		// assert.Equal(iter.Next(), gust.Some(1));
+		// assert.Equal(iter.Next(), gust.Some(5));
+		// assert.Equal(iter.Next(), gust.None[string]());
 		// ```
 		FilterMap(f func(T) gust.Option[T]) *FilterMapIterator[T]
 	}
@@ -783,10 +783,6 @@ type (
 		// Map takes a closure and creates an iterator which calls that closure on each
 		// element.
 		//
-		// `Map()` transforms one iterator into another, by means of its argument:
-		// something that implements [`FnMut`]. It produces a new iterator which
-		// calls this closure on each element of the original iterator.
-		//
 		// If you are good at thinking in types, you can think of `Map()` like this:
 		// If you have an iterator that gives you elements of some type `A`, and
 		// you want an iterator of some other type `B`, you can use `Map()`,
@@ -806,10 +802,10 @@ type (
 		//
 		// var iter = FromVec(a).Map(func(x)int{ return 2 * x});
 		//
-		// assert_eq!(iter.Next(), gust.Some(2));
-		// assert_eq!(iter.Next(), gust.Some(4));
-		// assert_eq!(iter.Next(), gust.Some(6));
-		// assert_eq!(iter.Next(), gust.None[int]());
+		// assert.Equal(iter.Next(), gust.Some(2));
+		// assert.Equal(iter.Next(), gust.Some(4));
+		// assert.Equal(iter.Next(), gust.Some(6));
+		// assert.Equal(iter.Next(), gust.None[int]());
 		// ```
 		//
 		Map(f func(T) any) *MapIterator[T, any]

@@ -30,3 +30,13 @@ func TestNextChunk(t *testing.T) {
 	assert.Equal(t, []int{}, chunk)
 	assert.False(t, ok)
 }
+
+func TestZip(t *testing.T) {
+	var a = FromVec([]string{"x", "y", "z"})
+	var b = FromVec([]int{1, 2})
+	var iter = Zip[string, int](a, b)
+	var pairs = Fold[Pair[string, int]](iter, nil, func(acc []Pair[string, int], t Pair[string, int]) []Pair[string, int] {
+		return append(acc, t)
+	})
+	assert.Equal(t, []Pair[string, int]{{"x", 1}, {"y", 2}}, pairs)
+}
