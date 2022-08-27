@@ -147,12 +147,12 @@ func (s *ChainIterator[T]) realNext() gust.Option[T] {
 	return gust.None[T]()
 }
 
-func (s *ChainIterator[T]) realSizeHint() (uint64, gust.Option[uint64]) {
+func (s *ChainIterator[T]) realSizeHint() (uint, gust.Option[uint]) {
 	if s.inner != nil && s.other != nil {
 		var aLower, aUpper = s.inner.SizeHint()
 		var bLower, bUpper = s.other.SizeHint()
 		var lower = saturatingAdd(aLower, bLower)
-		var upper gust.Option[uint64]
+		var upper gust.Option[uint]
 		if aUpper.IsSome() && bUpper.IsSome() {
 			upper = checkedAdd(aUpper.Unwrap(), bUpper.Unwrap())
 		}
@@ -164,15 +164,15 @@ func (s *ChainIterator[T]) realSizeHint() (uint64, gust.Option[uint64]) {
 	if s.inner == nil && s.other != nil {
 		return s.other.SizeHint()
 	}
-	return 0, gust.Some[uint64](0)
+	return 0, gust.Some[uint](0)
 }
 
-func (s *ChainIterator[T]) realCount() uint64 {
-	var aCount uint64
+func (s *ChainIterator[T]) realCount() uint {
+	var aCount uint
 	if s.inner != nil {
 		aCount = s.inner.Count()
 	}
-	var bCount uint64
+	var bCount uint
 	if s.other != nil {
 		bCount = s.other.Count()
 	}

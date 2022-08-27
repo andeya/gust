@@ -5,16 +5,24 @@ import (
 	"github.com/andeya/gust/digit"
 )
 
-func FromVec[T any](slice []T) *Iter[T] {
-	return NewVecNext(slice).ToIter()
+func FromVec[T any](slice []T) Iterator[T] {
+	return NewDataVec(slice).ToIterator()
 }
 
-func FromRange[T digit.Integer](start T, end T, rightClosed ...bool) *Iter[T] {
-	return NewRangeNext[T](start, end, rightClosed...).ToIter()
+func FromRange[T digit.Integer](start T, end T, rightClosed ...bool) Iterator[T] {
+	return NewDataRange[T](start, end, rightClosed...).ToIterator()
 }
 
-func FromChan[T any](c <-chan T) *Iter[T] {
-	return NewChanNext[T](c).ToIter()
+func FromChan[T any](c <-chan T) Iterator[T] {
+	return NewDataChan[T](c).ToIterator()
+}
+
+func DoubleEndedFromVec[T any](slice []T) Iterator[T] {
+	return NewDataVec(slice).ToDoubleEndedIterator()
+}
+
+func DoubleEndedFromRange[T digit.Integer](start T, end T, rightClosed ...bool) Iterator[T] {
+	return NewDataRange[T](start, end, rightClosed...).ToDoubleEndedIterator()
 }
 
 // FromIterator conversion from an [`Iterator`].
@@ -31,7 +39,7 @@ func Collect[T any, R any](iter Iterator[T], fromIter FromIterator[T, R]) R {
 	return fromIter.FromIter(iter)
 }
 
-// TryFold a next method that applies a function as long as it returns
+// TryFold a data method that applies a function as long as it returns
 // successfully, producing a single, final value.
 //
 // # Examples
@@ -44,10 +52,10 @@ func Collect[T any, R any](iter Iterator[T], fromIter FromIterator[T, R]) R {
 // var sum = FromVec(a).TryFold(0, func(acc int, x int) { return Ok(acc+x) });
 //
 // assert.Equal(t, sum, Ok(6));
-func TryFold[T any, B any](next iNext[T], init B, f func(B, T) gust.Result[B]) gust.Result[B] {
+func TryFold[T any, B any](iter Iterator[T], init B, f func(B, T) gust.Result[B]) gust.Result[B] {
 	var accum = gust.Ok(init)
 	for {
-		x := next.Next()
+		x := iter.Next()
 		if x.IsNone() {
 			return accum
 		}
@@ -63,12 +71,12 @@ func TryFold[T any, B any](next iNext[T], init B, f func(B, T) gust.Result[B]) g
 //
 // `Fold()` takes two arguments: an initial value, and a closure with two
 // arguments: an 'accumulator', and an element. The closure returns the value that
-// the accumulator should have for the next iteration.
+// the accumulator should have for the data iteration.
 //
 // The initial value is the value the accumulator will have on the first
 // call.
 //
-// After applying this closure to every element of the next, `Fold()`
+// After applying this closure to every element of the data, `Fold()`
 // returns the accumulator.
 //
 // This operation is sometimes called 'iReduce' or 'inject'.
@@ -76,7 +84,7 @@ func TryFold[T any, B any](next iNext[T], init B, f func(B, T) gust.Result[B]) g
 // Folding is useful whenever you have a collection of something, and want
 // to produce a single value from it.
 //
-// Note: `Fold()`, and similar methods that traverse the entire next,
+// Note: `Fold()`, and similar methods that traverse the entire data,
 // might not terminate for infinite iterators, even on interfaces for which a
 // result is determinable in finite time.
 //
@@ -94,7 +102,7 @@ func TryFold[T any, B any](next iNext[T], init B, f func(B, T) gust.Result[B]) g
 // do something better than the default `for` loop implementation.
 //
 // In particular, try to have this call `Fold()` on the internal parts
-// from which this next is composed.
+// from which this data is composed.
 //
 // # Examples
 //
@@ -117,10 +125,10 @@ func TryFold[T any, B any](next iNext[T], init B, f func(B, T) gust.Result[B]) g
 // | 3       | 3   | 3 | 6      |
 //
 // And so, our final result, `6`.
-func Fold[T any, B any](next iNext[T], init B, f func(B, T) B) B {
+func Fold[T any, B any](iter Iterator[T], init B, f func(B, T) B) B {
 	var accum = init
 	for {
-		x := next.Next()
+		x := iter.Next()
 		if x.IsNone() {
 			return accum
 		}
@@ -159,10 +167,10 @@ func Map[T any, B any](iter Iterator[T], f func(T) B) *MapIterator[T, B] {
 	return newMapIterator(iter, f)
 }
 
-// FindMap applies function to the elements of next and returns
+// FindMap applies function to the elements of data and returns
 // the first non-none
 //
-// `iter.FindMap(f)` is equivalent to `iter.FilterMap(f).Next()`.
+// `FindMap(iter, f)` is equivalent to `FilterMap(iter, f).Next()`.
 //
 // # Examples
 //
@@ -198,16 +206,21 @@ func FindMap[T any, B any](iter Iterator[T], f func(T) gust.Option[B]) gust.Opti
 // If the zipped iterator has no more elements to return then each further attempt to advance
 // it will first try to advance the first iterator at most one time and if it still yielded an item
 // try to advance the second iterator at most one time.
-func Zip[T any, B any](a Iterator[T], b Iterator[B]) *ZipIterator[T, B] {
-	return newZipIterator[T, B](a, b)
+func Zip[A any, B any](a Iterator[A], b Iterator[B]) *ZipIterator[A, B] {
+	return newZipIterator[A, B](a, b)
+}
+
+// DoubleEndedZip is similar to `Zip`, but it supports take elements starting from the back of the iterator.
+func DoubleEndedZip[A any, B any](a DoubleEndedIterator[A], b DoubleEndedIterator[B]) *DoubleEndedZipIterator[A, B] {
+	return newDoubleEndedZipIterator[A, B](a, b)
 }
 
 // TryRfold is the reverse version of [`Iterator[T].TryFold()`]: it takes
 // elements starting from the back of the iterator.
-func TryRfold[T any, B any](next iNextBack[T], init B, f func(B, T) gust.Result[B]) gust.Result[B] {
+func TryRfold[T any, B any](iter DoubleEndedIterator[T], init B, f func(B, T) gust.Result[B]) gust.Result[B] {
 	var accum = gust.Ok(init)
 	for {
-		x := next.NextBack()
+		x := iter.NextBack()
 		if x.IsNone() {
 			return accum
 		}
@@ -220,10 +233,10 @@ func TryRfold[T any, B any](next iNextBack[T], init B, f func(B, T) gust.Result[
 
 // Rfold is an iterator method that reduces the iterator's elements to a single,
 // final value, starting from the back.
-func Rfold[T any, B any](next iNextBack[T], init B, f func(B, T) B) B {
+func Rfold[T any, B any](iter DoubleEndedIterator[T], init B, f func(B, T) B) B {
 	var accum = init
 	for {
-		x := next.NextBack()
+		x := iter.NextBack()
 		if x.IsNone() {
 			return accum
 		}

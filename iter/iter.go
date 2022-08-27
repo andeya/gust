@@ -4,42 +4,92 @@ import (
 	"github.com/andeya/gust"
 )
 
-var (
-	_ Iterator[any]  = (*Iter[any])(nil)
-	_ iRealNext[any] = (*Iter[any])(nil)
-	_ iRealCount     = (*Iter[any])(nil)
-	_ iRealSizeHint  = (*Iter[any])(nil)
-)
-
-func newIter[T any](next NextForIter[T]) *Iter[T] {
-	iter := &Iter[T]{next: next}
+func newIter[T any](data DataForIter[T]) Iterator[T] {
+	iter := &implIter[T]{data: data}
 	iter.setFacade(iter)
 	return iter
 }
 
-type Iter[T any] struct {
+var (
+	_ Iterator[any]  = (*implIter[any])(nil)
+	_ iRealNext[any] = (*implIter[any])(nil)
+	_ iRealCount     = (*implIter[any])(nil)
+	_ iRealSizeHint  = (*implIter[any])(nil)
+)
+
+type implIter[T any] struct {
 	iterTrait[T]
-	next NextForIter[T]
+	data DataForIter[T]
 }
 
-func (iter *Iter[T]) realNext() gust.Option[T] {
-	return iter.next.NextForIter()
+func (iter *implIter[T]) realNext() gust.Option[T] {
+	return iter.data.NextForIter()
 }
 
-func (iter *Iter[T]) realCount() uint64 {
-	if c, ok := iter.next.(CountForIter); ok {
+func (iter *implIter[T]) realCount() uint {
+	if c, ok := iter.data.(CountForIter); ok {
 		return c.CountForIter()
 	}
-	var a uint64
-	for iter.next.NextForIter().IsSome() {
+	var a uint
+	for iter.data.NextForIter().IsSome() {
 		a++
 	}
 	return a
 }
 
-func (iter *Iter[T]) realSizeHint() (uint64, gust.Option[uint64]) {
-	if cover, ok := iter.next.(SizeHintForIter); ok {
+func (iter *implIter[T]) realSizeHint() (uint, gust.Option[uint]) {
+	if cover, ok := iter.data.(SizeHintForIter); ok {
 		return cover.SizeHintForIter()
 	}
-	return 0, gust.None[uint64]()
+	return 0, gust.None[uint]()
+}
+
+func newDoubleEndedIter[T any](data DataForDoubleEndedIter[T]) DoubleEndedIterator[T] {
+	iter := &implDoubleEndedIter[T]{data: data}
+	iter.setFacade(iter)
+	return iter
+}
+
+var (
+	_ Iterator[any]      = (*implDoubleEndedIter[any])(nil)
+	_ iRealNext[any]     = (*implDoubleEndedIter[any])(nil)
+	_ iRealNextBack[any] = (*implDoubleEndedIter[any])(nil)
+	_ iRealRemainingLen  = (*implDoubleEndedIter[any])(nil)
+	_ iRealCount         = (*implDoubleEndedIter[any])(nil)
+	_ iRealSizeHint      = (*implDoubleEndedIter[any])(nil)
+)
+
+type implDoubleEndedIter[T any] struct {
+	doubleEndedIterTrait[T]
+	data DataForDoubleEndedIter[T]
+}
+
+func (iter *implDoubleEndedIter[T]) realNext() gust.Option[T] {
+	return iter.data.NextForIter()
+}
+
+func (iter *implDoubleEndedIter[T]) realNextBack() gust.Option[T] {
+	return iter.data.NextBackForIter()
+}
+
+func (iter *implDoubleEndedIter[T]) realRemainingLen() uint {
+	return iter.data.RemainingLenForIter()
+}
+
+func (iter *implDoubleEndedIter[T]) realCount() uint {
+	if c, ok := iter.data.(CountForIter); ok {
+		return c.CountForIter()
+	}
+	var a uint
+	for iter.data.NextForIter().IsSome() {
+		a++
+	}
+	return a
+}
+
+func (iter *implDoubleEndedIter[T]) realSizeHint() (uint, gust.Option[uint]) {
+	if cover, ok := iter.data.(SizeHintForIter); ok {
+		return cover.SizeHintForIter()
+	}
+	return 0, gust.None[uint]()
 }

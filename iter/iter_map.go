@@ -24,7 +24,7 @@ type MapIterator[T any, B any] struct {
 	f    func(T) B
 }
 
-func (s MapIterator[T, B]) realSizeHint() (uint64, gust.Option[uint64]) {
+func (s MapIterator[T, B]) realSizeHint() (uint, gust.Option[uint]) {
 	return s.iter.SizeHint()
 }
 

@@ -110,9 +110,9 @@ func (s *StepByIterator[T]) realNth(n uint) gust.Option[T] {
 	}
 }
 
-func (s *StepByIterator[T]) realSizeHint() (uint64, gust.Option[uint64]) {
-	var firstSize = func(step uint64) func(uint64) uint64 {
-		return func(n uint64) uint64 {
+func (s *StepByIterator[T]) realSizeHint() (uint, gust.Option[uint]) {
+	var firstSize = func(step uint) func(uint) uint {
+		return func(n uint) uint {
 			if n == 0 {
 				return 0
 			}
@@ -120,17 +120,17 @@ func (s *StepByIterator[T]) realSizeHint() (uint64, gust.Option[uint64]) {
 		}
 	}
 
-	var otherSize = func(step uint64) func(uint64) uint64 {
-		return func(n uint64) uint64 { return n / (step + 1) }
+	var otherSize = func(step uint) func(uint) uint {
+		return func(n uint) uint { return n / (step + 1) }
 	}
 
 	var low, high = s.iter.SizeHint()
 
 	if s.firstTake {
-		var f = firstSize(uint64(s.step))
+		var f = firstSize(uint(s.step))
 		return f(low), high.Map(f)
 	}
-	var f = otherSize(uint64(s.step))
+	var f = otherSize(uint(s.step))
 	return f(low), high.Map(f)
 }
 

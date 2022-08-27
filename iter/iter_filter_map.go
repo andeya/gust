@@ -24,7 +24,7 @@ type FilterMapIterator[T any] struct {
 	f    func(T) gust.Option[T]
 }
 
-func (f FilterMapIterator[T]) realSizeHint() (uint64, gust.Option[uint64]) {
+func (f FilterMapIterator[T]) realSizeHint() (uint, gust.Option[uint]) {
 	var _, upper = f.iter.SizeHint()
 	return 0, upper // can't know a lower bound, due to the f
 }

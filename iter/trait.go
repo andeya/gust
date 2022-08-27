@@ -32,20 +32,20 @@ func (iter iterTrait[T]) NextChunk(n uint) ([]T, bool) {
 	return chunk, true
 }
 
-func (iter iterTrait[T]) SizeHint() (uint64, gust.Option[uint64]) {
+func (iter iterTrait[T]) SizeHint() (uint, gust.Option[uint]) {
 	if cover, ok := iter.facade.(iRealSizeHint); ok {
 		return cover.realSizeHint()
 	}
-	return 0, gust.None[uint64]()
+	return 0, gust.None[uint]()
 }
 
-func (iter iterTrait[T]) Count() uint64 {
+func (iter iterTrait[T]) Count() uint {
 	if cover, ok := iter.facade.(iRealCount); ok {
 		return cover.realCount()
 	}
-	return Fold[T, uint64](iter,
-		uint64(0),
-		func(count uint64, _ T) uint64 {
+	return Fold[T, uint](iter,
+		uint(0),
+		func(count uint, _ T) uint {
 			return count + 1
 		},
 	)
@@ -277,11 +277,21 @@ func (iter iterTrait[T]) Collect() []T {
 	})
 }
 
-var _ DoubleEndedIterator[any] = doubleEndedIterTrait[any]{}
+var _ iDoubleEndedIterator[any] = doubleEndedIterTrait[any]{}
 
 type doubleEndedIterTrait[T any] struct {
 	iterTrait[T]
-	facade iRealNextBack[T]
+	facade iRealDoubleEndedNext[T]
+}
+
+//goland:noinspection GoMixedReceiverTypes
+func (d *doubleEndedIterTrait[T]) setFacade(facade iRealDoubleEndedNext[T]) {
+	d.iterTrait.facade = facade
+	d.facade = facade
+}
+
+func (d doubleEndedIterTrait[T]) RemainingLen() uint {
+	return d.facade.realRemainingLen()
 }
 
 func (d doubleEndedIterTrait[T]) NextBack() gust.Option[T] {

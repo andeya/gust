@@ -30,13 +30,30 @@ type Iterator[T any] interface {
 	// Collect collects all the items in the iterator into a slice.
 	Collect() []T
 }
+type (
+	DataForIter[T any] interface {
+		NextForIter() gust.Option[T]
+	}
+)
+type (
+	iRealDoubleEndedNext[T any] interface {
+		iRealNext[T]
+		iRealNextBack[T]
+		iRealRemainingLen
+	}
+	DataForDoubleEndedIter[T any] interface {
+		DataForIter[T]
+		NextBackForIter[T]
+		RemainingLenForIter
+	}
+)
 
 type (
 	iNext[T any] interface {
-		// Next advances the next and returns the next value.
+		// Next advances the data and returns the data value.
 		//
-		// Returns [`gust.None[T]()`] when iteration is finished. Individual next
-		// implementations may choose to resume iteration, and so calling `next()`
+		// Returns [`gust.None[T]()`] when iteration is finished. Individual data
+		// implementations may choose to resume iteration, and so calling `data()`
 		// again may or may not eventually min returning [`gust.Some(A)`] again at some
 		// point.
 		//
@@ -48,7 +65,7 @@ type (
 		//
 		// var iter = FromVec(a);
 		//
-		// A call to next() returns the next value...
+		// A call to data() returns the data value...
 		// assert.Equal(t, gust.Some(1), iter.Next());
 		// assert.Equal(t, gust.Some(2), iter.Next());
 		// assert.Equal(t, gust.Some(3), iter.Next());
@@ -64,28 +81,25 @@ type (
 	iRealNext[T any] interface {
 		realNext() gust.Option[T]
 	}
-	NextForIter[T any] interface {
-		NextForIter() gust.Option[T]
-	}
 )
 type (
 	iCount interface {
-		// Count consumes the next, counting the number of iterations and returning it.
+		// Count consumes the data, counting the number of iterations and returning it.
 		//
 		// This method will call [`Next`] repeatedly until [`gust.None[T]()`] is encountered,
 		// returning the number of times it saw [`gust.Some`]. Note that [`Next`] has to be
-		// called at least once even if the next does not have any elements.
+		// called at least once even if the data does not have any elements.
 		//
 		// # Overflow Behavior
 		//
 		// The method does no guarding against overflows, so counting elements of
-		// a next with more than [`math.MaxInt`] elements either produces the
+		// a data with more than [`math.MaxInt`] elements either produces the
 		// wrong result or panics. If debug assertions are enabled, a panic is
 		// guaranteed.
 		//
 		// # Panics
 		//
-		// This function might panic if the next has more than [`math.MaxInt`]
+		// This function might panic if the data has more than [`math.MaxInt`]
 		// elements.
 		//
 		// # Examples
@@ -97,18 +111,18 @@ type (
 		//
 		// var a = []int{1, 2, 3, 4, 5};
 		// assert.Equal(t, FromVec(a).Count(), 5);
-		Count() uint64
+		Count() uint
 	}
 	iRealCount interface {
-		realCount() uint64
+		realCount() uint
 	}
 	CountForIter interface {
-		CountForIter() uint64
+		CountForIter() uint
 	}
 )
 type (
 	iSizeHint interface {
-		// SizeHint returns the bounds on the remaining length of the next.
+		// SizeHint returns the bounds on the remaining length of the data.
 		//
 		// Specifically, `SizeHint()` returns a tuple where the first element
 		// is the lower bound, and the second element is the upper bound.
@@ -119,12 +133,12 @@ type (
 		//
 		// # Implementation notes
 		//
-		// It is not enforced that a next implementation yields the declared
-		// number of elements. A buggy next may yield less than the lower bound
+		// It is not enforced that a data implementation yields the declared
+		// number of elements. A buggy data may yield less than the lower bound
 		// or more than the upper bound of elements.
 		//
 		// `SizeHint()` is primarily intended to be used for optimizations such as
-		// reserving space for the elements of the next, but must not be
+		// reserving space for the elements of the data, but must not be
 		// trusted to e.g., omit bounds checks in unsafe code. An incorrect
 		// implementation of `SizeHint()` should not lead to memory safety
 		// violations.
@@ -133,7 +147,7 @@ type (
 		// because otherwise it would be a violation of the interface's protocol.
 		//
 		// The default implementation returns <code>(0, [None[int]()])</code> which is correct for any
-		// next.
+		// data.
 		//
 		// # Examples
 		//
@@ -161,18 +175,18 @@ type (
 		//
 		// Returning `gust.None[int]()` for an upper bound:
 		//
-		// an infinite next has no upper bound
+		// an infinite data has no upper bound
 		// and the maximum possible lower bound
 		// var iter = FromRange(0, math.MaxInt);
 		//
 		// assert.Equal(t, (math.MaxInt, gust.None[int]()), iter.SizeHint());
-		SizeHint() (uint64, gust.Option[uint64])
+		SizeHint() (uint, gust.Option[uint])
 	}
 	iRealSizeHint interface {
-		realSizeHint() (uint64, gust.Option[uint64])
+		realSizeHint() (uint, gust.Option[uint])
 	}
 	SizeHintForIter interface {
-		SizeHintForIter() (uint64, gust.Option[uint64])
+		SizeHintForIter() (uint, gust.Option[uint])
 	}
 )
 type (
@@ -182,12 +196,12 @@ type (
 		//
 		// `Fold()` takes two arguments: an initial value, and a closure with two
 		// arguments: an 'accumulator', and an element. The closure returns the value that
-		// the accumulator should have for the next iteration.
+		// the accumulator should have for the data iteration.
 		//
 		// The initial value is the value the accumulator will have on the first
 		// call.
 		//
-		// After applying this closure to every element of the next, `Fold()`
+		// After applying this closure to every element of the data, `Fold()`
 		// returns the accumulator.
 		//
 		// This operation is sometimes called 'iReduce' or 'inject'.
@@ -195,7 +209,7 @@ type (
 		// Folding is useful whenever you have a collection of something, and want
 		// to produce a single value from it.
 		//
-		// Note: `Fold()`, and similar methods that traverse the entire next,
+		// Note: `Fold()`, and similar methods that traverse the entire data,
 		// might not terminate for infinite iterators, even on interfaces for which a
 		// result is determinable in finite time.
 		//
@@ -213,7 +227,7 @@ type (
 		// do something better than the default `for` loop implementation.
 		//
 		// In particular, try to have this call `Fold()` on the internal parts
-		// from which this next is composed.
+		// from which this data is composed.
 		//
 		// # Examples
 		//
@@ -244,7 +258,7 @@ type (
 )
 type (
 	iTryFold[T any] interface {
-		// TryFold a next method that applies a function as long as it returns
+		// TryFold a data method that applies a function as long as it returns
 		// successfully, producing a single, final value.
 		//
 		// # Examples
@@ -265,9 +279,9 @@ type (
 )
 type (
 	iLast[T any] interface {
-		// Last consumes the next, returning the iLast element.
+		// Last consumes the data, returning the iLast element.
 		//
-		// This method will evaluate the next until it returns [`gust.None[T]()`]. While
+		// This method will evaluate the data until it returns [`gust.None[T]()`]. While
 		// doing so, it keeps track of the current element. After [`gust.None[T]()`] is
 		// returned, `Last()` will then return the iLast element it saw.
 		//
@@ -288,15 +302,15 @@ type (
 )
 type (
 	iAdvanceBy[T any] interface {
-		// AdvanceBy advances the next by `n` elements.
+		// AdvanceBy advances the data by `n` elements.
 		//
 		// This method will eagerly skip `n` elements by calling [`Next`] up to `n`
 		// times until [`gust.None[T]()`] is encountered.
 		//
-		// `AdvanceBy(n)` will return [`gust.NonErrable[uint]()`] if the next successfully advances by
+		// `AdvanceBy(n)` will return [`gust.NonErrable[uint]()`] if the data successfully advances by
 		// `n` elements, or [`gust.ToErrable[uint](k)`] if [`gust.None[T]()`] is encountered, where `k` is the number
-		// of elements the next is advanced by before running out of elements (i.e. the
-		// length of the next). Note that `k` is always less than `n`.
+		// of elements the data is advanced by before running out of elements (i.e. the
+		// length of the data). Note that `k` is always less than `n`.
 		//
 		// # Examples
 		//
@@ -317,18 +331,18 @@ type (
 )
 type (
 	iNth[T any] interface {
-		// Nth returns the `n`th element of the next.
+		// Nth returns the `n`th element of the data.
 		//
 		// Like most indexing operations, the iCount starts from zero, so `Nth(0)`
 		// returns the first value, `Nth(1)` the second, and so on.
 		//
 		// Note that iAll preceding elements, as well as the returned element, will be
-		// consumed from the next. That means that the preceding elements will be
-		// discarded, and also that calling `iNth(0)` multiple times on the same next
+		// consumed from the data. That means that the preceding elements will be
+		// discarded, and also that calling `iNth(0)` multiple times on the same data
 		// will return different elements.
 		//
 		// `Nth()` will return [`gust.None[T]()`] if `n` is greater than or equal to the length of the
-		// next.
+		// data.
 		//
 		// # Examples
 		//
@@ -337,7 +351,7 @@ type (
 		// var a = []int{1, 2, 3};
 		// assert.Equal(t, FromVec(a).Nth(1), gust.Some(2));
 		//
-		// Calling `Nth()` multiple times doesn't rewind the next:
+		// Calling `Nth()` multiple times doesn't rewind the data:
 		//
 		// var a = []int{1, 2, 3};
 		//
@@ -358,12 +372,12 @@ type (
 )
 type (
 	iForEach[T any] interface {
-		// ForEach calls a closure on each element of a next.
+		// ForEach calls a closure on each element of a data.
 		//
-		// This is equivalent to using a [`for`] loop on the next, although
+		// This is equivalent to using a [`for`] loop on the data, although
 		// `break` and `continue` are not possible from a closure. It's generally
 		// more idiomatic to use a `for` loop, but `ForEach` may be more legible
-		// when processing items at the end of longer next chains. In some
+		// when processing items at the end of longer data chains. In some
 		// cases `ForEach` may also be faster than a loop, because it will use
 		// internal iteration on adapters like `ChainIterator`.
 		//
@@ -389,12 +403,12 @@ type (
 		// Reduce reduces the elements to a single one, by repeatedly applying a reducing
 		// operation.
 		//
-		// If the next is empty, returns [`gust.None[T]()`]; otherwise, returns the
+		// If the data is empty, returns [`gust.None[T]()`]; otherwise, returns the
 		// result of the reduction.
 		//
 		// The reducing function is a closure with two arguments: an 'accumulator', and an element.
 		// For iterators with at least one element, this is the same as [`Fold()`]
-		// with the first element of the next as the initial accumulator value, folding
+		// with the first element of the data as the initial accumulator value, folding
 		// every subsequent element into it.
 		//
 		// # Example
@@ -420,10 +434,10 @@ type (
 )
 type (
 	iAll[T any] interface {
-		// All tests if every element of the next matches a predicate.
+		// All tests if every element of the data matches a predicate.
 		//
 		// `All()` takes a closure that returns `true` or `false`. It applies
-		// this closure to each element of the next, and if they iAll return
+		// this closure to each element of the data, and if they iAll return
 		// `true`, then so does `All()`. If any of them return `false`, it
 		// returns `false`.
 		//
@@ -431,7 +445,7 @@ type (
 		// as soon as it finds a `false`, given that no matter what else happens,
 		// the result will also be `false`.
 		//
-		// An empty next returns `true`.
+		// An empty data returns `true`.
 		//
 		// # Examples
 		//
@@ -461,10 +475,10 @@ type (
 )
 type (
 	iAny[T any] interface {
-		// Any tests if any element of the next matches a predicate.
+		// Any tests if any element of the data matches a predicate.
 		//
 		// `Any()` takes a closure that returns `true` or `false`. It applies
-		// this closure to each element of the next, and if any of them return
+		// this closure to each element of the data, and if any of them return
 		// `true`, then so does `Any()`. If they iAll return `false`, it
 		// returns `false`.
 		//
@@ -472,7 +486,7 @@ type (
 		// as soon as it finds a `true`, given that no matter what else happens,
 		// the result will also be `true`.
 		//
-		// An empty next returns `false`.
+		// An empty data returns `false`.
 		//
 		// # Examples
 		//
@@ -502,10 +516,10 @@ type (
 )
 type (
 	iFind[T any] interface {
-		// Find searches for an element of a next that satisfies a predicate.
+		// Find searches for an element of a data that satisfies a predicate.
 		//
 		// `Find()` takes a closure that returns `true` or `false`. It applies
-		// this closure to each element of the next, and if any of them return
+		// this closure to each element of the data, and if any of them return
 		// `true`, then `Find()` returns [`gust.Some(element)`]. If they iAll return
 		// `false`, it returns [`gust.None[T]()`].
 		//
@@ -549,7 +563,7 @@ type (
 )
 type (
 	iFindMap[T any] interface {
-		// FindMap applies function to the elements of next and returns
+		// FindMap applies function to the elements of data and returns
 		// the first non-none
 		//
 		// `iter.FindMap(f)` is equivalent to `iter.FilterMap(f).Next()`.
@@ -569,7 +583,7 @@ type (
 )
 type (
 	iTryFind[T any] interface {
-		// TryFind applies function to the elements of next and returns
+		// TryFind applies function to the elements of data and returns
 		// the first true result or the first error.
 		//
 		// # Examples
@@ -593,10 +607,10 @@ type (
 )
 type (
 	iPosition[T any] interface {
-		// Position searches for an element in a next, returning its index.
+		// Position searches for an element in a data, returning its index.
 		//
 		// `Position()` takes a closure that returns `true` or `false`. It applies
-		// this closure to each element of the next, and if one of them
+		// this closure to each element of the data, and if one of them
 		// returns `true`, then `Position()` returns [`gust.Some(index)`]. If iAll of
 		// them return `false`, it returns [`gust.None[T]()`].
 		//
@@ -612,7 +626,7 @@ type (
 		//
 		// # Panics
 		//
-		// This function might panic if the next has more than `math.MaxInt`
+		// This function might panic if the data has more than `math.MaxInt`
 		// non-matching elements.
 		//
 		// [`gust.Some(index)`]: gust.Some
@@ -638,7 +652,7 @@ type (
 		// we can still use `iter`, as there are more elements.
 		// assert.Equal(t, iter.Next(), gust.Some(3));
 		//
-		// The returned index depends on next state
+		// The returned index depends on data state
 		// assert.Equal(t, iter.Position(func(x int)bool{return x == 4}), gust.Some(0));
 		Position(predicate func(T) bool) gust.Option[int]
 	}
@@ -648,10 +662,10 @@ type (
 )
 type (
 	iStepBy[T any] interface {
-		// StepBy creates a next starting at the same point, but stepping by
+		// StepBy creates a data starting at the same point, but stepping by
 		// the given amount at each iteration.
 		//
-		// Note 1: The first element of the next will always be returned,
+		// Note 1: The first element of the data will always be returned,
 		// regardless of the step given.
 		//
 		// Note 2: The time at which ignored elements are pulled is not fixed.
@@ -737,11 +751,11 @@ type (
 )
 type (
 	iChain[T any] interface {
-		// Chain takes two iterators and creates a new next over both in sequence.
+		// Chain takes two iterators and creates a new data over both in sequence.
 		//
-		// `Chain()` will return a new next which will first iterate over
-		// values from the first next and then over values from the second
-		// next.
+		// `Chain()` will return a new data which will first iterate over
+		// values from the first data and then over values from the second
+		// data.
 		//
 		// In other words, it links two iterators together, in a chain. 🔗
 		//
@@ -816,7 +830,7 @@ type (
 )
 type (
 	iNextChunk[T any] interface {
-		// NextChunk advances the iterator and returns an array containing the next `n` values, then `true` is returned.
+		// NextChunk advances the iterator and returns an array containing the data `n` values, then `true` is returned.
 		//
 		// If there are not enough elements to fill the array then `false` is returned
 		// containing an iterator over the remaining elements.
@@ -831,8 +845,8 @@ type DoubleEndedIterator[T any] interface {
 }
 
 type iDoubleEndedIterator[T any] interface {
-	Iterator[T]
 	iNextBack[T]
+	iRemainingLen[T]
 	iAdvanceBackBy[T]
 	iNthBack[T]
 	iTryRfold[T]
@@ -854,7 +868,7 @@ type (
 		//
 		// var iter = FromVec(a);
 		//
-		// A call to next() returns the next value...
+		// A call to data() returns the data value...
 		// assert.Equal(t, gust.Some(3), iter.NextBack());
 		// assert.Equal(t, gust.Some(2), iter.NextBack());
 		// assert.Equal(t, gust.Some(1), iter.NextBack());
@@ -872,6 +886,26 @@ type (
 	}
 	NextBackForIter[T any] interface {
 		NextBackForIter() gust.Option[T]
+	}
+)
+
+type (
+	iRemainingLen[T any] interface {
+		// RemainingLen returns the exact remaining length of the iterator.
+		//
+		// The implementation ensures that the iterator will return exactly `len()`
+		// more times a [`Some(T)`] value, before returning [`None`].
+		// This method has a default implementation, so you usually should not
+		// implement it directly. However, if you can provide a more efficient
+		// implementation, you can do so. See the [trait-level] docs for an
+		// example.
+		RemainingLen() uint
+	}
+	iRealRemainingLen interface {
+		realRemainingLen() uint
+	}
+	RemainingLenForIter interface {
+		RemainingLenForIter() uint
 	}
 )
 

@@ -35,7 +35,7 @@ func (s InspectIterator[T]) realNext() gust.Option[T] {
 	return s.doInspect(s.iter.Next())
 }
 
-func (s InspectIterator[T]) realSizeHint() (uint64, gust.Option[uint64]) {
+func (s InspectIterator[T]) realSizeHint() (uint, gust.Option[uint]) {
 	return s.iter.SizeHint()
 }
 
