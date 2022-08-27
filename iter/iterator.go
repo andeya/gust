@@ -2,6 +2,7 @@ package iter
 
 import "github.com/andeya/gust"
 
+// Iterator is an interface for dealing with iterators.
 type Iterator[T any] interface {
 	iNext[T]
 	iNextChunk[T]
@@ -34,7 +35,7 @@ type (
 	iNext[T any] interface {
 		// Next advances the next and returns the next value.
 		//
-		// Returns [`gust.None[A]()`] when iteration is finished. Individual next
+		// Returns [`gust.None[T]()`] when iteration is finished. Individual next
 		// implementations may choose to resume iteration, and so calling `next()`
 		// again may or may not eventually min returning [`gust.Some(A)`] again at some
 		// point.
@@ -47,15 +48,15 @@ type (
 		//
 		// var iter = FromVec(a);
 		//
-		// // A call to next() returns the next value...
+		// A call to next() returns the next value...
 		// assert.Equal(t, gust.Some(1), iter.Next());
 		// assert.Equal(t, gust.Some(2), iter.Next());
 		// assert.Equal(t, gust.Some(3), iter.Next());
 		//
-		// // ... and then None once it's over.
+		// ... and then None once it's over.
 		// assert.Equal(t, gust.None[int](), iter.Next());
 		//
-		// // More calls may or may not return `gust.None[A]()`. Here, they always will.
+		// More calls may or may not return `gust.None[T]()`. Here, they always will.
 		// assert.Equal(t, gust.None[int](), iter.Next());
 		// assert.Equal(t, gust.None[int](), iter.Next());
 		Next() gust.Option[T]
@@ -71,7 +72,7 @@ type (
 	iCount interface {
 		// Count consumes the next, counting the number of iterations and returning it.
 		//
-		// This method will call [`Next`] repeatedly until [`gust.None[A]()`] is encountered,
+		// This method will call [`Next`] repeatedly until [`gust.None[T]()`] is encountered,
 		// returning the number of times it saw [`gust.Some`]. Note that [`Next`] has to be
 		// called at least once even if the next does not have any elements.
 		//
@@ -113,7 +114,7 @@ type (
 		// is the lower bound, and the second element is the upper bound.
 		//
 		// The second half of the tuple that is returned is an <code>Option[A]</code>.
-		// A [`gust.None[A]()`] here means that either there is no known upper bound, or the
+		// A [`gust.None[T]()`] here means that either there is no known upper bound, or the
 		// upper bound is larger than [`int`].
 		//
 		// # Implementation notes
@@ -145,23 +146,23 @@ type (
 		//
 		// A more complex example:
 		//
-		// // The even numbers in the range of zero to nine.
+		// The even numbers in the range of zero to nine.
 		// var iter = FromRange(0..10).Filter(func(x A) {return x % 2 == 0});
 		//
-		// // We might iterate from zero to ten times. Knowing that it's five
-		// // exactly wouldn't be possible without executing filter().
+		// We might iterate from zero to ten times. Knowing that it's five
+		// exactly wouldn't be possible without executing filter().
 		// assert.Equal(t, (0, gust.Some(10)), iter.SizeHint());
 		//
-		// // Let's add five more numbers with chain()
+		// Let's add five more numbers with chain()
 		// var iter = FromRange(0, 10).Filter(func(x A) {return x % 2 == 0}).Chain(FromRange(15, 20));
 		//
-		// // now both bounds are increased by five
+		// now both bounds are increased by five
 		// assert.Equal(t, (5, gust.Some(15)), iter.SizeHint());
 		//
 		// Returning `gust.None[int]()` for an upper bound:
 		//
-		// // an infinite next has no upper bound
-		// // and the maximum possible lower bound
+		// an infinite next has no upper bound
+		// and the maximum possible lower bound
 		// var iter = FromRange(0, math.MaxInt);
 		//
 		// assert.Equal(t, (math.MaxInt, gust.None[int]()), iter.SizeHint());
@@ -266,8 +267,8 @@ type (
 	iLast[T any] interface {
 		// Last consumes the next, returning the iLast element.
 		//
-		// This method will evaluate the next until it returns [`gust.None[A]()`]. While
-		// doing so, it keeps track of the current element. After [`gust.None[A]()`] is
+		// This method will evaluate the next until it returns [`gust.None[T]()`]. While
+		// doing so, it keeps track of the current element. After [`gust.None[T]()`] is
 		// returned, `Last()` will then return the iLast element it saw.
 		//
 		// # Examples
@@ -290,19 +291,12 @@ type (
 		// AdvanceBy advances the next by `n` elements.
 		//
 		// This method will eagerly skip `n` elements by calling [`Next`] up to `n`
-		// times until [`gust.None[A]()`] is encountered.
+		// times until [`gust.None[T]()`] is encountered.
 		//
-		// `AdvanceBy(n)` will return [`Ok[struct{}](struct{}{})`] if the next successfully advances by
-		// `n` elements, or [`Err[struct{}](err)`] if [`gust.None[A]()`] is encountered, where `k` is the number
+		// `AdvanceBy(n)` will return [`gust.NonErrable[uint]()`] if the next successfully advances by
+		// `n` elements, or [`gust.ToErrable[uint](k)`] if [`gust.None[T]()`] is encountered, where `k` is the number
 		// of elements the next is advanced by before running out of elements (i.e. the
 		// length of the next). Note that `k` is always less than `n`.
-		//
-		// Calling `AdvanceBy(0)` can do meaningful work, for example [`Flatten`]
-		// can advance its outer next until it finds a facade next that is not empty, which
-		// then often allows it to return a more accurate `SizeHint()` than in its initial state.
-		// `AdvanceBy(0)` may either return `A()` or `Err(0)`. The former conveys no information
-		// whether the next is or is not exhausted, the latter can be treated as if [`Next`]
-		// had returned `gust.None[A]()`. Replacing a `Err(0)` with `A` is only correct for `n = 0`.
 		//
 		// # Examples
 		//
@@ -311,14 +305,14 @@ type (
 		// var a = []int{1, 2, 3, 4};
 		// var iter = FromVec(a);
 		//
-		// assert.Equal(t, iter.AdvanceBy(2), Ok[struct{}](struct{}{}));
+		// assert.Equal(t, iter.AdvanceBy(2), gust.NonErrable[uint]());
 		// assert.Equal(t, iter.Next(), gust.Some(3));
-		// assert.Equal(t, iter.AdvanceBy(0), Ok[struct{}](struct{}{}));
-		// assert.Equal(t, iter.AdvanceBy(100), Err[struct{}](fmt.Errorf("%d", 1))); // only `4` was skipped
-		AdvanceBy(n uint) gust.Result[struct{}]
+		// assert.Equal(t, iter.AdvanceBy(0), gust.NonErrable[uint]());
+		// assert.Equal(t, iter.AdvanceBy(100), gust.ToErrable[uint](1)); // only `4` was skipped
+		AdvanceBy(n uint) gust.Errable[uint]
 	}
 	iRealAdvanceBy[T any] interface {
-		realAdvanceBy(n uint) gust.Result[struct{}]
+		realAdvanceBy(n uint) gust.Errable[uint]
 	}
 )
 type (
@@ -333,7 +327,7 @@ type (
 		// discarded, and also that calling `iNth(0)` multiple times on the same next
 		// will return different elements.
 		//
-		// `Nth()` will return [`gust.None[A]()`] if `n` is greater than or equal to the length of the
+		// `Nth()` will return [`gust.None[T]()`] if `n` is greater than or equal to the length of the
 		// next.
 		//
 		// # Examples
@@ -352,7 +346,7 @@ type (
 		// assert.Equal(t, iter.Nth(1), gust.Some(2));
 		// assert.Equal(t, iter.Nth(1), gust.None[int]());
 		//
-		// Returning `gust.None[A]()` if there are less than `n + 1` elements:
+		// Returning `gust.None[T]()` if there are less than `n + 1` elements:
 		//
 		// var a = []int{1, 2, 3};
 		// assert.Equal(t, FromVec(a).Nth(10), gust.None[int]());
@@ -395,7 +389,7 @@ type (
 		// Reduce reduces the elements to a single one, by repeatedly applying a reducing
 		// operation.
 		//
-		// If the next is empty, returns [`gust.None[A]()`]; otherwise, returns the
+		// If the next is empty, returns [`gust.None[T]()`]; otherwise, returns the
 		// result of the reduction.
 		//
 		// The reducing function is a closure with two arguments: an 'accumulator', and an element.
@@ -513,7 +507,7 @@ type (
 		// `Find()` takes a closure that returns `true` or `false`. It applies
 		// this closure to each element of the next, and if any of them return
 		// `true`, then `Find()` returns [`gust.Some(element)`]. If they iAll return
-		// `false`, it returns [`gust.None[A]()`].
+		// `false`, it returns [`gust.None[T]()`].
 		//
 		// `Find()` is short-circuiting; in other words, it will stop processing
 		// as soon as the closure returns `true`.
@@ -590,7 +584,7 @@ type (
 		// assert.Equal(t, result, A(Some("2")));
 		//
 		// var result = FromVec(a).TryFind(func(s string)bool{return is_my_num(s, 5)});
-		// assert.True(t, IsErr());
+		// assert.True(t, HasError());
 		TryFind(predicate func(T) gust.Result[bool]) gust.Result[gust.Option[T]]
 	}
 	iRealTryFind[T any] interface {
@@ -604,7 +598,7 @@ type (
 		// `Position()` takes a closure that returns `true` or `false`. It applies
 		// this closure to each element of the next, and if one of them
 		// returns `true`, then `Position()` returns [`gust.Some(index)`]. If iAll of
-		// them return `false`, it returns [`gust.None[A]()`].
+		// them return `false`, it returns [`gust.None[T]()`].
 		//
 		// `Position()` is short-circuiting; in other words, it will stop
 		// processing as soon as it finds a `true`.
@@ -674,7 +668,7 @@ type (
 		// assert.Equal(t, iter.Next(), gust.Some(0));
 		// assert.Equal(t, iter.Next(), gust.Some(2));
 		// assert.Equal(t, iter.Next(), gust.Some(4));
-		// assert.Equal(t, iter.Next(), gust.None[A]());
+		// assert.Equal(t, iter.Next(), gust.None[T]());
 		StepBy(step uint) *StepByIterator[T]
 	}
 	iRealStepBy[T any] interface {
@@ -827,5 +821,104 @@ type (
 		// If there are not enough elements to fill the array then `false` is returned
 		// containing an iterator over the remaining elements.
 		NextChunk(n uint) ([]T, bool)
+	}
+)
+
+// DoubleEndedIterator is an iterator able to yield elements from both ends.
+type DoubleEndedIterator[T any] interface {
+	Iterator[T]
+	iNextBack[T]
+	iAdvanceBackBy[T]
+	iNthBack[T]
+	iTryRfold[T]
+	iRealTryRfold[T]
+	iRfold[T]
+	iRfind[T]
+}
+
+type (
+	iNextBack[T any] interface {
+		// NextBack removes and returns an element from the end of the iterator.
+		//
+		// Returns `gust.None[T]()` when there are no more elements.
+		//
+		// # Examples
+		//
+		// Basic usage:
+		//
+		// var a = []int{1, 2, 3};
+		//
+		// var iter = FromVec(a);
+		//
+		// A call to next() returns the next value...
+		// assert.Equal(t, gust.Some(3), iter.NextBack());
+		// assert.Equal(t, gust.Some(2), iter.NextBack());
+		// assert.Equal(t, gust.Some(1), iter.NextBack());
+		//
+		// ... and then None once it's over.
+		// assert.Equal(t, gust.None[int](), iter.NextBack());
+		//
+		// More calls may or may not return `gust.None[T]()`. Here, they always will.
+		// assert.Equal(t, gust.None[int](), iter.NextBack());
+		// assert.Equal(t, gust.None[int](), iter.NextBack());
+		NextBack() gust.Option[T]
+	}
+	iRealNextBack[T any] interface {
+		realNextBack() gust.Option[T]
+	}
+	NextBackForIter[T any] interface {
+		NextBackForIter() gust.Option[T]
+	}
+)
+
+type (
+	iAdvanceBackBy[T any] interface {
+		// AdvanceBackBy advances the iterator from the back by `n` elements.
+		AdvanceBackBy(n uint) gust.Errable[uint]
+	}
+	iRealAdvanceBackBy[T any] interface {
+		realAdvanceBackBy(n uint) gust.Errable[uint]
+	}
+)
+
+type (
+	iNthBack[T any] interface {
+		// NthBack returns the `n`th element from the end of the iterator.
+		NthBack(n uint) gust.Option[T]
+	}
+	iRealNthBackBy[T any] interface {
+		realNthBack(n uint) gust.Option[T]
+	}
+)
+
+type (
+	iTryRfold[T any] interface {
+		// TryRfold is the reverse version of [`Iterator[T].TryFold()`]: it takes
+		// elements starting from the back of the iterator.
+		TryRfold(init any, fold func(any, T) gust.Result[any]) gust.Result[any]
+	}
+	iRealTryRfold[T any] interface {
+		realTryRfold(init any, fold func(any, T) gust.Result[any]) gust.Result[any]
+	}
+)
+
+type (
+	iRfold[T any] interface {
+		// Rfold is an iterator method that reduces the iterator's elements to a single,
+		// final value, starting from the back.
+		Rfold(init any, fold func(any, T) any) any
+	}
+	iRealRfold[T any] interface {
+		realRfold(init any, fold func(any, T) any) any
+	}
+)
+
+type (
+	iRfind[T any] interface {
+		// Rfind searches for an element of an iterator from the back that satisfies a predicate.
+		Rfind(predicate func(T) bool) gust.Option[T]
+	}
+	iRealRfind[T any] interface {
+		realRfind(predicate func(T) bool) gust.Option[T]
 	}
 )

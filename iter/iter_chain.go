@@ -62,15 +62,14 @@ func (s *ChainIterator[T]) realFind(predicate func(T) bool) gust.Option[T] {
 func (s *ChainIterator[T]) realNth(n uint) gust.Option[T] {
 	if s.inner != nil {
 		r := s.inner.AdvanceBy(n)
-		if r.IsOk() {
+		if r.HasError() {
+			n -= r.Unwrap()
+		} else {
 			item := s.inner.Next()
 			if item.IsSome() {
 				return item
 			}
 			n = 0
-		} else {
-			k, _ := r.ErrVal().(uint)
-			n -= k
 		}
 		s.inner = nil
 	}
@@ -80,30 +79,28 @@ func (s *ChainIterator[T]) realNth(n uint) gust.Option[T] {
 	return gust.None[T]()
 }
 
-func (s *ChainIterator[T]) realAdvanceBy(n uint) gust.Result[struct{}] {
+func (s *ChainIterator[T]) realAdvanceBy(n uint) gust.Errable[uint] {
 	var rem = n
 	if s.inner != nil {
 		r := s.inner.AdvanceBy(rem)
-		if r.IsOk() {
+		if !r.HasError() {
 			return r
 		}
-		k, _ := r.ErrVal().(uint)
-		rem -= k
+		rem -= r.Unwrap()
 		s.inner = nil
 	}
 	if s.other != nil {
 		r := s.other.AdvanceBy(rem)
-		if r.IsOk() {
+		if !r.HasError() {
 			return r
 		}
-		k, _ := r.ErrVal().(uint)
-		rem -= k
+		rem -= r.Unwrap()
 		// we don't fuse the second iterator
 	}
 	if rem == 0 {
-		return gust.Ok(struct{}{})
+		return gust.NonErrable[uint]()
 	}
-	return gust.Err[struct{}](n - rem)
+	return gust.ToErrable(n - rem)
 }
 
 func (s *ChainIterator[T]) realFold(acc any, f func(any, T) any) any {

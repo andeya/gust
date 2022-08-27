@@ -77,16 +77,16 @@ func (iter iterTrait[T]) Last() gust.Option[T] {
 		})
 }
 
-func (iter iterTrait[T]) AdvanceBy(n uint) gust.Result[struct{}] {
+func (iter iterTrait[T]) AdvanceBy(n uint) gust.Errable[uint] {
 	if cover, ok := iter.facade.(iRealAdvanceBy[T]); ok {
 		return cover.realAdvanceBy(n)
 	}
 	for i := uint(0); i < n; i++ {
 		if iter.Next().IsNone() {
-			return gust.Err[struct{}](i)
+			return gust.ToErrable[uint](i)
 		}
 	}
-	return gust.Ok(struct{}{})
+	return gust.NonErrable[uint]()
 }
 
 func (iter iterTrait[T]) Nth(n uint) gust.Option[T] {
@@ -94,7 +94,7 @@ func (iter iterTrait[T]) Nth(n uint) gust.Option[T] {
 		return cover.realNth(n)
 	}
 	var res = iter.AdvanceBy(n)
-	if res.IsErr() {
+	if res.HasError() {
 		return gust.None[T]()
 	}
 	return iter.Next()
