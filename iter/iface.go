@@ -4,6 +4,7 @@ import "github.com/andeya/gust"
 
 type Iterator[T any] interface {
 	iNext[T]
+	iNextChunk[T]
 	iSizeHint
 	iCount
 	iFold[T]
@@ -821,5 +822,14 @@ type (
 	iInspect[T any] interface {
 		// Inspect takes a closure and executes it with each element.
 		Inspect(f func(T)) *InspectIterator[T]
+	}
+)
+type (
+	iNextChunk[T any] interface {
+		// NextChunk advances the iterator and returns an array containing the next `n` values, then `true` is returned.
+		//
+		// If there are not enough elements to fill the array then `false` is returned
+		// containing an iterator over the remaining elements.
+		NextChunk(n uint) ([]T, bool)
 	}
 )

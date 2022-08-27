@@ -19,6 +19,19 @@ func (iter iterTrait[T]) Next() gust.Option[T] {
 	return iter.facade.realNext()
 }
 
+func (iter iterTrait[T]) NextChunk(n uint) ([]T, bool) {
+	var chunk = make([]T, 0, n)
+	for i := uint(0); i < n; i++ {
+		item := iter.Next()
+		if item.IsSome() {
+			chunk = append(chunk, item.Unwrap())
+		} else {
+			return chunk, false
+		}
+	}
+	return chunk, true
+}
+
 func (iter iterTrait[T]) SizeHint() (uint64, gust.Option[uint64]) {
 	if cover, ok := iter.facade.(iRealSizeHint); ok {
 		return cover.realSizeHint()
