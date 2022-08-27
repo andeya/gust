@@ -10,7 +10,7 @@ go≥1.18
 
 ### Result
 
-Avoid `if err != nil`, handle result with chain methods.
+Improve `func() (T,error)`, handle result with chain methods.
 
 - Result Example
 
@@ -53,7 +53,7 @@ func ExampleResult_UnwrapOr() {
 
 ### Option
 
-Avoid `(T, bool)` and `if *U != nil`, handle value with `Option` type.
+Improve `func()(T, bool)` and `if *U != nil`, handle value with `Option` type.
 
 - Option Example
 
@@ -93,6 +93,32 @@ func ExampleOption() {
 	// true
 	// false
 	// Some({1})
+}
+```
+
+### Errable
+
+Improve `func() error`, handle error with chain methods.
+
+- Result Example
+
+```go
+func ExampleErrable() {
+	var hasErr = true
+	var f = func() gust.Errable[int] {
+		if hasErr {
+			return gust.ToErrable(1)
+		}
+		return gust.NonErrable[int]()
+	}
+	var r = f()
+	fmt.Println(r.HasError())
+	fmt.Println(r.Unwrap())
+	fmt.Printf("%#v", r.ToError())
+	// Output:
+	// true
+	// 1
+	// &errors.errorString{s:"1"}
 }
 ```
 
