@@ -25,15 +25,11 @@ func ToErrable[T any](errVal T) Errable[T] {
 	return Errable[T]{errVal: &errVal}
 }
 
-func (e Errable[T]) Ref() *Errable[T] {
-	return &e
+func (e Errable[T]) HasError() bool {
+	return e.errVal != nil
 }
 
-func (e *Errable[T]) HasError() bool {
-	return e != nil && e.errVal != nil
-}
-
-func (e *Errable[T]) ToError() error {
+func (e Errable[T]) ToError() error {
 	if !e.HasError() {
 		return nil
 	}
@@ -43,11 +39,11 @@ func (e *Errable[T]) ToError() error {
 	return fmt.Errorf("%v", e.Unwrap())
 }
 
-func (e *Errable[T]) Unwrap() T {
+func (e Errable[T]) Unwrap() T {
 	return *e.errVal
 }
 
-func (e *Errable[T]) UnwrapOr(def T) T {
+func (e Errable[T]) UnwrapOr(def T) T {
 	if e.HasError() {
 		return e.Unwrap()
 	}

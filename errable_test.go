@@ -7,15 +7,12 @@ import (
 )
 
 func TestErrable(t *testing.T) {
-	assert.False(t, ToErrable[any](nil).Ref().HasError())
-	assert.False(t, NonErrable[any]().Ref().HasError())
-	assert.False(t, (*Errable[any])(nil).HasError())
+	assert.False(t, ToErrable[any](nil).HasError())
+	assert.False(t, NonErrable[any]().HasError())
 
-	assert.False(t, ToErrable[error](nil).Ref().HasError())
-	assert.False(t, NonErrable[int]().Ref().HasError())
-	assert.False(t, (*Errable[int])(nil).HasError())
+	assert.False(t, ToErrable[error](nil).HasError())
+	assert.False(t, NonErrable[int]().HasError())
 
-	assert.False(t, ToErrable[*int](nil).Ref().HasError())
-	assert.False(t, NonErrable[*int]().Ref().HasError())
-	assert.False(t, (*Errable[*int])(nil).HasError())
+	assert.False(t, ToErrable[*int](nil).HasError())
+	assert.False(t, NonErrable[*int]().HasError())
 }
