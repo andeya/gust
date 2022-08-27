@@ -100,7 +100,7 @@ func ExampleOption() {
 
 Improve `func() error`, handle error with chain methods.
 
-- Result Example
+- Errable Example
 
 ```go
 func ExampleErrable() {
