@@ -276,3 +276,70 @@ func (iter iterTrait[T]) Collect() []T {
 		return append(slice, x)
 	})
 }
+
+var _ DoubleEndedIterator[any] = doubleEndedIterTrait[any]{}
+
+type doubleEndedIterTrait[T any] struct {
+	iterTrait[T]
+	facade iRealNextBack[T]
+}
+
+func (d doubleEndedIterTrait[T]) NextBack() gust.Option[T] {
+	return d.facade.realNextBack()
+}
+
+func (d doubleEndedIterTrait[T]) AdvanceBackBy(n uint) gust.Errable[uint] {
+	if cover, ok := d.facade.(iRealAdvanceBackBy[T]); ok {
+		return cover.realAdvanceBackBy(n)
+	}
+	for i := uint(0); i < n; i++ {
+		if d.NextBack().IsNone() {
+			return gust.ToErrable[uint](i)
+		}
+	}
+	return gust.NonErrable[uint]()
+}
+
+func (d doubleEndedIterTrait[T]) NthBack(n uint) gust.Option[T] {
+	if cover, ok := d.facade.(iRealNthBack[T]); ok {
+		return cover.realNthBack(n)
+	}
+	if d.AdvanceBackBy(n).HasError() {
+		return gust.None[T]()
+	}
+	return d.NextBack()
+}
+
+func (d doubleEndedIterTrait[T]) TryRfold(init any, fold func(any, T) gust.Result[any]) gust.Result[any] {
+	if cover, ok := d.facade.(iRealTryRfold[T]); ok {
+		return cover.realTryRfold(init, fold)
+	}
+	return TryRfold[T](d, init, fold)
+}
+
+func (d doubleEndedIterTrait[T]) Rfold(init any, fold func(any, T) any) any {
+	if cover, ok := d.facade.(iRealRfold[T]); ok {
+		return cover.realRfold(init, fold)
+	}
+	return Rfold[T](d, init, fold)
+}
+
+func (d doubleEndedIterTrait[T]) Rfind(predicate func(T) bool) gust.Option[T] {
+	if cover, ok := d.facade.(iRealRfind[T]); ok {
+		return cover.realRfind(predicate)
+	}
+	var check = func(f func(T) bool) func(any, T) gust.Result[any] {
+		return func(_ any, x T) gust.Result[any] {
+			if f(x) {
+				return gust.Err[any](x)
+			} else {
+				return gust.Ok[any](nil)
+			}
+		}
+	}
+	r := d.TryRfold(nil, check(predicate))
+	if r.IsErr() {
+		return gust.Some[T](r.ErrVal().(T))
+	}
+	return gust.None[T]()
+}

@@ -49,14 +49,13 @@ func TryFold[T any, B any](next iNext[T], init B, f func(B, T) gust.Result[B]) g
 	for {
 		x := next.Next()
 		if x.IsNone() {
-			break
+			return accum
 		}
 		accum = f(accum.Unwrap(), x.Unwrap())
 		if accum.IsErr() {
 			return accum
 		}
 	}
-	return accum
 }
 
 // Fold folds every element into an accumulator by applying an operation,
@@ -123,11 +122,10 @@ func Fold[T any, B any](next iNext[T], init B, f func(B, T) B) B {
 	for {
 		x := next.Next()
 		if x.IsNone() {
-			break
+			return accum
 		}
 		accum = f(accum, x.Unwrap())
 	}
-	return accum
 }
 
 // Map takes a closure and creates an iterator which calls that closure on each
@@ -202,4 +200,33 @@ func FindMap[T any, B any](iter Iterator[T], f func(T) gust.Option[B]) gust.Opti
 // try to advance the second iterator at most one time.
 func Zip[T any, B any](a Iterator[T], b Iterator[B]) *ZipIterator[T, B] {
 	return newZipIterator[T, B](a, b)
+}
+
+// TryRfold is the reverse version of [`Iterator[T].TryFold()`]: it takes
+// elements starting from the back of the iterator.
+func TryRfold[T any, B any](next iNextBack[T], init B, f func(B, T) gust.Result[B]) gust.Result[B] {
+	var accum = gust.Ok(init)
+	for {
+		x := next.NextBack()
+		if x.IsNone() {
+			return accum
+		}
+		accum = f(accum.Unwrap(), x.Unwrap())
+		if accum.IsErr() {
+			return accum
+		}
+	}
+}
+
+// Rfold is an iterator method that reduces the iterator's elements to a single,
+// final value, starting from the back.
+func Rfold[T any, B any](next iNextBack[T], init B, f func(B, T) B) B {
+	var accum = init
+	for {
+		x := next.NextBack()
+		if x.IsNone() {
+			return accum
+		}
+		accum = f(accum, x.Unwrap())
+	}
 }

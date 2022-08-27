@@ -827,11 +827,15 @@ type (
 // DoubleEndedIterator is an iterator able to yield elements from both ends.
 type DoubleEndedIterator[T any] interface {
 	Iterator[T]
+	iDoubleEndedIterator[T]
+}
+
+type iDoubleEndedIterator[T any] interface {
+	Iterator[T]
 	iNextBack[T]
 	iAdvanceBackBy[T]
 	iNthBack[T]
 	iTryRfold[T]
-	iRealTryRfold[T]
 	iRfold[T]
 	iRfind[T]
 }
@@ -886,7 +890,7 @@ type (
 		// NthBack returns the `n`th element from the end of the iterator.
 		NthBack(n uint) gust.Option[T]
 	}
-	iRealNthBackBy[T any] interface {
+	iRealNthBack[T any] interface {
 		realNthBack(n uint) gust.Option[T]
 	}
 )
