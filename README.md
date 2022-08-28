@@ -5,27 +5,41 @@ Golang ergonomic declarative generics module inspired by Rust.
 After using this package, your code style will be like this:
 
 ```go
-func ExampleSimple() {
-	type Version int8
-	const (
-		Version1 Version = iota + 1
-		Version2
-	)
-	var parseVersion = func(header iter.Iterator[byte]) gust.Result[Version] {
-		return ret.AndThen(
-			header.Next().
-				OkOr(errors.New("invalid header length")),
-			func(b byte) gust.Result[Version] {
-				switch b {
-				case 1:
-					return gust.Ok(Version1)
-				case 2:
-					return gust.Ok(Version2)
-				}
-				return gust.Err[Version]("invalid version")
-			})
-	}
-	parseVersion(iter.FromElements[byte](1, 2, 3, 4)).
+package examples_test
+
+import (
+	"errors"
+	"fmt"
+
+	"github.com/andeya/gust"
+	"github.com/andeya/gust/iter"
+	"github.com/andeya/gust/ret"
+)
+
+type Version int8
+
+const (
+	Version1 Version = iota + 1
+	Version2
+)
+
+func ParseVersion(header iter.Iterator[byte]) gust.Result[Version] {
+	return ret.AndThen(
+		header.Next().
+			OkOr(errors.New("invalid header length")),
+		func(b byte) gust.Result[Version] {
+			switch b {
+			case 1:
+				return gust.Ok(Version1)
+			case 2:
+				return gust.Ok(Version2)
+			}
+			return gust.Err[Version]("invalid version")
+		})
+}
+
+func ExampleVersion() {
+	ParseVersion(iter.FromElements[byte](1, 2, 3, 4)).
 		Inspect(func(v Version) {
 			fmt.Printf("working with version: %v\n", v)
 		}).
