@@ -99,7 +99,7 @@ func (r EnumResult[T, E]) MapOrElse(defaultFn func(E) T, f func(T) T) T {
 }
 
 // MapErr maps a EnumResult[T,E] to EnumResult[T,E] by applying a function to a contained E, leaving an T value untouched.
-// This function can be used to pass through a successful result while handling an E.
+// This function can be used to pass through a successful result while handling an error.
 func (r EnumResult[T, E]) MapErr(op func(E) E) EnumResult[T, E] {
 	if r.IsErr() {
 		r.val = op(r.val.(E))
