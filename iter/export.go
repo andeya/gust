@@ -10,6 +10,11 @@ func FromVec[T any](slice []T) Iterator[T] {
 	return NewDataVec(slice).ToIterator()
 }
 
+// FromElements creates an iterator from a set of elements.
+func FromElements[T any](elem ...T) Iterator[T] {
+	return NewDataVec(elem).ToIterator()
+}
+
 // FromRange creates an iterator from a range.
 func FromRange[T digit.Integer](start T, end T, rightClosed ...bool) Iterator[T] {
 	return NewDataRange[T](start, end, rightClosed...).ToIterator()
