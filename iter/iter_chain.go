@@ -62,7 +62,7 @@ func (s *ChainIterator[T]) realFind(predicate func(T) bool) gust.Option[T] {
 func (s *ChainIterator[T]) realNth(n uint) gust.Option[T] {
 	if s.inner != nil {
 		r := s.inner.AdvanceBy(n)
-		if r.HasError() {
+		if r.AsError() {
 			n -= r.Unwrap()
 		} else {
 			item := s.inner.Next()
@@ -83,7 +83,7 @@ func (s *ChainIterator[T]) realAdvanceBy(n uint) gust.Errable[uint] {
 	var rem = n
 	if s.inner != nil {
 		r := s.inner.AdvanceBy(rem)
-		if !r.HasError() {
+		if !r.AsError() {
 			return r
 		}
 		rem -= r.Unwrap()
@@ -91,7 +91,7 @@ func (s *ChainIterator[T]) realAdvanceBy(n uint) gust.Errable[uint] {
 	}
 	if s.other != nil {
 		r := s.other.AdvanceBy(rem)
-		if !r.HasError() {
+		if !r.AsError() {
 			return r
 		}
 		rem -= r.Unwrap()

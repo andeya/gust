@@ -24,12 +24,12 @@ func ToErrable[T any](errVal T) Errable[T] {
 	return Errable[T]{errVal: &errVal}
 }
 
-func (e Errable[T]) HasError() bool {
+func (e Errable[T]) AsError() bool {
 	return e.errVal != nil
 }
 
 func (e Errable[T]) ToError() error {
-	if !e.HasError() {
+	if !e.AsError() {
 		return nil
 	}
 	return toError(e.Unwrap())
@@ -40,7 +40,7 @@ func (e Errable[T]) Unwrap() T {
 }
 
 func (e Errable[T]) UnwrapOr(def T) T {
-	if e.HasError() {
+	if e.AsError() {
 		return e.Unwrap()
 	}
 	return def

@@ -94,7 +94,7 @@ func (iter iterTrait[T]) Nth(n uint) gust.Option[T] {
 		return cover.realNth(n)
 	}
 	var res = iter.AdvanceBy(n)
-	if res.HasError() {
+	if res.AsError() {
 		return gust.None[T]()
 	}
 	return iter.Next()
@@ -314,7 +314,7 @@ func (d doubleEndedIterTrait[T]) NthBack(n uint) gust.Option[T] {
 	if cover, ok := d.facade.(iRealNthBack[T]); ok {
 		return cover.realNthBack(n)
 	}
-	if d.AdvanceBackBy(n).HasError() {
+	if d.AdvanceBackBy(n).AsError() {
 		return gust.None[T]()
 	}
 	return d.NextBack()

@@ -598,7 +598,7 @@ type (
 		// assert.Equal(t, result, A(Some("2")));
 		//
 		// var result = FromVec(a).TryFind(func(s string)bool{return is_my_num(s, 5)});
-		// assert.True(t, HasError());
+		// assert.True(t, result.AsError());
 		TryFind(predicate func(T) gust.Result[bool]) gust.Result[gust.Option[T]]
 	}
 	iRealTryFind[T any] interface {

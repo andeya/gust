@@ -112,7 +112,7 @@ func ExampleErrable() {
 		return gust.NonErrable[int]()
 	}
 	var r = f()
-	fmt.Println(r.HasError())
+	fmt.Println(r.AsError())
 	fmt.Println(r.Unwrap())
 	fmt.Printf("%#v", r.ToError())
 	// Output:
