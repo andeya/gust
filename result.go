@@ -62,7 +62,7 @@ func (r Result[T]) Ok() Option[T] {
 // Err returns error.
 func (r Result[T]) Err() error {
 	if r.IsErr() {
-		return r.inner.val.(error)
+		return r.inner.safeGetE()
 	}
 	return nil
 }
@@ -82,7 +82,7 @@ func (r Result[T]) ErrVal() any {
 // This function can be used to compose the results of two functions.
 func (r Result[T]) Map(f func(T) T) Result[T] {
 	if r.IsOk() {
-		return Ok[T](f(r.inner.val.(T)))
+		return Ok[T](f(r.inner.safeGetT()))
 	}
 	return Err[T](r.inner.val)
 }
@@ -91,7 +91,7 @@ func (r Result[T]) Map(f func(T) T) Result[T] {
 // Arguments passed to map_or are eagerly evaluated; if you are passing the result of a function call, it is recommended to use MapOrElse, which is lazily evaluated.
 func (r Result[T]) MapOr(defaultOk T, f func(T) T) T {
 	if r.IsOk() {
-		return f(r.inner.val.(T))
+		return f(r.inner.safeGetT())
 	}
 	return defaultOk
 }
@@ -100,16 +100,16 @@ func (r Result[T]) MapOr(defaultOk T, f func(T) T) T {
 // This function can be used to unpack a successful result while handling an error.
 func (r Result[T]) MapOrElse(defaultFn func(error) T, f func(T) T) T {
 	if r.IsOk() {
-		return f(r.inner.val.(T))
+		return f(r.inner.safeGetT())
 	}
-	return defaultFn(r.inner.val.(error))
+	return defaultFn(r.inner.safeGetE())
 }
 
 // MapErr maps a Result[T] to Result[T] by applying a function to a contained error, leaving an Ok value untouched.
 // This function can be used to pass through a successful result while handling an error.
 func (r Result[T]) MapErr(op func(error) error) Result[T] {
 	if r.IsErr() {
-		r.inner.val = op(r.inner.val.(error))
+		r.inner.val = op(r.inner.safeGetE())
 	}
 	return r
 }
@@ -117,7 +117,7 @@ func (r Result[T]) MapErr(op func(error) error) Result[T] {
 // Inspect calls the provided closure with a reference to the contained value (if no error).
 func (r Result[T]) Inspect(f func(T)) Result[T] {
 	if r.IsOk() {
-		f(r.inner.val.(T))
+		f(r.inner.safeGetT())
 	}
 	return r
 }
@@ -125,7 +125,7 @@ func (r Result[T]) Inspect(f func(T)) Result[T] {
 // InspectErr calls the provided closure with a reference to the contained error (if error).
 func (r Result[T]) InspectErr(f func(error)) Result[T] {
 	if r.IsErr() {
-		f(r.inner.val.(error))
+		f(r.inner.safeGetE())
 	}
 	return r
 }
@@ -172,7 +172,7 @@ func (r Result[T]) AndThen(op func(T) Result[T]) Result[T] {
 	if r.IsErr() {
 		return r
 	}
-	return op(r.inner.val.(T))
+	return op(r.inner.safeGetT())
 }
 
 // Or returns res if the result is Err, otherwise returns the Ok value of r.
@@ -188,7 +188,7 @@ func (r Result[T]) Or(res Result[T]) Result[T] {
 // This function can be used for control flow based on result values.
 func (r Result[T]) OrElse(op func(error) Result[T]) Result[T] {
 	if r.IsErr() {
-		return op(r.inner.val.(error))
+		return op(r.inner.safeGetE())
 	}
 	return r
 }
@@ -209,7 +209,7 @@ func (r Result[T]) ContainsErr(err error) bool {
 	if r.IsOk() {
 		return false
 	}
-	return errors.Is(r.inner.val.(error), err)
+	return errors.Is(r.inner.safeGetE(), err)
 }
 
 func (r Result[T]) MarshalJSON() ([]byte, error) {

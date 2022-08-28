@@ -21,6 +21,16 @@ type EnumResult[T any, E any] struct {
 	isErr bool
 }
 
+func (r EnumResult[T, E]) safeGetT() T {
+	t, _ := r.val.(T)
+	return t
+}
+
+func (r EnumResult[T, E]) safeGetE() E {
+	e, _ := r.val.(E)
+	return e
+}
+
 // IsErr returns true if the result is E.
 func (r EnumResult[T, E]) IsErr() bool {
 	return r.isErr
@@ -42,7 +52,7 @@ func (r EnumResult[T, E]) String() string {
 // IsOkAnd returns true if the result is Ok and the value inside it matches a predicate.
 func (r EnumResult[T, E]) IsOkAnd(f func(T) bool) bool {
 	if r.IsOk() {
-		return f(r.val.(T))
+		return f(r.safeGetT())
 	}
 	return false
 }
@@ -50,7 +60,7 @@ func (r EnumResult[T, E]) IsOkAnd(f func(T) bool) bool {
 // IsErrAnd returns true if the result is E and the value inside it matches a predicate.
 func (r EnumResult[T, E]) IsErrAnd(f func(E) bool) bool {
 	if r.IsErr() {
-		return f(r.val.(E))
+		return f(r.safeGetE())
 	}
 	return false
 }
@@ -58,7 +68,7 @@ func (r EnumResult[T, E]) IsErrAnd(f func(E) bool) bool {
 // Ok converts from `Result[T,E]` to `Option[T,E]`.
 func (r EnumResult[T, E]) Ok() Option[T] {
 	if r.IsOk() {
-		return Some(r.val.(T))
+		return Some(r.safeGetT())
 	}
 	return None[T]()
 }
@@ -66,7 +76,7 @@ func (r EnumResult[T, E]) Ok() Option[T] {
 // Err returns E value.
 func (r EnumResult[T, E]) Err() Option[E] {
 	if r.IsErr() {
-		return Some(r.val.(E))
+		return Some(r.safeGetE())
 	}
 	return None[E]()
 }
@@ -75,16 +85,16 @@ func (r EnumResult[T, E]) Err() Option[E] {
 // This function can be used to compose the results of two functions.
 func (r EnumResult[T, E]) Map(f func(T) T) EnumResult[T, E] {
 	if r.IsOk() {
-		return EnumOk[T, E](f(r.val.(T)))
+		return EnumOk[T, E](f(r.safeGetT()))
 	}
-	return EnumErr[T, E](r.val.(E))
+	return EnumErr[T, E](r.safeGetE())
 }
 
 // MapOr returns the provided default (if E), or applies a function to the contained value (if no E),
 // Arguments passed to map_or are eagerly evaluated; if you are passing the result of a function call, it is recommended to use MapOrElse, which is lazily evaluated.
 func (r EnumResult[T, E]) MapOr(defaultOk T, f func(T) T) T {
 	if r.IsOk() {
-		return f(r.val.(T))
+		return f(r.safeGetT())
 	}
 	return defaultOk
 }
@@ -93,16 +103,16 @@ func (r EnumResult[T, E]) MapOr(defaultOk T, f func(T) T) T {
 // This function can be used to unpack a successful result while handling an E.
 func (r EnumResult[T, E]) MapOrElse(defaultFn func(E) T, f func(T) T) T {
 	if r.IsOk() {
-		return f(r.val.(T))
+		return f(r.safeGetT())
 	}
-	return defaultFn(r.val.(E))
+	return defaultFn(r.safeGetE())
 }
 
 // MapErr maps a EnumResult[T,E] to EnumResult[T,E] by applying a function to a contained E, leaving an T value untouched.
 // This function can be used to pass through a successful result while handling an error.
 func (r EnumResult[T, E]) MapErr(op func(E) E) EnumResult[T, E] {
 	if r.IsErr() {
-		r.val = op(r.val.(E))
+		r.val = op(r.safeGetE())
 	}
 	return r
 }
@@ -110,7 +120,7 @@ func (r EnumResult[T, E]) MapErr(op func(E) E) EnumResult[T, E] {
 // Inspect calls the provided closure with a reference to the contained value (if no E).
 func (r EnumResult[T, E]) Inspect(f func(T)) EnumResult[T, E] {
 	if r.IsOk() {
-		f(r.val.(T))
+		f(r.safeGetT())
 	}
 	return r
 }
@@ -118,7 +128,7 @@ func (r EnumResult[T, E]) Inspect(f func(T)) EnumResult[T, E] {
 // InspectErr calls the provided closure with a reference to the contained E (if E).
 func (r EnumResult[T, E]) InspectErr(f func(E)) EnumResult[T, E] {
 	if r.IsErr() {
-		f(r.val.(E))
+		f(r.safeGetE())
 	}
 	return r
 }
@@ -130,7 +140,7 @@ func (r EnumResult[T, E]) Expect(msg string) T {
 	if r.IsErr() {
 		panic(fmt.Errorf("%s: %v", msg, r.val))
 	}
-	return r.val.(T)
+	return r.safeGetT()
 }
 
 // Unwrap returns the contained T value.
@@ -140,7 +150,7 @@ func (r EnumResult[T, E]) Unwrap() T {
 	if r.IsErr() {
 		panic(fmt.Errorf("called `Result.Unwrap()` on an `err` value: %s", r.val))
 	}
-	return r.val.(T)
+	return r.safeGetT()
 }
 
 // ExpectErr returns the contained E.
@@ -148,7 +158,7 @@ func (r EnumResult[T, E]) Unwrap() T {
 // passed message, and the content of the T.
 func (r EnumResult[T, E]) ExpectErr(msg string) E {
 	if r.IsErr() {
-		return r.val.(E)
+		return r.safeGetE()
 	}
 	panic(fmt.Errorf("%s: %v", msg, r.val))
 }
@@ -158,7 +168,7 @@ func (r EnumResult[T, E]) ExpectErr(msg string) E {
 // by the T's value.
 func (r EnumResult[T, E]) UnwrapErr() E {
 	if r.IsErr() {
-		return r.val.(E)
+		return r.safeGetE()
 	}
 	panic(fmt.Errorf("called `Result.UnwrapErr()` on an `ok` value: %v", r.val))
 }
@@ -177,7 +187,7 @@ func (r EnumResult[T, E]) AndThen(op func(T) EnumResult[T, E]) EnumResult[T, E] 
 	if r.IsErr() {
 		return r
 	}
-	return op(r.val.(T))
+	return op(r.safeGetT())
 }
 
 // Or returns res if the result is E, otherwise returns the T value of r.
@@ -193,7 +203,7 @@ func (r EnumResult[T, E]) Or(res EnumResult[T, E]) EnumResult[T, E] {
 // This function can be used for control flow based on result values.
 func (r EnumResult[T, E]) OrElse(op func(E) EnumResult[T, E]) EnumResult[T, E] {
 	if r.IsErr() {
-		return op(r.val.(E))
+		return op(r.safeGetE())
 	}
 	return r
 }
@@ -204,15 +214,15 @@ func (r EnumResult[T, E]) UnwrapOr(defaultT T) T {
 	if r.IsErr() {
 		return defaultT
 	}
-	return r.val.(T)
+	return r.safeGetT()
 }
 
 // UnwrapOrElse returns the contained T value or computes it from a closure.
 func (r EnumResult[T, E]) UnwrapOrElse(defaultFn func(E) T) T {
 	if r.IsErr() {
-		return defaultFn(r.val.(E))
+		return defaultFn(r.safeGetE())
 	}
-	return r.val.(T)
+	return r.safeGetT()
 }
 
 func (r EnumResult[T, E]) MarshalJSON() ([]byte, error) {
