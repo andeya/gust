@@ -5,22 +5,27 @@ import (
 	"github.com/andeya/gust/digit"
 )
 
+// FromVec creates an iterator from a slice.
 func FromVec[T any](slice []T) Iterator[T] {
 	return NewDataVec(slice).ToIterator()
 }
 
+// FromRange creates an iterator from a range.
 func FromRange[T digit.Integer](start T, end T, rightClosed ...bool) Iterator[T] {
 	return NewDataRange[T](start, end, rightClosed...).ToIterator()
 }
 
+// FromChan creates an iterator from a channel.
 func FromChan[T any](c <-chan T) Iterator[T] {
 	return NewDataChan[T](c).ToIterator()
 }
 
+// DoubleEndedFromVec creates a double ended iterator from a slice.
 func DoubleEndedFromVec[T any](slice []T) Iterator[T] {
 	return NewDataVec(slice).ToDoubleEndedIterator()
 }
 
+// DoubleEndedFromRange creates a double ended iterator from a range.
 func DoubleEndedFromRange[T digit.Integer](start T, end T, rightClosed ...bool) Iterator[T] {
 	return NewDataRange[T](start, end, rightClosed...).ToDoubleEndedIterator()
 }
