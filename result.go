@@ -1,7 +1,6 @@
 package gust
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 )
@@ -16,27 +15,23 @@ func Ret[T any](some T, err error) Result[T] {
 
 // Ok wraps a successful result.
 func Ok[T any](ok T) Result[T] {
-	return Result[T]{ok: ok}
+	return Result[T]{inner: EnumOk[T, error](ok)}
 }
 
 // Err wraps a failure result.
 func Err[T any](err any) Result[T] {
-	return Result[T]{err: newAnyError(err)}
+	return Result[T]{inner: EnumErr[T, error](newAnyError(err))}
 }
 
 // Result can be used to improve `func()(T,error)`,
 // represents either success (T) or failure (error).
 type Result[T any] struct {
-	ok  T
-	err error
+	inner EnumResult[T, error]
 }
 
-// String returns the string representation.
-func (r Result[T]) String() string {
-	if r.IsErr() {
-		return fmt.Sprintf("Err(%s)", r.err.Error())
-	}
-	return fmt.Sprintf("Ok(%v)", r.ok)
+// IsErr returns true if the result is error.
+func (r Result[T]) IsErr() bool {
+	return r.inner.IsErr()
 }
 
 // IsOk returns true if the result is Ok.
@@ -44,38 +39,32 @@ func (r Result[T]) IsOk() bool {
 	return !r.IsErr()
 }
 
-// IsOkAnd returns true if the result is Ok and the value inside it matches a predicate.
-func (r Result[T]) IsOkAnd(f func(T) bool) bool {
-	if r.IsOk() {
-		return f(r.ok)
-	}
-	return false
+// String returns the string representation.
+func (r Result[T]) String() string {
+	return r.inner.String()
 }
 
-// IsErr returns true if the result is error.
-func (r Result[T]) IsErr() bool {
-	return r.err != nil
+// IsOkAnd returns true if the result is Ok and the value inside it matches a predicate.
+func (r Result[T]) IsOkAnd(f func(T) bool) bool {
+	return r.inner.IsOkAnd(f)
 }
 
 // IsErrAnd returns true if the result is error and the value inside it matches a predicate.
 func (r Result[T]) IsErrAnd(f func(error) bool) bool {
-	if r.IsErr() {
-		return f(r.err)
-	}
-	return false
+	return r.inner.IsErrAnd(f)
 }
 
 // Ok converts from `Result[T]` to `Option[T]`.
 func (r Result[T]) Ok() Option[T] {
-	if r.IsOk() {
-		return Some(r.ok)
-	}
-	return None[T]()
+	return r.inner.Ok()
 }
 
 // Err returns error.
 func (r Result[T]) Err() error {
-	return r.err
+	if r.IsErr() {
+		return r.inner.val.(error)
+	}
+	return nil
 }
 
 // ErrVal returns error inner value.
@@ -83,26 +72,26 @@ func (r Result[T]) ErrVal() any {
 	if r.IsErr() {
 		return nil
 	}
-	if ev, _ := r.err.(*errorWithVal); ev != nil {
+	if ev, _ := r.inner.val.(*errorWithVal); ev != nil {
 		return ev.val
 	}
-	return r.err
+	return r.inner.val
 }
 
 // Map maps a Result[T] to Result[T] by applying a function to a contained Ok value, leaving an error untouched.
 // This function can be used to compose the results of two functions.
 func (r Result[T]) Map(f func(T) T) Result[T] {
 	if r.IsOk() {
-		return Ok[T](f(r.ok))
+		return Ok[T](f(r.inner.val.(T)))
 	}
-	return Err[T](r.err)
+	return Err[T](r.inner.val)
 }
 
 // MapOr returns the provided default (if error), or applies a function to the contained value (if no error),
 // Arguments passed to map_or are eagerly evaluated; if you are passing the result of a function call, it is recommended to use MapOrElse, which is lazily evaluated.
 func (r Result[T]) MapOr(defaultOk T, f func(T) T) T {
 	if r.IsOk() {
-		return f(r.ok)
+		return f(r.inner.val.(T))
 	}
 	return defaultOk
 }
@@ -111,16 +100,16 @@ func (r Result[T]) MapOr(defaultOk T, f func(T) T) T {
 // This function can be used to unpack a successful result while handling an error.
 func (r Result[T]) MapOrElse(defaultFn func(error) T, f func(T) T) T {
 	if r.IsOk() {
-		return f(r.ok)
+		return f(r.inner.val.(T))
 	}
-	return defaultFn(r.err)
+	return defaultFn(r.inner.val.(error))
 }
 
 // MapErr maps a Result[T] to Result[T] by applying a function to a contained error, leaving an Ok value untouched.
 // This function can be used to pass through a successful result while handling an error.
 func (r Result[T]) MapErr(op func(error) error) Result[T] {
 	if r.IsErr() {
-		r.err = op(r.err)
+		r.inner.val = op(r.inner.val.(error))
 	}
 	return r
 }
@@ -128,7 +117,7 @@ func (r Result[T]) MapErr(op func(error) error) Result[T] {
 // Inspect calls the provided closure with a reference to the contained value (if no error).
 func (r Result[T]) Inspect(f func(T)) Result[T] {
 	if r.IsOk() {
-		f(r.ok)
+		f(r.inner.val.(T))
 	}
 	return r
 }
@@ -136,7 +125,7 @@ func (r Result[T]) Inspect(f func(T)) Result[T] {
 // InspectErr calls the provided closure with a reference to the contained error (if error).
 func (r Result[T]) InspectErr(f func(error)) Result[T] {
 	if r.IsErr() {
-		f(r.err)
+		f(r.inner.val.(error))
 	}
 	return r
 }
@@ -145,40 +134,28 @@ func (r Result[T]) InspectErr(f func(error)) Result[T] {
 // Panics if the value is an error, with a panic message including the
 // passed message, and the content of the error.
 func (r Result[T]) Expect(msg string) T {
-	if r.IsErr() {
-		panic(fmt.Errorf("%s: %w", msg, r.err))
-	}
-	return r.ok
+	return r.inner.Expect(msg)
 }
 
 // Unwrap returns the contained Ok value.
 // Because this function may panic, its use is generally discouraged.
 // Instead, prefer to use pattern matching and handle the error case explicitly, or call UnwrapOr or UnwrapOrElse.
 func (r Result[T]) Unwrap() T {
-	if r.IsErr() {
-		panic(fmt.Errorf("called `Result.Unwrap()` on an `err` value: %w", r.err))
-	}
-	return r.ok
+	return r.inner.Unwrap()
 }
 
 // ExpectErr returns the contained error.
 // Panics if the value is not an error, with a panic message including the
 // passed message, and the content of the [`Ok`].
 func (r Result[T]) ExpectErr(msg string) error {
-	if r.IsErr() {
-		return r.err
-	}
-	panic(fmt.Errorf("%s: %v", msg, r.ok))
+	return r.inner.ExpectErr(msg)
 }
 
 // UnwrapErr returns the contained error.
 // Panics if the value is not an error, with a custom panic message provided
 // by the [`Ok`]'s value.
 func (r Result[T]) UnwrapErr() error {
-	if r.IsErr() {
-		return r.err
-	}
-	panic(fmt.Errorf("called `Result.UnwrapErr()` on an `ok` value: %v", r.ok))
+	return r.inner.UnwrapErr()
 }
 
 // And returns res if the result is Ok, otherwise returns the error of self.
@@ -195,7 +172,7 @@ func (r Result[T]) AndThen(op func(T) Result[T]) Result[T] {
 	if r.IsErr() {
 		return r
 	}
-	return op(r.ok)
+	return op(r.inner.val.(T))
 }
 
 // Or returns res if the result is Err, otherwise returns the Ok value of r.
@@ -211,7 +188,7 @@ func (r Result[T]) Or(res Result[T]) Result[T] {
 // This function can be used for control flow based on result values.
 func (r Result[T]) OrElse(op func(error) Result[T]) Result[T] {
 	if r.IsErr() {
-		return op(r.err)
+		return op(r.inner.val.(error))
 	}
 	return r
 }
@@ -219,23 +196,12 @@ func (r Result[T]) OrElse(op func(error) Result[T]) Result[T] {
 // UnwrapOr returns the contained Ok value or a provided default.
 // Arguments passed to UnwrapOr are eagerly evaluated; if you are passing the result of a function call, it is recommended to use UnwrapOrElse, which is lazily evaluated.
 func (r Result[T]) UnwrapOr(defaultOk T) T {
-	if r.IsErr() {
-		return defaultOk
-	}
-	return r.ok
+	return r.inner.UnwrapOr(defaultOk)
 }
 
 // UnwrapOrElse returns the contained Ok value or computes it from a closure.
 func (r Result[T]) UnwrapOrElse(defaultFn func(error) T) T {
-	if r.IsErr() {
-		return defaultFn(r.err)
-	}
-	return r.ok
-}
-
-// UnwrapUnchecked returns the contained Ok value, without checking that the value is not an error.
-func (r Result[T]) UnwrapUnchecked() T {
-	return r.ok
+	return r.inner.UnwrapOrElse(defaultFn)
 }
 
 // ContainsErr returns true if the result is an error containing the given value.
@@ -243,25 +209,15 @@ func (r Result[T]) ContainsErr(err error) bool {
 	if r.IsOk() {
 		return false
 	}
-	if err == r.err {
-		return true
-	}
-	return errors.Is(r.err, err)
+	return errors.Is(r.inner.val.(error), err)
 }
 
 func (r Result[T]) MarshalJSON() ([]byte, error) {
-	if r.IsErr() {
-		return nil, r.err
-	}
-	return json.Marshal(r.ok)
+	return r.inner.MarshalJSON()
 }
 
 func (r *Result[T]) UnmarshalJSON(b []byte) error {
-	err := json.Unmarshal(b, &r.ok)
-	if err == nil {
-		r.err = nil
-	}
-	return err
+	return r.inner.UnmarshalJSON(b)
 }
 
 type errorWithVal struct {

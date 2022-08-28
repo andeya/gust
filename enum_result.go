@@ -6,17 +6,17 @@ import (
 )
 
 // EnumOk wraps a successful result enumeration.
-func EnumOk[T any, E comparable](ok T) EnumResult[T, E] {
+func EnumOk[T any, E any](ok T) EnumResult[T, E] {
 	return EnumResult[T, E]{val: ok, isErr: false}
 }
 
 // EnumErr wraps a failure result enumeration.
-func EnumErr[T any, E comparable](err E) EnumResult[T, E] {
+func EnumErr[T any, E any](err E) EnumResult[T, E] {
 	return EnumResult[T, E]{val: err, isErr: true}
 }
 
 // EnumResult represents a success (T) or failure (E) enumeration.
-type EnumResult[T any, E comparable] struct {
+type EnumResult[T any, E any] struct {
 	val   any
 	isErr bool
 }
@@ -215,14 +215,6 @@ func (r EnumResult[T, E]) UnwrapOrElse(defaultFn func(E) T) T {
 	return r.val.(T)
 }
 
-// ContainsErr returns true if the result is an E containing the given value.
-func (r EnumResult[T, E]) ContainsErr(err E) bool {
-	if r.IsOk() {
-		return false
-	}
-	return err == r.val.(E)
-}
-
 func (r EnumResult[T, E]) MarshalJSON() ([]byte, error) {
 	if r.IsErr() {
 		return nil, toError(r.val)
@@ -231,9 +223,14 @@ func (r EnumResult[T, E]) MarshalJSON() ([]byte, error) {
 }
 
 func (r *EnumResult[T, E]) UnmarshalJSON(b []byte) error {
-	err := json.Unmarshal(b, &r.val)
-	if err == nil {
-		r.val = nil
+	var t T
+	err := json.Unmarshal(b, &t)
+	if err != nil {
+		r.isErr = true
+		r.val = fromError[E](err)
+	} else {
+		r.isErr = false
+		r.val = t
 	}
 	return err
 }
@@ -243,4 +240,12 @@ func toError(e any) error {
 		return err
 	}
 	return fmt.Errorf("%v", e)
+}
+
+func fromError[E any](e error) E {
+	if x, is := e.(E); is {
+		return x
+	}
+	var x E
+	return x
 }
