@@ -153,7 +153,7 @@ func (o Option[T]) MapOrElse(defaultFn func() T, f func(T) T) T {
 
 // OkOr transforms the `Option[T]` into a [`Result[T]`], mapping [`Some(v)`] to
 // [`Ok(v)`] and [`None`] to [`Err(err)`].
-func (o Option[T]) OkOr(err error) Result[T] {
+func (o Option[T]) OkOr(err any) Result[T] {
 	if o.IsSome() {
 		return Ok(o.Unwrap())
 	}
@@ -162,7 +162,7 @@ func (o Option[T]) OkOr(err error) Result[T] {
 
 // OkOrElse transforms the `Option[T]` into a [`Result[T]`], mapping [`Some(v)`] to
 // [`Ok(v)`] and [`None`] to [`Err(errFn())`].
-func (o Option[T]) OkOrElse(errFn func() error) Result[T] {
+func (o Option[T]) OkOrElse(errFn func() any) Result[T] {
 	if o.IsSome() {
 		return Ok(o.Unwrap())
 	}
