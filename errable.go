@@ -1,7 +1,6 @@
 package gust
 
 import (
-	"fmt"
 	"reflect"
 )
 
@@ -33,10 +32,7 @@ func (e Errable[T]) ToError() error {
 	if !e.HasError() {
 		return nil
 	}
-	if err, ok := any(e.Unwrap()).(error); ok {
-		return err
-	}
-	return fmt.Errorf("%v", e.Unwrap())
+	return toError(e.Unwrap())
 }
 
 func (e Errable[T]) Unwrap() T {

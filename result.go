@@ -14,17 +14,17 @@ func Ret[T any](some T, err error) Result[T] {
 	return Ok(some)
 }
 
-// Ok wraps an Ok result.
+// Ok wraps a successful result.
 func Ok[T any](ok T) Result[T] {
 	return Result[T]{ok: ok}
 }
 
-// Err wraps an error result.
+// Err wraps a failure result.
 func Err[T any](err any) Result[T] {
 	return Result[T]{err: newAnyError(err)}
 }
 
-// Result can be used to avoid `if err != nil`,
+// Result can be used to improve `func()(T,error)`,
 // represents either success (T) or failure (error).
 type Result[T any] struct {
 	ok  T
@@ -44,7 +44,7 @@ func (r Result[T]) IsOk() bool {
 	return !r.IsErr()
 }
 
-// IsOkAnd returns true if the result is Ok and the value inside of it matches a predicate.
+// IsOkAnd returns true if the result is Ok and the value inside it matches a predicate.
 func (r Result[T]) IsOkAnd(f func(T) bool) bool {
 	if r.IsOk() {
 		return f(r.ok)
@@ -57,7 +57,7 @@ func (r Result[T]) IsErr() bool {
 	return r.err != nil
 }
 
-// IsErrAnd returns true if the result is error and the value inside of it matches a predicate.
+// IsErrAnd returns true if the result is error and the value inside it matches a predicate.
 func (r Result[T]) IsErrAnd(f func(error) bool) bool {
 	if r.IsErr() {
 		return f(r.err)
@@ -118,11 +118,11 @@ func (r Result[T]) MapOrElse(defaultFn func(error) T, f func(T) T) T {
 
 // MapErr maps a Result[T] to Result[T] by applying a function to a contained error, leaving an Ok value untouched.
 // This function can be used to pass through a successful result while handling an error.
-func (r *Result[T]) MapErr(op func(error) error) Result[T] {
+func (r Result[T]) MapErr(op func(error) error) Result[T] {
 	if r.IsErr() {
 		r.err = op(r.err)
 	}
-	return *r
+	return r
 }
 
 // Inspect calls the provided closure with a reference to the contained value (if no error).
