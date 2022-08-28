@@ -1,7 +1,6 @@
 package examples_test
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/andeya/gust"
@@ -21,7 +20,7 @@ const (
 func ParseVersion(header iter.Iterator[byte]) gust.Result[Version] {
 	return ret.AndThen(
 		header.Next().
-			OkOr(errors.New("invalid header length")),
+			OkOr("invalid header length"),
 		func(b byte) gust.Result[Version] {
 			switch b {
 			case 1:
@@ -30,7 +29,8 @@ func ParseVersion(header iter.Iterator[byte]) gust.Result[Version] {
 				return gust.Ok(Version2)
 			}
 			return gust.Err[Version]("invalid version")
-		})
+		},
+	)
 }
 
 func ExampleVersion() {
