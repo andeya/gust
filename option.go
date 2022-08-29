@@ -43,6 +43,11 @@ type Option[T any] struct {
 	value *T
 }
 
+// Ref returns pointer.
+func (o Option[T]) Ref() *Option[T] {
+	return &o
+}
+
 // String returns the string representation.
 func (o Option[T]) String() string {
 	if o.IsNone() {
@@ -273,4 +278,29 @@ func (o *Option[T]) UnmarshalJSON(b []byte) error {
 		o.value = value
 	}
 	return err
+}
+
+var (
+	_ DataForIter[any]            = (*Option[any])(nil)
+	_ DataForDoubleEndedIter[any] = (*Option[any])(nil)
+)
+
+func (o *Option[T]) NextForIter() Option[T] {
+	if o.IsNone() {
+		return *o
+	}
+	v := o.Unwrap()
+	o.value = nil
+	return Some(v)
+}
+
+func (o *Option[T]) NextBackForIter() Option[T] {
+	return o.NextForIter()
+}
+
+func (o Option[T]) RemainingLenForIter() uint {
+	if o.IsNone() {
+		return 0
+	}
+	return 1
 }

@@ -83,7 +83,6 @@ func (s ZipIterator[A, B]) realNth(n uint) gust.Option[Pair[A, B]] {
 }
 
 var (
-	_ Iterator[Pair[any, any]]             = (*DoubleEndedZipIterator[any, any])(nil)
 	_ DoubleEndedIterator[Pair[any, any]]  = (*DoubleEndedZipIterator[any, any])(nil)
 	_ iRealSizeHint                        = (*DoubleEndedZipIterator[any, any])(nil)
 	_ iRealNth[Pair[any, any]]             = (*DoubleEndedZipIterator[any, any])(nil)

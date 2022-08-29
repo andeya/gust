@@ -5,7 +5,7 @@ import (
 )
 
 var (
-	_ DataForIter[any] = (*DataChan[any])(nil)
+	_ gust.DataForIter[any] = (*DataChan[any])(nil)
 )
 
 type DataChan[T any] struct {

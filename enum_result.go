@@ -31,6 +31,11 @@ func (r EnumResult[T, E]) safeGetE() E {
 	return e
 }
 
+// Ref returns pointer.
+func (r EnumResult[T, E]) Ref() *EnumResult[T, E] {
+	return &r
+}
+
 // IsErr returns true if the result is E.
 func (r EnumResult[T, E]) IsErr() bool {
 	return r.isErr
@@ -258,4 +263,29 @@ func fromError[E any](e error) E {
 	}
 	var x E
 	return x
+}
+
+var (
+	_ DataForIter[any]            = (*EnumResult[any, any])(nil)
+	_ DataForDoubleEndedIter[any] = (*EnumResult[any, any])(nil)
+)
+
+func (r *EnumResult[T, E]) NextForIter() Option[T] {
+	if r.isErr || r.val == nil {
+		return None[T]()
+	}
+	v := r.val.(T)
+	r.val = nil
+	return Some[T](v)
+}
+
+func (r *EnumResult[T, E]) NextBackForIter() Option[T] {
+	return r.NextForIter()
+}
+
+func (r EnumResult[T, E]) RemainingLenForIter() uint {
+	if r.isErr || r.val == nil {
+		return 0
+	}
+	return 1
 }

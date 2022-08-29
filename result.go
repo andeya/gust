@@ -29,6 +29,11 @@ type Result[T any] struct {
 	inner EnumResult[T, error]
 }
 
+// Ref returns pointer.
+func (r Result[T]) Ref() *Result[T] {
+	return &r
+}
+
 // IsErr returns true if the result is error.
 func (r Result[T]) IsErr() bool {
 	return r.inner.IsErr()
@@ -233,4 +238,21 @@ func newAnyError(val any) error {
 
 func (a *errorWithVal) Error() string {
 	return fmt.Sprintf("%v", a.val)
+}
+
+var (
+	_ DataForIter[any]            = (*Result[any])(nil)
+	_ DataForDoubleEndedIter[any] = (*Result[any])(nil)
+)
+
+func (r *Result[T]) NextForIter() Option[T] {
+	return r.inner.NextForIter()
+}
+
+func (r *Result[T]) NextBackForIter() Option[T] {
+	return r.inner.NextBackForIter()
+}
+
+func (r Result[T]) RemainingLenForIter() uint {
+	return r.inner.RemainingLenForIter()
 }

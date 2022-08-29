@@ -5,11 +5,10 @@ import (
 )
 
 var (
-	_ DataForIter[any]      = (*DataVec[any])(nil)
-	_ SizeHintForIter       = (*DataVec[any])(nil)
-	_ CountForIter          = (*DataVec[any])(nil)
-	_ NextBackForIter[uint] = (*DataVec[uint])(nil)
-	_ RemainingLenForIter   = (*DataVec[uint])(nil)
+	_ gust.DataForIter[any]             = (*DataVec[any])(nil)
+	_ gust.SizeHintForIter              = (*DataVec[any])(nil)
+	_ gust.CountForIter                 = (*DataVec[any])(nil)
+	_ gust.DataForDoubleEndedIter[uint] = (*DataVec[uint])(nil)
 )
 
 type DataVec[T any] struct {

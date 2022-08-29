@@ -1,9 +1,15 @@
 package iter
 
-import "github.com/andeya/gust"
+import (
+	"github.com/andeya/gust"
+)
 
 // Iterator is an interface for dealing with iterators.
 type Iterator[T any] interface {
+	iIterator[T]
+	Fuse() *FuseIterator[T]
+}
+type iIterator[T any] interface {
 	iNext[T]
 	iNextChunk[T]
 	iSizeHint
@@ -30,21 +36,12 @@ type Iterator[T any] interface {
 	// Collect collects all the items in the iterator into a slice.
 	Collect() []T
 }
-type (
-	DataForIter[T any] interface {
-		NextForIter() gust.Option[T]
-	}
-)
+
 type (
 	iRealDoubleEndedNext[T any] interface {
 		iRealNext[T]
 		iRealNextBack[T]
 		iRealRemainingLen
-	}
-	DataForDoubleEndedIter[T any] interface {
-		DataForIter[T]
-		NextBackForIter[T]
-		RemainingLenForIter
 	}
 )
 
@@ -116,9 +113,6 @@ type (
 	iRealCount interface {
 		realCount() uint
 	}
-	CountForIter interface {
-		CountForIter() uint
-	}
 )
 type (
 	iSizeHint interface {
@@ -184,9 +178,6 @@ type (
 	}
 	iRealSizeHint interface {
 		realSizeHint() (uint, gust.Option[uint])
-	}
-	SizeHintForIter interface {
-		SizeHintForIter() (uint, gust.Option[uint])
 	}
 )
 type (
@@ -840,8 +831,14 @@ type (
 
 // DoubleEndedIterator is an iterator able to yield elements from both ends.
 type DoubleEndedIterator[T any] interface {
-	Iterator[T]
+	iIterator[T]
 	iDoubleEndedIterator[T]
+	// Fuse creates an iterator which ends after the first [`gust.None[T]()`].
+	//
+	// After an iterator returns [`gust.None[T]()`], future calls may or may not yield
+	// [`gust.Some(T)`] again. `Fuse()` adapts an iterator, ensuring that after a
+	// [`gust.None[T]()`] is given, it will always return [`gust.None[T]()`] forever.
+	Fuse() *DoubleEndedFuseIterator[T]
 }
 
 type iDoubleEndedIterator[T any] interface {
@@ -884,9 +881,6 @@ type (
 	iRealNextBack[T any] interface {
 		realNextBack() gust.Option[T]
 	}
-	NextBackForIter[T any] interface {
-		NextBackForIter() gust.Option[T]
-	}
 )
 
 type (
@@ -903,9 +897,6 @@ type (
 	}
 	iRealRemainingLen interface {
 		realRemainingLen() uint
-	}
-	RemainingLenForIter interface {
-		RemainingLenForIter() uint
 	}
 )
 

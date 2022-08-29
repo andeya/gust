@@ -6,11 +6,10 @@ import (
 )
 
 var (
-	_ DataForIter[uint]     = (*DataRange[uint])(nil)
-	_ SizeHintForIter       = (*DataRange[uint])(nil)
-	_ CountForIter          = (*DataRange[uint])(nil)
-	_ NextBackForIter[uint] = (*DataRange[uint])(nil)
-	_ RemainingLenForIter   = (*DataRange[uint])(nil)
+	_ gust.DataForIter[uint]            = (*DataRange[uint])(nil)
+	_ gust.SizeHintForIter              = (*DataRange[uint])(nil)
+	_ gust.CountForIter                 = (*DataRange[uint])(nil)
+	_ gust.DataForDoubleEndedIter[uint] = (*DataRange[uint])(nil)
 )
 
 type DataRange[T digit.Integer] struct {

@@ -270,6 +270,10 @@ func (iter iterTrait[T]) Inspect(f func(T)) *InspectIterator[T] {
 	return newInspectIterator[T](iter, f)
 }
 
+func (iter iterTrait[T]) Fuse() *FuseIterator[T] {
+	return newFuseIterator[T](iter)
+}
+
 func (iter iterTrait[T]) Collect() []T {
 	lower, _ := iter.SizeHint()
 	return Fold[T, []T](iter, make([]T, 0, lower), func(slice []T, x T) []T {
@@ -277,7 +281,7 @@ func (iter iterTrait[T]) Collect() []T {
 	})
 }
 
-var _ iDoubleEndedIterator[any] = doubleEndedIterTrait[any]{}
+var _ DoubleEndedIterator[any] = doubleEndedIterTrait[any]{}
 
 type doubleEndedIterTrait[T any] struct {
 	iterTrait[T]
@@ -352,4 +356,13 @@ func (d doubleEndedIterTrait[T]) Rfind(predicate func(T) bool) gust.Option[T] {
 		return gust.Some[T](r.ErrVal().(T))
 	}
 	return gust.None[T]()
+}
+
+// Fuse creates an iterator which ends after the first [`gust.None[T]()`].
+//
+// After an iterator returns [`gust.None[T]()`], future calls may or may not yield
+// [`gust.Some(T)`] again. `Fuse()` adapts an iterator, ensuring that after a
+// [`gust.None[T]()`] is given, it will always return [`gust.None[T]()`] forever.
+func (d doubleEndedIterTrait[T]) Fuse() *DoubleEndedFuseIterator[T] {
+	return newDoubleEndedFuseIterator[T](d)
 }
