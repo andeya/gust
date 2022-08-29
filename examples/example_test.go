@@ -54,7 +54,7 @@ func ExampleVersion() {
 // advantage of the iterable nature of [`gust.Result`] to select only the
 // [`gust.Ok`] values using [`iter.Flatten`].
 func TestResultFlatten(t *testing.T) {
-	var results []*gust.Result[uint64]
+	var results []gust.Result[uint64]
 	var errs []error
 	var nums = iter.
 		Flatten[uint64, *gust.Result[uint64]](
@@ -62,13 +62,13 @@ func TestResultFlatten(t *testing.T) {
 			iter.FromElements("17", "not a number", "99", "-27", "768"),
 			func(s string) *gust.Result[uint64] { return gust.Ret(strconv.ParseUint(s, 10, 64)).Ref() },
 		).
-			// Save clones of the raw `Result` values to inspect
-			Inspect(func(x *gust.Result[uint64]) { results = append(results, x) }).
-			// Challenge: explain how this captures only the `Err` values
 			Inspect(func(x *gust.Result[uint64]) {
-				x.InspectErr(func(err error) {
-					errs = append(errs, err)
-				})
+				// Save clones of the raw `Result` values to inspect
+				results = append(results,
+					x.InspectErr(func(err error) {
+						// Challenge: explain how this captures only the `Err` values
+						errs = append(errs, err)
+					}))
 			}),
 	).Collect()
 	assert.Equal(t, 2, len(errs))
