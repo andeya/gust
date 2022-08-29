@@ -29,11 +29,6 @@ type Result[T any] struct {
 	inner EnumResult[T, error]
 }
 
-// Ref returns pointer.
-func (r Result[T]) Ref() *Result[T] {
-	return &r
-}
-
 // IsErr returns true if the result is error.
 func (r Result[T]) IsErr() bool {
 	return r.inner.IsErr()
@@ -74,13 +69,14 @@ func (r Result[T]) Err() error {
 
 // ErrVal returns error inner value.
 func (r Result[T]) ErrVal() any {
-	if r.IsErr() {
+	if r.IsOk() {
 		return nil
 	}
-	if ev, _ := r.inner.val.(*errorWithVal); ev != nil {
+	e := r.inner.safeGetE()
+	if ev, _ := any(e).(*errorWithVal); ev != nil {
 		return ev.val
 	}
-	return r.inner.val
+	return e
 }
 
 // Map maps a Result[T] to Result[T] by applying a function to a contained Ok value, leaving an error untouched.
@@ -89,7 +85,7 @@ func (r Result[T]) Map(f func(T) T) Result[T] {
 	if r.IsOk() {
 		return Ok[T](f(r.inner.safeGetT()))
 	}
-	return Err[T](r.inner.val)
+	return Err[T](r.inner.safeGetE())
 }
 
 // MapOr returns the provided default (if error), or applies a function to the contained value (if no error),
@@ -114,7 +110,7 @@ func (r Result[T]) MapOrElse(defaultFn func(error) T, f func(T) T) T {
 // This function can be used to pass through a successful result while handling an error.
 func (r Result[T]) MapErr(op func(error) error) Result[T] {
 	if r.IsErr() {
-		r.inner.val = op(r.inner.safeGetE())
+		return Err[T](op(r.inner.safeGetE()))
 	}
 	return r
 }
@@ -241,15 +237,15 @@ func (a *errorWithVal) Error() string {
 }
 
 var (
-	_ DataForIter[any]            = (*Result[any])(nil)
-	_ DataForDoubleEndedIter[any] = (*Result[any])(nil)
+	_ DataForIter[any]            = Result[any]{}
+	_ DataForDoubleEndedIter[any] = Result[any]{}
 )
 
-func (r *Result[T]) NextForIter() Option[T] {
+func (r Result[T]) NextForIter() Option[T] {
 	return r.inner.NextForIter()
 }
 
-func (r *Result[T]) NextBackForIter() Option[T] {
+func (r Result[T]) NextBackForIter() Option[T] {
 	return r.inner.NextBackForIter()
 }
 

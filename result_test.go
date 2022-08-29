@@ -1,4 +1,4 @@
-package result_test
+package gust_test
 
 import (
 	"encoding/json"
@@ -30,5 +30,5 @@ func TestResultJSON(t *testing.T) {
 	var r4 gust.Result[T]
 	var err4 = json.Unmarshal([]byte("0"), &r4)
 	assert.True(t, r4.IsErr())
-	assert.Equal(t, "json: cannot unmarshal number into Go value of type result_test.T", err4.Error())
+	assert.Equal(t, "json: cannot unmarshal number into Go value of type gust_test.T", err4.Error())
 }

@@ -7,33 +7,38 @@ import (
 
 // EnumOk wraps a successful result enumeration.
 func EnumOk[T any, E any](ok T) EnumResult[T, E] {
-	return EnumResult[T, E]{val: ok, isErr: false}
+	v := any(ok)
+	return EnumResult[T, E]{value: &v, isErr: false}
 }
 
 // EnumErr wraps a failure result enumeration.
 func EnumErr[T any, E any](err E) EnumResult[T, E] {
-	return EnumResult[T, E]{val: err, isErr: true}
+	v := any(err)
+	return EnumResult[T, E]{value: &v, isErr: true}
 }
 
 // EnumResult represents a success (T) or failure (E) enumeration.
 type EnumResult[T any, E any] struct {
-	val   any
+	value *any
 	isErr bool
 }
 
 func (r EnumResult[T, E]) safeGetT() T {
-	t, _ := r.val.(T)
-	return t
+	if r.isErr || r.value == nil {
+		var t T
+		return t
+	}
+	v, _ := (*r.value).(T)
+	return v
 }
 
 func (r EnumResult[T, E]) safeGetE() E {
-	e, _ := r.val.(E)
-	return e
-}
-
-// Ref returns pointer.
-func (r EnumResult[T, E]) Ref() *EnumResult[T, E] {
-	return &r
+	if !r.isErr || r.value == nil {
+		var e E
+		return e
+	}
+	v, _ := (*r.value).(E)
+	return v
 }
 
 // IsErr returns true if the result is E.
@@ -49,9 +54,9 @@ func (r EnumResult[T, E]) IsOk() bool {
 // String returns the string representation.
 func (r EnumResult[T, E]) String() string {
 	if r.IsErr() {
-		return fmt.Sprintf("Err(%v)", r.val)
+		return fmt.Sprintf("Err(%v)", r.safeGetE())
 	}
-	return fmt.Sprintf("Ok(%v)", r.val)
+	return fmt.Sprintf("Ok(%v)", r.safeGetT())
 }
 
 // IsOkAnd returns true if the result is Ok and the value inside it matches a predicate.
@@ -117,7 +122,7 @@ func (r EnumResult[T, E]) MapOrElse(defaultFn func(E) T, f func(T) T) T {
 // This function can be used to pass through a successful result while handling an error.
 func (r EnumResult[T, E]) MapErr(op func(E) E) EnumResult[T, E] {
 	if r.IsErr() {
-		r.val = op(r.safeGetE())
+		return EnumErr[T, E](op(r.safeGetE()))
 	}
 	return r
 }
@@ -143,7 +148,7 @@ func (r EnumResult[T, E]) InspectErr(f func(E)) EnumResult[T, E] {
 // passed message, and the content of the E.
 func (r EnumResult[T, E]) Expect(msg string) T {
 	if r.IsErr() {
-		panic(fmt.Errorf("%s: %v", msg, r.val))
+		panic(fmt.Errorf("%s: %v", msg, r.safeGetE()))
 	}
 	return r.safeGetT()
 }
@@ -153,7 +158,7 @@ func (r EnumResult[T, E]) Expect(msg string) T {
 // Instead, prefer to use pattern matching and handle the E case explicitly, or call UnwrapOr or UnwrapOrElse.
 func (r EnumResult[T, E]) Unwrap() T {
 	if r.IsErr() {
-		panic(fmt.Errorf("called `Result.Unwrap()` on an `err` value: %s", r.val))
+		panic(fmt.Errorf("called `Result.Unwrap()` on an `err` value: %v", r.safeGetE()))
 	}
 	return r.safeGetT()
 }
@@ -165,7 +170,7 @@ func (r EnumResult[T, E]) ExpectErr(msg string) E {
 	if r.IsErr() {
 		return r.safeGetE()
 	}
-	panic(fmt.Errorf("%s: %v", msg, r.val))
+	panic(fmt.Errorf("%s: %v", msg, r.safeGetT()))
 }
 
 // UnwrapErr returns the contained E.
@@ -175,7 +180,7 @@ func (r EnumResult[T, E]) UnwrapErr() E {
 	if r.IsErr() {
 		return r.safeGetE()
 	}
-	panic(fmt.Errorf("called `Result.UnwrapErr()` on an `ok` value: %v", r.val))
+	panic(fmt.Errorf("called `Result.UnwrapErr()` on an `ok` value: %v", r.safeGetT()))
 }
 
 // And returns res if the result is T, otherwise returns the E of self.
@@ -232,9 +237,9 @@ func (r EnumResult[T, E]) UnwrapOrElse(defaultFn func(E) T) T {
 
 func (r EnumResult[T, E]) MarshalJSON() ([]byte, error) {
 	if r.IsErr() {
-		return nil, toError(r.val)
+		return nil, toError(r.safeGetE())
 	}
-	return json.Marshal(r.val)
+	return json.Marshal(r.safeGetT())
 }
 
 func (r *EnumResult[T, E]) UnmarshalJSON(b []byte) error {
@@ -242,10 +247,12 @@ func (r *EnumResult[T, E]) UnmarshalJSON(b []byte) error {
 	err := json.Unmarshal(b, &t)
 	if err != nil {
 		r.isErr = true
-		r.val = fromError[E](err)
+		e := any(fromError[E](err))
+		r.value = &e
 	} else {
 		r.isErr = false
-		r.val = t
+		v := any(t)
+		r.value = &v
 	}
 	return err
 }
@@ -266,25 +273,25 @@ func fromError[E any](e error) E {
 }
 
 var (
-	_ DataForIter[any]            = (*EnumResult[any, any])(nil)
-	_ DataForDoubleEndedIter[any] = (*EnumResult[any, any])(nil)
+	_ DataForIter[any]            = EnumResult[any, any]{}
+	_ DataForDoubleEndedIter[any] = EnumResult[any, any]{}
 )
 
-func (r *EnumResult[T, E]) NextForIter() Option[T] {
-	if r.isErr || r.val == nil {
+func (r EnumResult[T, E]) NextForIter() Option[T] {
+	if r.isErr || r.value == nil || *r.value == nil {
 		return None[T]()
 	}
-	v := r.val.(T)
-	r.val = nil
-	return Some[T](v)
+	v := *r.value
+	*r.value = nil
+	return Some[T](v.(T))
 }
 
-func (r *EnumResult[T, E]) NextBackForIter() Option[T] {
+func (r EnumResult[T, E]) NextBackForIter() Option[T] {
 	return r.NextForIter()
 }
 
 func (r EnumResult[T, E]) RemainingLenForIter() uint {
-	if r.isErr || r.val == nil {
+	if r.isErr || r.value == nil || *r.value == nil {
 		return 0
 	}
 	return 1
