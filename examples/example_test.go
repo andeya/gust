@@ -66,9 +66,9 @@ func TestResultFlatten(t *testing.T) {
 			Inspect(func(x *gust.Result[uint64]) { results = append(results, x) }).
 			// Challenge: explain how this captures only the `Err` values
 			Inspect(func(x *gust.Result[uint64]) {
-				if x.IsErr() {
-					errs = append(errs, x.Err())
-				}
+				x.InspectErr(func(err error) {
+					errs = append(errs, err)
+				})
 			}),
 	).Collect()
 	assert.Equal(t, 2, len(errs))
