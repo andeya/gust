@@ -279,11 +279,11 @@ func (o *Option[T]) UnmarshalJSON(b []byte) error {
 }
 
 var (
-	_ DataForIter[any]            = Option[any]{}
-	_ DataForDoubleEndedIter[any] = Option[any]{}
+	_ Iterable[any]   = Option[any]{}
+	_ DeIterable[any] = Option[any]{}
 )
 
-func (o Option[T]) NextForIter() Option[T] {
+func (o Option[T]) Next() Option[T] {
 	if o.IsNone() {
 		return o
 	}
@@ -292,11 +292,11 @@ func (o Option[T]) NextForIter() Option[T] {
 	return Some(v)
 }
 
-func (o Option[T]) NextBackForIter() Option[T] {
-	return o.NextForIter()
+func (o Option[T]) NextBack() Option[T] {
+	return o.Next()
 }
 
-func (o Option[T]) RemainingLenForIter() uint {
+func (o Option[T]) Remaining() uint {
 	if o.IsNone() {
 		return 0
 	}

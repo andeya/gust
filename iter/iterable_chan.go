@@ -5,7 +5,7 @@ import (
 )
 
 var (
-	_ gust.DataForIter[any] = (*DataChan[any])(nil)
+	_ gust.Iterable[any] = (*DataChan[any])(nil)
 )
 
 type DataChan[T any] struct {
@@ -17,10 +17,10 @@ func NewDataChan[T any](c <-chan T) DataChan[T] {
 }
 
 func (c DataChan[T]) ToIterator() Iterator[T] {
-	return newIter[T](c)
+	return FromIterable[T](c)
 }
 
-func (c DataChan[T]) NextForIter() gust.Option[T] {
+func (c DataChan[T]) Next() gust.Option[T] {
 	var x, ok = <-c.c
 	if ok {
 		return gust.Some(x)

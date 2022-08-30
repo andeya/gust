@@ -2,6 +2,7 @@ package iter
 
 import (
 	"github.com/andeya/gust"
+	"github.com/andeya/gust/opt"
 )
 
 var _ Iterator[any] = iterTrait[any]{}
@@ -281,28 +282,37 @@ func (iter iterTrait[T]) Collect() []T {
 	})
 }
 
-var _ DoubleEndedIterator[any] = doubleEndedIterTrait[any]{}
+var _ SizeDeIterator[any] = sizeDeIterTrait[any]{}
 
-type doubleEndedIterTrait[T any] struct {
+type sizeDeIterTrait[T any] struct {
 	iterTrait[T]
-	facade iRealDoubleEndedNext[T]
+	facade iRealDeIterable[T]
 }
 
 //goland:noinspection GoMixedReceiverTypes
-func (d *doubleEndedIterTrait[T]) setFacade(facade iRealDoubleEndedNext[T]) {
+func (d *sizeDeIterTrait[T]) setFacade(facade iRealDeIterable[T]) {
 	d.iterTrait.facade = facade
 	d.facade = facade
 }
 
-func (d doubleEndedIterTrait[T]) RemainingLen() uint {
-	return d.facade.realRemainingLen()
+func (d sizeDeIterTrait[T]) Remaining() uint {
+	if size, ok := d.facade.(iRealSizeDeIterable[T]); ok {
+		return size.realRemaining()
+	}
+	lo, hi := d.SizeHint()
+	if opt.MapOr[uint, bool](hi, false, func(x uint) bool {
+		return x == lo
+	}) {
+		return lo
+	}
+	return lo
 }
 
-func (d doubleEndedIterTrait[T]) NextBack() gust.Option[T] {
+func (d sizeDeIterTrait[T]) NextBack() gust.Option[T] {
 	return d.facade.realNextBack()
 }
 
-func (d doubleEndedIterTrait[T]) AdvanceBackBy(n uint) gust.Errable[uint] {
+func (d sizeDeIterTrait[T]) AdvanceBackBy(n uint) gust.Errable[uint] {
 	if cover, ok := d.facade.(iRealAdvanceBackBy[T]); ok {
 		return cover.realAdvanceBackBy(n)
 	}
@@ -314,7 +324,7 @@ func (d doubleEndedIterTrait[T]) AdvanceBackBy(n uint) gust.Errable[uint] {
 	return gust.NonErrable[uint]()
 }
 
-func (d doubleEndedIterTrait[T]) NthBack(n uint) gust.Option[T] {
+func (d sizeDeIterTrait[T]) NthBack(n uint) gust.Option[T] {
 	if cover, ok := d.facade.(iRealNthBack[T]); ok {
 		return cover.realNthBack(n)
 	}
@@ -324,21 +334,21 @@ func (d doubleEndedIterTrait[T]) NthBack(n uint) gust.Option[T] {
 	return d.NextBack()
 }
 
-func (d doubleEndedIterTrait[T]) TryRfold(init any, fold func(any, T) gust.Result[any]) gust.Result[any] {
+func (d sizeDeIterTrait[T]) TryRfold(init any, fold func(any, T) gust.Result[any]) gust.Result[any] {
 	if cover, ok := d.facade.(iRealTryRfold[T]); ok {
 		return cover.realTryRfold(init, fold)
 	}
 	return TryRfold[T](d, init, fold)
 }
 
-func (d doubleEndedIterTrait[T]) Rfold(init any, fold func(any, T) any) any {
+func (d sizeDeIterTrait[T]) Rfold(init any, fold func(any, T) any) any {
 	if cover, ok := d.facade.(iRealRfold[T]); ok {
 		return cover.realRfold(init, fold)
 	}
 	return Rfold[T](d, init, fold)
 }
 
-func (d doubleEndedIterTrait[T]) Rfind(predicate func(T) bool) gust.Option[T] {
+func (d sizeDeIterTrait[T]) Rfind(predicate func(T) bool) gust.Option[T] {
 	if cover, ok := d.facade.(iRealRfind[T]); ok {
 		return cover.realRfind(predicate)
 	}
@@ -358,11 +368,11 @@ func (d doubleEndedIterTrait[T]) Rfind(predicate func(T) bool) gust.Option[T] {
 	return gust.None[T]()
 }
 
-// Fuse creates an iterator which ends after the first [`gust.None[T]()`].
+// DeFuse creates an iterator which ends after the first [`gust.None[T]()`].
 //
 // After an iterator returns [`gust.None[T]()`], future calls may or may not yield
 // [`gust.Some(T)`] again. `Fuse()` adapts an iterator, ensuring that after a
 // [`gust.None[T]()`] is given, it will always return [`gust.None[T]()`] forever.
-func (d doubleEndedIterTrait[T]) Fuse() *DoubleEndedFuseIterator[T] {
-	return newDoubleEndedFuseIterator[T](d)
+func (d sizeDeIterTrait[T]) DeFuse() *FuseDeIterator[T] {
+	return newFuseDeIterator[T](d)
 }

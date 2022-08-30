@@ -61,34 +61,30 @@ func (f FuseIterator[T]) realFind(predicate func(T) bool) gust.Option[T] {
 }
 
 var (
-	_ DoubleEndedIterator[any] = (*DoubleEndedFuseIterator[any])(nil)
-	_ iRealNext[any]           = (*DoubleEndedFuseIterator[any])(nil)
-	_ iRealNth[any]            = (*DoubleEndedFuseIterator[any])(nil)
-	_ iRealTryFold[any]        = (*DoubleEndedFuseIterator[any])(nil)
-	_ iRealFind[any]           = (*DoubleEndedFuseIterator[any])(nil)
-	_ iRealNextBack[any]       = (*DoubleEndedFuseIterator[any])(nil)
-	_ iRealNthBack[any]        = (*DoubleEndedFuseIterator[any])(nil)
-	_ iRealTryRfold[any]       = (*DoubleEndedFuseIterator[any])(nil)
-	_ iRealRfind[any]          = (*DoubleEndedFuseIterator[any])(nil)
+	_ DeIterator[any]    = (*FuseDeIterator[any])(nil)
+	_ iRealNext[any]     = (*FuseDeIterator[any])(nil)
+	_ iRealNth[any]      = (*FuseDeIterator[any])(nil)
+	_ iRealTryFold[any]  = (*FuseDeIterator[any])(nil)
+	_ iRealFind[any]     = (*FuseDeIterator[any])(nil)
+	_ iRealNextBack[any] = (*FuseDeIterator[any])(nil)
+	_ iRealNthBack[any]  = (*FuseDeIterator[any])(nil)
+	_ iRealTryRfold[any] = (*FuseDeIterator[any])(nil)
+	_ iRealRfind[any]    = (*FuseDeIterator[any])(nil)
 )
 
-func newDoubleEndedFuseIterator[T any](iter DoubleEndedIterator[T]) *DoubleEndedFuseIterator[T] {
-	p := &DoubleEndedFuseIterator[T]{iter: iter}
+func newFuseDeIterator[T any](iter DeIterator[T]) *FuseDeIterator[T] {
+	p := &FuseDeIterator[T]{iter: iter}
 	p.setFacade(p)
 	return p
 }
 
-type DoubleEndedFuseIterator[T any] struct {
-	doubleEndedIterTrait[T]
-	iter   DoubleEndedIterator[T]
+type FuseDeIterator[T any] struct {
+	sizeDeIterTrait[T]
+	iter   DeIterator[T]
 	isNone bool
 }
 
-func (d DoubleEndedFuseIterator[T]) realRemainingLen() uint {
-	return d.iter.RemainingLen()
-}
-
-func (d DoubleEndedFuseIterator[T]) realNext() gust.Option[T] {
+func (d FuseDeIterator[T]) realNext() gust.Option[T] {
 	if d.isNone {
 		return gust.None[T]()
 	}
@@ -97,7 +93,7 @@ func (d DoubleEndedFuseIterator[T]) realNext() gust.Option[T] {
 	})
 }
 
-func (d DoubleEndedFuseIterator[T]) realNextBack() gust.Option[T] {
+func (d FuseDeIterator[T]) realNextBack() gust.Option[T] {
 	if d.isNone {
 		return gust.None[T]()
 	}
@@ -106,7 +102,7 @@ func (d DoubleEndedFuseIterator[T]) realNextBack() gust.Option[T] {
 	})
 }
 
-func (d DoubleEndedFuseIterator[T]) realNth(n uint) gust.Option[T] {
+func (d FuseDeIterator[T]) realNth(n uint) gust.Option[T] {
 	if d.isNone {
 		return gust.None[T]()
 	}
@@ -115,7 +111,7 @@ func (d DoubleEndedFuseIterator[T]) realNth(n uint) gust.Option[T] {
 	})
 }
 
-func (d DoubleEndedFuseIterator[T]) realNthBack(n uint) gust.Option[T] {
+func (d FuseDeIterator[T]) realNthBack(n uint) gust.Option[T] {
 	if d.isNone {
 		return gust.None[T]()
 	}
@@ -124,7 +120,7 @@ func (d DoubleEndedFuseIterator[T]) realNthBack(n uint) gust.Option[T] {
 	})
 }
 
-func (d DoubleEndedFuseIterator[T]) realTryFold(acc any, fold func(any, T) gust.Result[any]) gust.Result[any] {
+func (d FuseDeIterator[T]) realTryFold(acc any, fold func(any, T) gust.Result[any]) gust.Result[any] {
 	if d.isNone {
 		return gust.Err[any]("fuse iterator is empty")
 	}
@@ -133,7 +129,7 @@ func (d DoubleEndedFuseIterator[T]) realTryFold(acc any, fold func(any, T) gust.
 	return r
 }
 
-func (d DoubleEndedFuseIterator[T]) realTryRfold(acc any, fold func(any, T) gust.Result[any]) gust.Result[any] {
+func (d FuseDeIterator[T]) realTryRfold(acc any, fold func(any, T) gust.Result[any]) gust.Result[any] {
 	if d.isNone {
 		return gust.Err[any]("fuse iterator is empty")
 	}
@@ -142,7 +138,7 @@ func (d DoubleEndedFuseIterator[T]) realTryRfold(acc any, fold func(any, T) gust
 	return r
 }
 
-func (d DoubleEndedFuseIterator[T]) realFind(predicate func(T) bool) gust.Option[T] {
+func (d FuseDeIterator[T]) realFind(predicate func(T) bool) gust.Option[T] {
 	if d.isNone {
 		return gust.None[T]()
 	}
@@ -151,7 +147,7 @@ func (d DoubleEndedFuseIterator[T]) realFind(predicate func(T) bool) gust.Option
 	})
 }
 
-func (d DoubleEndedFuseIterator[T]) realRfind(predicate func(T) bool) gust.Option[T] {
+func (d FuseDeIterator[T]) realRfind(predicate func(T) bool) gust.Option[T] {
 	if d.isNone {
 		return gust.None[T]()
 	}

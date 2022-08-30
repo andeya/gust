@@ -5,10 +5,10 @@ import (
 )
 
 var (
-	_ gust.DataForIter[any]             = (*DataVec[any])(nil)
-	_ gust.SizeHintForIter              = (*DataVec[any])(nil)
-	_ gust.CountForIter                 = (*DataVec[any])(nil)
-	_ gust.DataForDoubleEndedIter[uint] = (*DataVec[uint])(nil)
+	_ gust.Iterable[any]    = (*DataVec[any])(nil)
+	_ gust.IterableSizeHint = (*DataVec[any])(nil)
+	_ gust.IterableCount    = (*DataVec[any])(nil)
+	_ gust.DeIterable[uint] = (*DataVec[uint])(nil)
 )
 
 type DataVec[T any] struct {
@@ -25,15 +25,11 @@ func NewDataVec[T any](slice []T) *DataVec[T] {
 	}
 }
 
-func (v *DataVec[T]) ToIterator() Iterator[T] {
-	return newIter[T](v)
+func (v *DataVec[T]) ToSizeDeIterator() SizeDeIterator[T] {
+	return FromSizeDeIterable[T](v)
 }
 
-func (v *DataVec[T]) ToDoubleEndedIterator() DoubleEndedIterator[T] {
-	return newDoubleEndedIter[T](v)
-}
-
-func (v *DataVec[T]) NextForIter() gust.Option[T] {
+func (v *DataVec[T]) Next() gust.Option[T] {
 	if v.nextIndex <= v.backNextIndex {
 		opt := gust.Some(v.slice[v.nextIndex])
 		v.nextIndex++
@@ -42,7 +38,7 @@ func (v *DataVec[T]) NextForIter() gust.Option[T] {
 	return gust.None[T]()
 }
 
-func (v *DataVec[T]) NextBackForIter() gust.Option[T] {
+func (v *DataVec[T]) NextBack() gust.Option[T] {
 	if v.backNextIndex >= 0 {
 		opt := gust.Some(v.slice[v.backNextIndex])
 		v.backNextIndex--
@@ -51,16 +47,16 @@ func (v *DataVec[T]) NextBackForIter() gust.Option[T] {
 	return gust.None[T]()
 }
 
-func (v *DataVec[T]) SizeHintForIter() (uint, gust.Option[uint]) {
+func (v *DataVec[T]) SizeHint() (uint, gust.Option[uint]) {
 	n := uint(v.backNextIndex - v.nextIndex + 1)
 	return n, gust.Some(n)
 }
 
-func (v *DataVec[T]) CountForIter() uint {
+func (v *DataVec[T]) Count() uint {
 	v.nextIndex = v.backNextIndex
 	return uint(v.backNextIndex - v.nextIndex + 1)
 }
 
-func (v *DataVec[T]) RemainingLenForIter() uint {
+func (v *DataVec[T]) Remaining() uint {
 	return uint(v.backNextIndex - v.nextIndex + 1)
 }

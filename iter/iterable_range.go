@@ -6,10 +6,10 @@ import (
 )
 
 var (
-	_ gust.DataForIter[uint]            = (*DataRange[uint])(nil)
-	_ gust.SizeHintForIter              = (*DataRange[uint])(nil)
-	_ gust.CountForIter                 = (*DataRange[uint])(nil)
-	_ gust.DataForDoubleEndedIter[uint] = (*DataRange[uint])(nil)
+	_ gust.Iterable[uint]   = (*DataRange[uint])(nil)
+	_ gust.IterableSizeHint = (*DataRange[uint])(nil)
+	_ gust.IterableCount    = (*DataRange[uint])(nil)
+	_ gust.DeIterable[uint] = (*DataRange[uint])(nil)
 )
 
 type DataRange[T digit.Integer] struct {
@@ -41,15 +41,11 @@ func NewDataRange[T digit.Integer](start T, end T, rightClosed ...bool) *DataRan
 	}
 }
 
-func (r *DataRange[T]) ToIterator() Iterator[T] {
-	return newIter[T](r)
+func (r *DataRange[T]) ToSizeDeIterator() SizeDeIterator[T] {
+	return FromSizeDeIterable[T](r)
 }
 
-func (r *DataRange[T]) ToDoubleEndedIterator() DoubleEndedIterator[T] {
-	return newDoubleEndedIter[T](r)
-}
-
-func (r *DataRange[T]) NextForIter() gust.Option[T] {
+func (r *DataRange[T]) Next() gust.Option[T] {
 	if r.ended {
 		return gust.None[T]()
 	}
@@ -62,7 +58,7 @@ func (r *DataRange[T]) NextForIter() gust.Option[T] {
 	return gust.Some(value)
 }
 
-func (r *DataRange[T]) NextBackForIter() gust.Option[T] {
+func (r *DataRange[T]) NextBack() gust.Option[T] {
 	if r.ended {
 		return gust.None[T]()
 	}
@@ -75,12 +71,12 @@ func (r *DataRange[T]) NextBackForIter() gust.Option[T] {
 	return gust.Some(value)
 }
 
-func (r *DataRange[T]) SizeHintForIter() (uint, gust.Option[uint]) {
+func (r *DataRange[T]) SizeHint() (uint, gust.Option[uint]) {
 	size := uint(r.backNextValue - r.nextValue + 1)
 	return size, gust.Some(size)
 }
 
-func (r *DataRange[T]) CountForIter() uint {
+func (r *DataRange[T]) Count() uint {
 	if !r.ended {
 		return 0
 	}
@@ -88,7 +84,7 @@ func (r *DataRange[T]) CountForIter() uint {
 	return uint(r.backNextValue - r.nextValue + 1)
 }
 
-func (r *DataRange[T]) RemainingLenForIter() uint {
+func (r *DataRange[T]) Remaining() uint {
 	if !r.ended {
 		return 0
 	}

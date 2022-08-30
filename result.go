@@ -237,18 +237,18 @@ func (a *errorWithVal) Error() string {
 }
 
 var (
-	_ DataForIter[any]            = Result[any]{}
-	_ DataForDoubleEndedIter[any] = Result[any]{}
+	_ Iterable[any]   = Result[any]{}
+	_ DeIterable[any] = Result[any]{}
 )
 
-func (r Result[T]) NextForIter() Option[T] {
-	return r.inner.NextForIter()
+func (r Result[T]) Next() Option[T] {
+	return r.inner.Next()
 }
 
-func (r Result[T]) NextBackForIter() Option[T] {
-	return r.inner.NextBackForIter()
+func (r Result[T]) NextBack() Option[T] {
+	return r.inner.NextBack()
 }
 
-func (r Result[T]) RemainingLenForIter() uint {
-	return r.inner.RemainingLenForIter()
+func (r Result[T]) Remaining() uint {
+	return r.inner.Remaining()
 }

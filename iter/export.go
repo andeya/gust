@@ -5,52 +5,46 @@ import (
 	"github.com/andeya/gust/digit"
 )
 
-// FromData creates an iterator from a DataForIter.
-func FromData[T any](data gust.DataForIter[T]) Iterator[T] {
+// FromIterable creates an iterator from an Iterable.
+func FromIterable[T any](data gust.Iterable[T]) Iterator[T] {
 	iter, _ := data.(Iterator[T])
 	if iter != nil {
 		return iter
 	}
-	return newIter[T](data)
+	return fromIterable[T](data)
 }
 
-// DoubleEndedFromData creates an iterator from a DataForIter.
-func DoubleEndedFromData[T any](data gust.DataForDoubleEndedIter[T]) DoubleEndedIterator[T] {
-	iter, _ := data.(DoubleEndedIterator[T])
+// FromDeIterable creates an iterator from an Iterable.
+func FromDeIterable[T any](data gust.DeIterable[T]) DeIterator[T] {
+	iter, _ := data.(DeIterator[T])
 	if iter != nil {
 		return iter
 	}
-	return newDoubleEndedIter[T](data)
+	return fromDeIterable[T](data)
+}
+
+// FromSizeDeIterable creates an iterator from an Iterable.
+func FromSizeDeIterable[T any](data gust.SizeDeIterable[T]) SizeDeIterator[T] {
+	iter, _ := data.(SizeDeIterator[T])
+	if iter != nil {
+		return iter
+	}
+	return fromSizeDeIterable[T](data)
 }
 
 // FromVec creates an iterator from a slice.
-func FromVec[T any](slice []T) Iterator[T] {
-	return NewDataVec(slice).ToIterator()
-}
-
-// DoubleEndedFromVec creates a double ended iterator from a slice.
-func DoubleEndedFromVec[T any](slice []T) DoubleEndedIterator[T] {
-	return NewDataVec(slice).ToDoubleEndedIterator()
+func FromVec[T any](slice []T) SizeDeIterator[T] {
+	return NewDataVec(slice).ToSizeDeIterator()
 }
 
 // FromElements creates an iterator from a set of elements.
-func FromElements[T any](elem ...T) Iterator[T] {
-	return NewDataVec(elem).ToIterator()
-}
-
-// DoubleEndedFromElements creates an iterator from a set of elements.
-func DoubleEndedFromElements[T any](elem ...T) DoubleEndedIterator[T] {
-	return NewDataVec(elem).ToDoubleEndedIterator()
+func FromElements[T any](elem ...T) SizeDeIterator[T] {
+	return NewDataVec(elem).ToSizeDeIterator()
 }
 
 // FromRange creates an iterator from a range.
-func FromRange[T digit.Integer](start T, end T, rightClosed ...bool) Iterator[T] {
-	return NewDataRange[T](start, end, rightClosed...).ToIterator()
-}
-
-// DoubleEndedFromRange creates a double ended iterator from a range.
-func DoubleEndedFromRange[T digit.Integer](start T, end T, rightClosed ...bool) DoubleEndedIterator[T] {
-	return NewDataRange[T](start, end, rightClosed...).ToDoubleEndedIterator()
+func FromRange[T digit.Integer](start T, end T, rightClosed ...bool) SizeDeIterator[T] {
+	return NewDataRange[T](start, end, rightClosed...).ToSizeDeIterator()
 }
 
 // FromChan creates an iterator from a channel.
@@ -59,23 +53,13 @@ func FromChan[T any](c <-chan T) Iterator[T] {
 }
 
 // FromResult creates an iterator from a result.
-func FromResult[T any](ret *gust.Result[T]) Iterator[T] {
-	return FromData[T](ret)
+func FromResult[T any](ret gust.Result[T]) SizeDeIterator[T] {
+	return FromSizeDeIterable[T](ret)
 }
 
-// DoubleEndedFromResult creates an iterator from a result.
-func DoubleEndedFromResult[T any](ret *gust.Result[T]) DoubleEndedIterator[T] {
-	return DoubleEndedFromData[T](ret)
-}
-
-// FromOption creates an iterator from a option.
-func FromOption[T any](opt *gust.Option[T]) Iterator[T] {
-	return FromData[T](opt)
-}
-
-// DoubleEndedFromOption creates a double ended iterator from an option.
-func DoubleEndedFromOption[T any](opt *gust.Option[T]) DoubleEndedIterator[T] {
-	return DoubleEndedFromData[T](opt)
+// FromOption creates an iterator from an option.
+func FromOption[T any](opt gust.Option[T]) SizeDeIterator[T] {
+	return FromSizeDeIterable[T](opt)
 }
 
 // TryFold a data method that applies a function as long as it returns
@@ -249,14 +233,14 @@ func Zip[A any, B any](a Iterator[A], b Iterator[B]) *ZipIterator[A, B] {
 	return newZipIterator[A, B](a, b)
 }
 
-// DoubleEndedZip is similar to `Zip`, but it supports take elements starting from the back of the iterator.
-func DoubleEndedZip[A any, B any](a DoubleEndedIterator[A], b DoubleEndedIterator[B]) *DoubleEndedZipIterator[A, B] {
-	return newDoubleEndedZipIterator[A, B](a, b)
+// SizeDeZip is similar to `Zip`, but it supports take elements starting from the back of the iterator.
+func SizeDeZip[A any, B any](a SizeDeIterator[A], b SizeDeIterator[B]) *ZipSizeDeIterator[A, B] {
+	return newZipSizeDeIterator[A, B](a, b)
 }
 
 // TryRfold is the reverse version of [`Iterator[T].TryFold()`]: it takes
 // elements starting from the back of the iterator.
-func TryRfold[T any, B any](iter DoubleEndedIterator[T], init B, f func(B, T) gust.Result[B]) gust.Result[B] {
+func TryRfold[T any, B any](iter DeIterator[T], init B, f func(B, T) gust.Result[B]) gust.Result[B] {
 	var accum = gust.Ok(init)
 	for {
 		x := iter.NextBack()
@@ -272,7 +256,7 @@ func TryRfold[T any, B any](iter DoubleEndedIterator[T], init B, f func(B, T) gu
 
 // Rfold is an iterator method that reduces the iterator's elements to a single,
 // final value, starting from the back.
-func Rfold[T any, B any](iter DoubleEndedIterator[T], init B, f func(B, T) B) B {
+func Rfold[T any, B any](iter DeIterator[T], init B, f func(B, T) B) B {
 	var accum = init
 	for {
 		x := iter.NextBack()
@@ -284,6 +268,11 @@ func Rfold[T any, B any](iter DoubleEndedIterator[T], init B, f func(B, T) B) B 
 }
 
 // Flatten creates an iterator that flattens nested structure.
-func Flatten[T any, D gust.DataForIter[T]](iter Iterator[D]) *FlattenIterator[T, D] {
+func Flatten[T any, D gust.Iterable[T]](iter Iterator[D]) *FlattenIterator[T, D] {
 	return newFlattenIterator[T, D](iter)
+}
+
+// DeFlatten creates a double ended iterator that flattens nested structure.
+func DeFlatten[T any, D gust.DeIterable[T]](iter DeIterator[D]) *FlattenDeIterator[T, D] {
+	return newFlattenDeIterator[T, D](iter)
 }

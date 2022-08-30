@@ -273,11 +273,11 @@ func fromError[E any](e error) E {
 }
 
 var (
-	_ DataForIter[any]            = EnumResult[any, any]{}
-	_ DataForDoubleEndedIter[any] = EnumResult[any, any]{}
+	_ Iterable[any]       = EnumResult[any, any]{}
+	_ SizeDeIterable[any] = EnumResult[any, any]{}
 )
 
-func (r EnumResult[T, E]) NextForIter() Option[T] {
+func (r EnumResult[T, E]) Next() Option[T] {
 	if r.isErr || r.value == nil || *r.value == nil {
 		return None[T]()
 	}
@@ -286,11 +286,11 @@ func (r EnumResult[T, E]) NextForIter() Option[T] {
 	return Some[T](v.(T))
 }
 
-func (r EnumResult[T, E]) NextBackForIter() Option[T] {
-	return r.NextForIter()
+func (r EnumResult[T, E]) NextBack() Option[T] {
+	return r.Next()
 }
 
-func (r EnumResult[T, E]) RemainingLenForIter() uint {
+func (r EnumResult[T, E]) Remaining() uint {
 	if r.isErr || r.value == nil || *r.value == nil {
 		return 0
 	}
