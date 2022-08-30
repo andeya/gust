@@ -2,6 +2,7 @@ package result_test
 
 import (
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/andeya/gust"
@@ -9,7 +10,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestResult_Map(t *testing.T) {
+func TestResult_Map_1(t *testing.T) {
+	var line = "1\n2\n3\n4\n"
+	for _, num := range strings.Split(line, "\n") {
+		gust.Ret(strconv.Atoi(num)).Map(func(i int) int {
+			return i * 2
+		}).Inspect(func(i int) {
+			t.Log(i)
+		})
+	}
+}
+
+func TestResult_Map_2(t *testing.T) {
 	var isMyNum = func(s string, search int) gust.Result[bool] {
 		return ret.Map(gust.Ret(strconv.Atoi(s)), func(x int) bool { return x == search })
 	}
