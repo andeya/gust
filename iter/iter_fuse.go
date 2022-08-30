@@ -78,6 +78,7 @@ func newFuseDeIterator[T any](iter DeIterator[T]) *FuseDeIterator[T] {
 	return p
 }
 
+// FuseDeIterator double ended fuse iterator
 type FuseDeIterator[T any] struct {
 	sizeDeIterTrait[T]
 	iter   DeIterator[T]

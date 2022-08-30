@@ -751,7 +751,7 @@ type (
 		iTryRfold[T]
 		iRfold[T]
 		iRfind[T]
-		// DeFuse creates an iterator which ends after the first [`gust.None[T]()`].
+		// DeFuse creates a double ended iterator which ends after the first [`gust.None[T]()`].
 		//
 		// After an iterator returns [`gust.None[T]()`], future calls may or may not yield
 		// [`gust.Some(T)`] again. `Fuse()` adapts an iterator, ensuring that after a
