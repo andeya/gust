@@ -5,22 +5,22 @@ import (
 )
 
 var (
-	_ gust.Iterable[any] = (*DataChan[any])(nil)
+	_ gust.Iterable[any] = (*IterableChan[any])(nil)
 )
 
-type DataChan[T any] struct {
+type IterableChan[T any] struct {
 	c <-chan T
 }
 
-func NewDataChan[T any](c <-chan T) DataChan[T] {
-	return DataChan[T]{c: c}
+func NewIterableChan[T any](c <-chan T) IterableChan[T] {
+	return IterableChan[T]{c: c}
 }
 
-func (c DataChan[T]) ToIterator() Iterator[T] {
+func (c IterableChan[T]) ToIterator() Iterator[T] {
 	return FromIterable[T](c)
 }
 
-func (c DataChan[T]) Next() gust.Option[T] {
+func (c IterableChan[T]) Next() gust.Option[T] {
 	var x, ok = <-c.c
 	if ok {
 		return gust.Some(x)

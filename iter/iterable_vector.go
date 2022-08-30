@@ -5,31 +5,31 @@ import (
 )
 
 var (
-	_ gust.Iterable[any]    = (*DataVec[any])(nil)
-	_ gust.IterableSizeHint = (*DataVec[any])(nil)
-	_ gust.IterableCount    = (*DataVec[any])(nil)
-	_ gust.DeIterable[uint] = (*DataVec[uint])(nil)
+	_ gust.Iterable[any]    = (*IterableVec[any])(nil)
+	_ gust.IterableSizeHint = (*IterableVec[any])(nil)
+	_ gust.IterableCount    = (*IterableVec[any])(nil)
+	_ gust.DeIterable[uint] = (*IterableVec[uint])(nil)
 )
 
-type DataVec[T any] struct {
+type IterableVec[T any] struct {
 	slice         []T
 	nextIndex     int
 	backNextIndex int
 }
 
-func NewDataVec[T any](slice []T) *DataVec[T] {
-	return &DataVec[T]{
+func NewIterableVec[T any](slice []T) *IterableVec[T] {
+	return &IterableVec[T]{
 		slice:         slice,
 		nextIndex:     0,
 		backNextIndex: len(slice) - 1,
 	}
 }
 
-func (v *DataVec[T]) ToSizeDeIterator() SizeDeIterator[T] {
+func (v *IterableVec[T]) ToSizeDeIterator() SizeDeIterator[T] {
 	return FromSizeDeIterable[T](v)
 }
 
-func (v *DataVec[T]) Next() gust.Option[T] {
+func (v *IterableVec[T]) Next() gust.Option[T] {
 	if v.nextIndex <= v.backNextIndex {
 		opt := gust.Some(v.slice[v.nextIndex])
 		v.nextIndex++
@@ -38,7 +38,7 @@ func (v *DataVec[T]) Next() gust.Option[T] {
 	return gust.None[T]()
 }
 
-func (v *DataVec[T]) NextBack() gust.Option[T] {
+func (v *IterableVec[T]) NextBack() gust.Option[T] {
 	if v.backNextIndex >= 0 {
 		opt := gust.Some(v.slice[v.backNextIndex])
 		v.backNextIndex--
@@ -47,16 +47,16 @@ func (v *DataVec[T]) NextBack() gust.Option[T] {
 	return gust.None[T]()
 }
 
-func (v *DataVec[T]) SizeHint() (uint, gust.Option[uint]) {
+func (v *IterableVec[T]) SizeHint() (uint, gust.Option[uint]) {
 	n := uint(v.backNextIndex - v.nextIndex + 1)
 	return n, gust.Some(n)
 }
 
-func (v *DataVec[T]) Count() uint {
+func (v *IterableVec[T]) Count() uint {
 	v.nextIndex = v.backNextIndex
 	return uint(v.backNextIndex - v.nextIndex + 1)
 }
 
-func (v *DataVec[T]) Remaining() uint {
+func (v *IterableVec[T]) Remaining() uint {
 	return uint(v.backNextIndex - v.nextIndex + 1)
 }

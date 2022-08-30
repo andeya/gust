@@ -34,22 +34,22 @@ func FromSizeDeIterable[T any](data gust.SizeDeIterable[T]) SizeDeIterator[T] {
 
 // FromVec creates an iterator from a slice.
 func FromVec[T any](slice []T) SizeDeIterator[T] {
-	return NewDataVec(slice).ToSizeDeIterator()
+	return NewIterableVec(slice).ToSizeDeIterator()
 }
 
 // FromElements creates an iterator from a set of elements.
 func FromElements[T any](elem ...T) SizeDeIterator[T] {
-	return NewDataVec(elem).ToSizeDeIterator()
+	return NewIterableVec(elem).ToSizeDeIterator()
 }
 
 // FromRange creates an iterator from a range.
 func FromRange[T digit.Integer](start T, end T, rightClosed ...bool) SizeDeIterator[T] {
-	return NewDataRange[T](start, end, rightClosed...).ToSizeDeIterator()
+	return NewIterableRange[T](start, end, rightClosed...).ToSizeDeIterator()
 }
 
 // FromChan creates an iterator from a channel.
 func FromChan[T any](c <-chan T) Iterator[T] {
-	return NewDataChan[T](c).ToIterator()
+	return NewIterableChan[T](c).ToIterator()
 }
 
 // FromResult creates an iterator from a result.

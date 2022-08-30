@@ -6,23 +6,23 @@ import (
 )
 
 var (
-	_ gust.Iterable[uint]   = (*DataRange[uint])(nil)
-	_ gust.IterableSizeHint = (*DataRange[uint])(nil)
-	_ gust.IterableCount    = (*DataRange[uint])(nil)
-	_ gust.DeIterable[uint] = (*DataRange[uint])(nil)
+	_ gust.Iterable[uint]   = (*IterableRange[uint])(nil)
+	_ gust.IterableSizeHint = (*IterableRange[uint])(nil)
+	_ gust.IterableCount    = (*IterableRange[uint])(nil)
+	_ gust.DeIterable[uint] = (*IterableRange[uint])(nil)
 )
 
-type DataRange[T digit.Integer] struct {
+type IterableRange[T digit.Integer] struct {
 	nextValue     T
 	backNextValue T
 	ended         bool
 }
 
-func NewDataRange[T digit.Integer](start T, end T, rightClosed ...bool) *DataRange[T] {
+func NewIterableRange[T digit.Integer](start T, end T, rightClosed ...bool) *IterableRange[T] {
 	max := end
 	if len(rightClosed) == 0 || !rightClosed[0] {
 		if end <= start {
-			return &DataRange[T]{
+			return &IterableRange[T]{
 				nextValue:     start,
 				ended:         true,
 				backNextValue: max,
@@ -34,18 +34,18 @@ func NewDataRange[T digit.Integer](start T, end T, rightClosed ...bool) *DataRan
 	if max < start {
 		ended = true
 	}
-	return &DataRange[T]{
+	return &IterableRange[T]{
 		nextValue:     start,
 		ended:         ended,
 		backNextValue: max,
 	}
 }
 
-func (r *DataRange[T]) ToSizeDeIterator() SizeDeIterator[T] {
+func (r *IterableRange[T]) ToSizeDeIterator() SizeDeIterator[T] {
 	return FromSizeDeIterable[T](r)
 }
 
-func (r *DataRange[T]) Next() gust.Option[T] {
+func (r *IterableRange[T]) Next() gust.Option[T] {
 	if r.ended {
 		return gust.None[T]()
 	}
@@ -58,7 +58,7 @@ func (r *DataRange[T]) Next() gust.Option[T] {
 	return gust.Some(value)
 }
 
-func (r *DataRange[T]) NextBack() gust.Option[T] {
+func (r *IterableRange[T]) NextBack() gust.Option[T] {
 	if r.ended {
 		return gust.None[T]()
 	}
@@ -71,12 +71,12 @@ func (r *DataRange[T]) NextBack() gust.Option[T] {
 	return gust.Some(value)
 }
 
-func (r *DataRange[T]) SizeHint() (uint, gust.Option[uint]) {
+func (r *IterableRange[T]) SizeHint() (uint, gust.Option[uint]) {
 	size := uint(r.backNextValue - r.nextValue + 1)
 	return size, gust.Some(size)
 }
 
-func (r *DataRange[T]) Count() uint {
+func (r *IterableRange[T]) Count() uint {
 	if !r.ended {
 		return 0
 	}
@@ -84,7 +84,7 @@ func (r *DataRange[T]) Count() uint {
 	return uint(r.backNextValue - r.nextValue + 1)
 }
 
-func (r *DataRange[T]) Remaining() uint {
+func (r *IterableRange[T]) Remaining() uint {
 	if !r.ended {
 		return 0
 	}
