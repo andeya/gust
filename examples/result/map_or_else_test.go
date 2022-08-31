@@ -27,14 +27,14 @@ func TestResult_MapOrElse_1(t *testing.T) {
 func TestResult_MapOrElse_2(t *testing.T) {
 	{
 		var x = gust.Ok("foo")
-		assert.Equal(t, "test:foo", x.MapOrElse(func(err error) any {
+		assert.Equal(t, "test:foo", x.MapOrElse(func(err error) string {
 			return "bar"
-		}, func(x string) any { return "test:" + x }).(string))
+		}, func(x string) string { return "test:" + x }))
 	}
 	{
 		var x = gust.Err[string]("foo")
-		assert.Equal(t, "bar", x.MapOrElse(func(err error) any {
+		assert.Equal(t, "bar", x.MapOrElse(func(err error) string {
 			return "bar"
-		}, func(x string) any { return "test:" + x }).(string))
+		}, func(x string) string { return "test:" + x }))
 	}
 }

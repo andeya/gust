@@ -13,9 +13,9 @@ import (
 func TestResult_Map_1(t *testing.T) {
 	var line = "1\n2\n3\n4\n"
 	for _, num := range strings.Split(line, "\n") {
-		gust.Ret(strconv.Atoi(num)).Map(func(i int) any {
+		gust.Ret(strconv.Atoi(num)).Map(func(i int) int {
 			return i * 2
-		}).Inspect(func(i any) {
+		}).Inspect(func(i int) {
 			t.Log(i)
 		})
 	}
