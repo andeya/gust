@@ -1,6 +1,7 @@
 package gust
 
 import (
+	"fmt"
 	"reflect"
 )
 
@@ -32,7 +33,7 @@ func (e Errable[T]) ToError() error {
 	if !e.AsError() {
 		return nil
 	}
-	return toError(e.Unwrap())
+	return newAnyError(e.Unwrap())
 }
 
 func (e Errable[T]) Unwrap() T {
@@ -44,4 +45,19 @@ func (e Errable[T]) UnwrapOr(def T) T {
 		return e.Unwrap()
 	}
 	return def
+}
+
+type errorWithVal struct {
+	val any
+}
+
+func newAnyError(val any) error {
+	if err, _ := val.(error); err != nil {
+		return err
+	}
+	return &errorWithVal{val: val}
+}
+
+func (a *errorWithVal) Error() string {
+	return fmt.Sprintf("%v", a.val)
 }

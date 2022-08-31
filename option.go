@@ -75,7 +75,7 @@ func (o Option[T]) IsNone() bool {
 // Panics if the value is none with a custom panic message provided by `msg`.
 func (o Option[T]) Expect(msg string) T {
 	if o.IsNone() {
-		panic(fmt.Errorf("%s", msg))
+		panic(msg)
 	}
 	return o.UnwrapUnchecked()
 }

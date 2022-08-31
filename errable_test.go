@@ -34,5 +34,5 @@ func ExampleErrable() {
 	// Output:
 	// true
 	// 1
-	// &errors.errorString{s:"1"}
+	// &gust.errorWithVal{val:1}
 }
