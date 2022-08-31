@@ -81,16 +81,16 @@ func (r Result[T]) ErrVal() any {
 
 // Map maps a Result[T] to Result[T] by applying a function to a contained Ok value, leaving an error untouched.
 // This function can be used to compose the results of two functions.
-func (r Result[T]) Map(f func(T) T) Result[T] {
+func (r Result[T]) Map(f func(T) any) Result[any] {
 	if r.IsOk() {
-		return Ok[T](f(r.inner.safeGetT()))
+		return Ok[any](f(r.inner.safeGetT()))
 	}
-	return Err[T](r.inner.safeGetE())
+	return Err[any](r.inner.safeGetE())
 }
 
 // MapOr returns the provided default (if error), or applies a function to the contained value (if no error),
 // Arguments passed to map_or are eagerly evaluated; if you are passing the result of a function call, it is recommended to use MapOrElse, which is lazily evaluated.
-func (r Result[T]) MapOr(defaultOk T, f func(T) T) T {
+func (r Result[T]) MapOr(defaultOk any, f func(T) any) any {
 	if r.IsOk() {
 		return f(r.inner.safeGetT())
 	}
@@ -99,7 +99,7 @@ func (r Result[T]) MapOr(defaultOk T, f func(T) T) T {
 
 // MapOrElse maps a Result[T] to T by applying fallback function default to a contained error, or function f to a contained Ok value.
 // This function can be used to unpack a successful result while handling an error.
-func (r Result[T]) MapOrElse(defaultFn func(error) T, f func(T) T) T {
+func (r Result[T]) MapOrElse(defaultFn func(error) any, f func(T) any) any {
 	if r.IsOk() {
 		return f(r.inner.safeGetT())
 	}
@@ -169,9 +169,9 @@ func (r Result[T]) And(res Result[T]) Result[T] {
 
 // AndThen calls op if the result is Ok, otherwise returns the error of self.
 // This function can be used for control flow based on Result values.
-func (r Result[T]) AndThen(op func(T) Result[T]) Result[T] {
+func (r Result[T]) AndThen(op func(T) Result[any]) Result[any] {
 	if r.IsErr() {
-		return r
+		return Err[any](r.Err())
 	}
 	return op(r.inner.safeGetT())
 }

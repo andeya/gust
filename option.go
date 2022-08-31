@@ -112,11 +112,11 @@ func (o Option[T]) UnwrapUnchecked() T {
 }
 
 // Map maps an `Option[T]` to `Option[T]` by applying a function to a contained value.
-func (o Option[T]) Map(f func(T) T) Option[T] {
+func (o Option[T]) Map(f func(T) any) Option[any] {
 	if o.IsSome() {
-		return Some[T](f(o.UnwrapUnchecked()))
+		return Some[any](f(o.UnwrapUnchecked()))
 	}
-	return None[T]()
+	return None[any]()
 }
 
 // Inspect calls the provided closure with a reference to the contained value (if it has value).
@@ -137,7 +137,7 @@ func (o Option[T]) InspectNone(f func()) Option[T] {
 
 // MapOr returns the provided default value (if none),
 // or applies a function to the contained value (if any).
-func (o Option[T]) MapOr(defaultSome T, f func(T) T) T {
+func (o Option[T]) MapOr(defaultSome any, f func(T) any) any {
 	if o.IsSome() {
 		return f(o.UnwrapUnchecked())
 	}
@@ -146,7 +146,7 @@ func (o Option[T]) MapOr(defaultSome T, f func(T) T) T {
 
 // MapOrElse computes a default function value (if none), or
 // applies a different function to the contained value (if any).
-func (o Option[T]) MapOrElse(defaultFn func() T, f func(T) T) T {
+func (o Option[T]) MapOrElse(defaultFn func() any, f func(T) any) any {
 	if o.IsSome() {
 		return f(o.UnwrapUnchecked())
 	}
@@ -180,9 +180,9 @@ func (o Option[T]) And(optb Option[T]) Option[T] {
 }
 
 // AndThen returns [`None`] if the option is [`None`], otherwise calls `f` with the
-func (o Option[T]) AndThen(f func(T) Option[T]) Option[T] {
+func (o Option[T]) AndThen(f func(T) Option[any]) Option[any] {
 	if o.IsNone() {
-		return o
+		return None[any]()
 	}
 	return f(o.UnwrapUnchecked())
 }

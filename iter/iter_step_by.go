@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/andeya/gust"
+	"github.com/andeya/gust/opt"
 )
 
 var (
@@ -128,10 +129,10 @@ func (s *StepByIterator[T]) realSizeHint() (uint, gust.Option[uint]) {
 
 	if s.firstTake {
 		var f = firstSize(uint(s.step))
-		return f(low), high.Map(f)
+		return f(low), opt.Map[uint](high, f)
 	}
 	var f = otherSize(uint(s.step))
-	return f(low), high.Map(f)
+	return f(low), opt.Map[uint](high, f)
 }
 
 func (s *StepByIterator[T]) realNext() gust.Option[T] {

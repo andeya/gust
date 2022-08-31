@@ -13,9 +13,9 @@ func ExampleResult_AndThen() {
 		}
 		return gust.Ok(i / j)
 	}
-	var ret float32 = divide(1, 2).AndThen(func(i float32) gust.Result[float32] {
-		return gust.Ok(i * 10)
-	}).Unwrap()
+	var ret = divide(1, 2).AndThen(func(i float32) gust.Result[any] {
+		return gust.Ok[any](i * 10)
+	}).Unwrap().(float32)
 	fmt.Println(ret)
 	// Output:
 	// 5
