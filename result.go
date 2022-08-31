@@ -135,7 +135,7 @@ func (r Result[T]) XMapOrElse(defaultFn func(error) any, f func(T) any) any {
 
 // MapErr maps a Result[T] to Result[T] by applying a function to a contained error, leaving an Ok value untouched.
 // This function can be used to pass through a successful result while handling an error.
-func (r Result[T]) MapErr(op func(error) error) Result[T] {
+func (r Result[T]) MapErr(op func(error) (newErr any)) Result[T] {
 	if r.IsErr() {
 		return Err[T](op(r.inner.safeGetE()))
 	}
