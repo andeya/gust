@@ -2,6 +2,14 @@ package opt
 
 import "github.com/andeya/gust"
 
+// Assert asserts gust.Option[T] as gust.Option[U].
+func Assert[T any, U any](o gust.Option[T]) gust.Option[U] {
+	if o.IsSome() {
+		return gust.Some[U](any(o.Unwrap()).(U))
+	}
+	return gust.None[U]()
+}
+
 // Map maps an `gust.Option[T]` to `gust.Option[U]` by applying a function to a contained value.
 func Map[T any, U any](o gust.Option[T], f func(T) U) gust.Option[U] {
 	if o.IsSome() {
