@@ -2,6 +2,7 @@ package gust
 
 import (
 	"errors"
+	"fmt"
 )
 
 // Ret wraps a result.
@@ -168,7 +169,10 @@ func (r Result[T]) Expect(msg string) T {
 // Because this function may panic, its use is generally discouraged.
 // Instead, prefer to use pattern matching and handle the error case explicitly, or call UnwrapOr or UnwrapOrElse.
 func (r Result[T]) Unwrap() T {
-	return r.inner.Unwrap()
+	if r.IsErr() {
+		panic(fmt.Sprintf("called `Result.Unwrap()` on an `err` value: %v", r.inner.safeGetE()))
+	}
+	return r.inner.safeGetT()
 }
 
 // ExpectErr returns the contained error.
@@ -182,7 +186,10 @@ func (r Result[T]) ExpectErr(msg string) error {
 // Panics if the value is not an error, with a custom panic message provided
 // by the [`Ok`]'s value.
 func (r Result[T]) UnwrapErr() error {
-	return r.inner.UnwrapErr()
+	if r.IsErr() {
+		return r.inner.safeGetE()
+	}
+	panic(fmt.Sprintf("called `Result.UnwrapErr()` on an `ok` value: %v", r.inner.safeGetT()))
 }
 
 // And returns res if the result is Ok, otherwise returns the error of self.

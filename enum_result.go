@@ -194,7 +194,7 @@ func (r EnumResult[T, E]) Expect(msg string) T {
 // Instead, prefer to use pattern matching and handle the E case explicitly, or call UnwrapOr or UnwrapOrElse.
 func (r EnumResult[T, E]) Unwrap() T {
 	if r.IsErr() {
-		panic(fmt.Sprintf("called `Result.Unwrap()` on an `err` value: %v", r.safeGetE()))
+		panic(fmt.Sprintf("called `EnumResult.Unwrap()` on an `err` value: %v", r.safeGetE()))
 	}
 	return r.safeGetT()
 }
