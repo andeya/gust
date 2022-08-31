@@ -10,6 +10,14 @@ func Assert[T any, U any](o gust.Option[T]) gust.Option[U] {
 	return gust.None[U]()
 }
 
+// XAssert asserts gust.Option[any] as gust.Option[U].
+func XAssert[U any](o gust.Option[any]) gust.Option[U] {
+	if o.IsSome() {
+		return gust.Some[U](o.Unwrap().(U))
+	}
+	return gust.None[U]()
+}
+
 // Map maps an `gust.Option[T]` to `gust.Option[U]` by applying a function to a contained value.
 func Map[T any, U any](o gust.Option[T], f func(T) U) gust.Option[U] {
 	if o.IsSome() {

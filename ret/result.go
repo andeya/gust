@@ -10,6 +10,14 @@ func Assert[T any, U any](o gust.Result[T]) gust.Result[U] {
 	return gust.Err[U](o.UnwrapErr())
 }
 
+// XAssert asserts gust.Result[any] as gust.Result[U].
+func XAssert[U any](o gust.Result[any]) gust.Result[U] {
+	if o.IsOk() {
+		return gust.Ok[U](o.Unwrap().(U))
+	}
+	return gust.Err[U](o.UnwrapErr())
+}
+
 // Map maps a gust.Result[T] to gust.Result[U] by applying a function to a contained Ok value, leaving an error untouched.
 // This function can be used to compose the results of two functions.
 func Map[T any, U any](r gust.Result[T], f func(T) U) gust.Result[U] {

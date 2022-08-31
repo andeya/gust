@@ -13,3 +13,8 @@ func TestAssert(t *testing.T) {
 	r := gust.Ok[any]("hello")
 	assert.Equal(t, "gust.Result[string]", fmt.Sprintf("%T", ret.Assert[any, string](r)))
 }
+
+func TestXAssert(t *testing.T) {
+	r := gust.Ok[any]("hello")
+	assert.Equal(t, "gust.Result[string]", fmt.Sprintf("%T", ret.XAssert[string](r)))
+}

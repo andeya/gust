@@ -22,6 +22,16 @@ func TestResult_Map_1(t *testing.T) {
 }
 
 func TestResult_Map_2(t *testing.T) {
+	var isMyNum = func(s string, search int) gust.Result[any] {
+		return gust.Ret(strconv.Atoi(s)).XMap(func(x int) any { return x == search })
+	}
+	assert.Equal(t, gust.Ok[any](true), isMyNum("1", 1))
+	assert.Equal(t, gust.Ok[bool](true), ret.XAssert[bool](isMyNum("1", 1)))
+	assert.Equal(t, "Err(strconv.Atoi: parsing \"lol\": invalid syntax)", isMyNum("lol", 1).String())
+	assert.Equal(t, "Err(strconv.Atoi: parsing \"NaN\": invalid syntax)", isMyNum("NaN", 1).String())
+}
+
+func TestResult_Map_3(t *testing.T) {
 	var isMyNum = func(s string, search int) gust.Result[bool] {
 		return ret.Map(gust.Ret(strconv.Atoi(s)), func(x int) bool { return x == search })
 	}
