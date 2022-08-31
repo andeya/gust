@@ -93,7 +93,16 @@ func (r EnumResult[T, E]) Err() Option[E] {
 
 // Map maps a EnumResult[T,E] to EnumResult[T,E] by applying a function to a contained T value, leaving an E untouched.
 // This function can be used to compose the results of two functions.
-func (r EnumResult[T, E]) Map(f func(T) any) EnumResult[any, E] {
+func (r EnumResult[T, E]) Map(f func(T) T) EnumResult[T, E] {
+	if r.IsOk() {
+		return EnumOk[T, E](f(r.safeGetT()))
+	}
+	return EnumErr[T, E](r.safeGetE())
+}
+
+// XMap maps a EnumResult[T,E] to EnumResult[any,E] by applying a function to a contained `any` value, leaving an E untouched.
+// This function can be used to compose the results of two functions.
+func (r EnumResult[T, E]) XMap(f func(T) any) EnumResult[any, E] {
 	if r.IsOk() {
 		return EnumOk[any, E](f(r.safeGetT()))
 	}
@@ -102,7 +111,16 @@ func (r EnumResult[T, E]) Map(f func(T) any) EnumResult[any, E] {
 
 // MapOr returns the provided default (if E), or applies a function to the contained value (if no E),
 // Arguments passed to map_or are eagerly evaluated; if you are passing the result of a function call, it is recommended to use MapOrElse, which is lazily evaluated.
-func (r EnumResult[T, E]) MapOr(defaultOk any, f func(T) any) any {
+func (r EnumResult[T, E]) MapOr(defaultOk T, f func(T) T) T {
+	if r.IsOk() {
+		return f(r.safeGetT())
+	}
+	return defaultOk
+}
+
+// XMapOr returns the provided default (if E), or applies a function to the contained value (if no E),
+// Arguments passed to map_or are eagerly evaluated; if you are passing the result of a function call, it is recommended to use MapOrElse, which is lazily evaluated.
+func (r EnumResult[T, E]) XMapOr(defaultOk any, f func(T) any) any {
 	if r.IsOk() {
 		return f(r.safeGetT())
 	}
@@ -111,7 +129,16 @@ func (r EnumResult[T, E]) MapOr(defaultOk any, f func(T) any) any {
 
 // MapOrElse maps a EnumResult[T,E] to T by applying fallback function default to a contained E, or function f to a contained T value.
 // This function can be used to unpack a successful result while handling an E.
-func (r EnumResult[T, E]) MapOrElse(defaultFn func(E) any, f func(T) any) any {
+func (r EnumResult[T, E]) MapOrElse(defaultFn func(E) T, f func(T) T) T {
+	if r.IsOk() {
+		return f(r.safeGetT())
+	}
+	return defaultFn(r.safeGetE())
+}
+
+// XMapOrElse maps a EnumResult[T,E] to `any` type by applying fallback function default to a contained E, or function f to a contained T value.
+// This function can be used to unpack a successful result while handling an E.
+func (r EnumResult[T, E]) XMapOrElse(defaultFn func(E) any, f func(T) any) any {
 	if r.IsOk() {
 		return f(r.safeGetT())
 	}
@@ -120,7 +147,16 @@ func (r EnumResult[T, E]) MapOrElse(defaultFn func(E) any, f func(T) any) any {
 
 // MapErr maps a EnumResult[T,E] to EnumResult[T,E] by applying a function to a contained E, leaving an T value untouched.
 // This function can be used to pass through a successful result while handling an error.
-func (r EnumResult[T, E]) MapErr(op func(E) any) EnumResult[T, any] {
+func (r EnumResult[T, E]) MapErr(op func(E) E) EnumResult[T, E] {
+	if r.IsErr() {
+		return EnumErr[T, E](op(r.safeGetE()))
+	}
+	return r
+}
+
+// XMapErr maps a EnumResult[T,E] to EnumResult[T,any] by applying a function to a contained `any`, leaving an T value untouched.
+// This function can be used to pass through a successful result while handling an error.
+func (r EnumResult[T, E]) XMapErr(op func(E) any) EnumResult[T, any] {
 	if r.IsErr() {
 		return EnumErr[T, any](op(r.safeGetE()))
 	}
@@ -193,7 +229,16 @@ func (r EnumResult[T, E]) And(res EnumResult[T, E]) EnumResult[T, E] {
 
 // AndThen calls op if the result is T, otherwise returns the E of self.
 // This function can be used for control flow based on EnumResult values.
-func (r EnumResult[T, E]) AndThen(op func(T) EnumResult[any, E]) EnumResult[any, E] {
+func (r EnumResult[T, E]) AndThen(op func(T) EnumResult[T, E]) EnumResult[T, E] {
+	if r.IsErr() {
+		return r
+	}
+	return op(r.safeGetT())
+}
+
+// XAndThen calls op if the result is ok, otherwise returns the E of self.
+// This function can be used for control flow based on EnumResult values.
+func (r EnumResult[T, E]) XAndThen(op func(T) EnumResult[any, E]) EnumResult[any, E] {
 	if r.IsErr() {
 		return EnumErr[any, E](r.safeGetE())
 	}
@@ -211,7 +256,16 @@ func (r EnumResult[T, E]) Or(res EnumResult[T, E]) EnumResult[T, E] {
 
 // OrElse calls op if the result is E, otherwise returns the T value of self.
 // This function can be used for control flow based on result values.
-func (r EnumResult[T, E]) OrElse(op func(E) EnumResult[T, any]) EnumResult[T, any] {
+func (r EnumResult[T, E]) OrElse(op func(E) EnumResult[T, E]) EnumResult[T, E] {
+	if r.IsErr() {
+		return op(r.safeGetE())
+	}
+	return r
+}
+
+// XOrElse calls op if the result is E, otherwise returns the T value of self.
+// This function can be used for control flow based on result values.
+func (r EnumResult[T, E]) XOrElse(op func(E) EnumResult[T, any]) EnumResult[T, any] {
 	if r.IsErr() {
 		return op(r.safeGetE())
 	}
