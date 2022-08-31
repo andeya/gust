@@ -2,6 +2,14 @@ package ret
 
 import "github.com/andeya/gust"
 
+// EnumAssert asserts gust.EnumResult[T,E] as gust.EnumResult[U,F].
+func EnumAssert[T any, E any, U any, F any](o gust.EnumResult[T, E]) gust.EnumResult[U, F] {
+	if o.IsOk() {
+		return gust.EnumOk[U, F](any(o.Unwrap()).(U))
+	}
+	return gust.EnumErr[U, F](any(o.UnwrapErr()).(F))
+}
+
 // EnumMap maps a gust.EnumResult[T,E] to gust.EnumResult[U,E] by applying a function to a contained Ok value, leaving an error untouched.
 // This function can be used to compose the results of two functions.
 func EnumMap[T any, U any, E any](r gust.EnumResult[T, E], f func(T) U) gust.EnumResult[U, E] {
