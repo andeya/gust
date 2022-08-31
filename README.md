@@ -1,6 +1,6 @@
 # gust [![Docs](https://img.shields.io/badge/Docs-pkg.go.dev-blue.svg?style=flat-square)](https://pkg.go.dev/github.com/andeya/gust)
 
-Golang ergonomic declarative generics module inspired by Rust.
+A declarative Golang module inspired by Rust to help reduce bugs and improve development productivity. For example Result, Option, Iterator, etc.
 
 After using this package, your code style will be like this:
 
