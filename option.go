@@ -8,13 +8,27 @@ import (
 // Ptr wraps a pointer value.
 // NOTE:
 //
-//	non-nil pointer is equivalent to Some,
-//	and nil pointer is equivalent to None.
+//	non-nil pointer is wrapped as Some,
+//	and nil pointer is wrapped as None.
 func Ptr[U any, T *U](ptr T) Option[T] {
 	if ptr == nil {
 		return Option[T]{value: nil}
 	}
 	v := &ptr
+	return Option[T]{value: &v}
+}
+
+// Opt wraps a value as an Option.
+// NOTE:
+//
+//	non-zero T is wrapped as Some,
+//	and zero T is wrapped as None.
+func Opt[T comparable](val T) Option[T] {
+	var zero T
+	if zero == val {
+		return Option[T]{value: nil}
+	}
+	v := &val
 	return Option[T]{value: &v}
 }
 
