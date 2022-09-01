@@ -261,11 +261,11 @@ func (r Result[T]) UnwrapOrElse(defaultFn func(error) T) T {
 }
 
 // ContainsErr returns true if the result is an error containing the given value.
-func (r Result[T]) ContainsErr(err error) bool {
+func (r Result[T]) ContainsErr(err any) bool {
 	if r.IsOk() {
 		return false
 	}
-	return errors.Is(r.inner.safeGetE(), err)
+	return errors.Is(r.inner.safeGetE(), newAnyError(err))
 }
 
 func (r Result[T]) MarshalJSON() ([]byte, error) {
