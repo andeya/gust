@@ -213,6 +213,14 @@ func (o Option[T]) And(optb Option[T]) Option[T] {
 	return o
 }
 
+// XAnd returns [`None`] if the option is [`None`], otherwise returns `optb`.
+func (o Option[T]) XAnd(optb Option[any]) Option[any] {
+	if o.IsSome() {
+		return optb
+	}
+	return None[any]()
+}
+
 // AndThen returns [`None`] if the option is [`None`], otherwise calls `f` with the
 func (o Option[T]) AndThen(f func(T) Option[T]) Option[T] {
 	if o.IsNone() {
