@@ -19,15 +19,6 @@ func EnumMap[T any, U any, E any](r gust.EnumResult[T, E], f func(T) U) gust.Enu
 	return gust.EnumErr[U, E](r.UnwrapErr())
 }
 
-// EnumMapErr maps a EnumResult[T,E] to EnumResult[T,F] by applying a function to a contained E, leaving an T value untouched.
-// This function can be used to pass through a successful result while handling an error.
-func EnumMapErr[T any, E any, F any](r gust.EnumResult[T, E], op func(E) F) gust.EnumResult[T, F] {
-	if r.IsErr() {
-		return gust.EnumErr[T, F](op(r.UnwrapErr()))
-	}
-	return gust.EnumOk[T, F](r.Unwrap())
-}
-
 // EnumMapOr returns the provided default (if error), or applies a function to the contained value (if no error),
 // Arguments passed to map_or are eagerly evaluated; if you are passing the result of a function call, it is recommended to use MapOrElse, which is lazily evaluated.
 func EnumMapOr[T any, U any, E any](r gust.EnumResult[T, E], defaultOk U, f func(T) U) U {
@@ -46,12 +37,21 @@ func EnumMapOrElse[T any, U any, E any](r gust.EnumResult[T, E], defaultFn func(
 	return defaultFn(r.UnwrapErr())
 }
 
-// EnumAnd returns r2 if the result is Ok, otherwise returns the error of r.
-func EnumAnd[T any, U any, E any](r gust.EnumResult[T, E], r2 gust.EnumResult[U, E]) gust.EnumResult[U, E] {
+// EnumMapErr maps a EnumResult[T,E] to EnumResult[T,F] by applying a function to a contained E, leaving an T value untouched.
+// This function can be used to pass through a successful result while handling an error.
+func EnumMapErr[T any, E any, F any](r gust.EnumResult[T, E], op func(E) F) gust.EnumResult[T, F] {
 	if r.IsErr() {
-		return gust.EnumErr[U, E](r.UnwrapErr())
+		return gust.EnumErr[T, F](op(r.UnwrapErr()))
 	}
-	return r2
+	return gust.EnumOk[T, F](r.Unwrap())
+}
+
+// EnumAnd returns `b` if the `a` is Ok, otherwise returns the error of `a`.
+func EnumAnd[T any, U any, E any](a gust.EnumResult[T, E], b gust.EnumResult[U, E]) gust.EnumResult[U, E] {
+	if a.IsErr() {
+		return gust.EnumErr[U, E](a.UnwrapErr())
+	}
+	return b
 }
 
 // EnumAndThen calls op if the result is Ok, otherwise returns the error of self.
@@ -61,6 +61,24 @@ func EnumAndThen[T any, U any, E any](r gust.EnumResult[T, E], op func(T) gust.E
 		return gust.EnumErr[U, E](r.UnwrapErr())
 	}
 	return op(r.Unwrap())
+}
+
+// EnumOr returns `b` if `a` is E, otherwise returns the T value of `a`.
+// Arguments passed to or are eagerly evaluated; if you are passing the result of a function call, it is recommended to use EnumOrElse, which is lazily evaluated.
+func EnumOr[T any, E any, F any](a gust.EnumResult[T, E], b gust.EnumResult[T, F]) gust.EnumResult[T, F] {
+	if a.IsErr() {
+		return b
+	}
+	return gust.EnumOk[T, F](a.Unwrap())
+}
+
+// EnumOrElse calls op if the result is E, otherwise returns the T value of result.
+// This function can be used for control flow based on result values.
+func EnumOrElse[T any, E any, F any](result gust.EnumResult[T, E], op func(E) gust.EnumResult[T, F]) gust.EnumResult[T, F] {
+	if result.IsErr() {
+		return op(result.UnwrapErr())
+	}
+	return gust.EnumOk[T, F](result.Unwrap())
 }
 
 // EnumFlatten converts from gust.EnumResult[gust.EnumResult[T,E]] to gust.EnumResult[T,E].
