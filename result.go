@@ -79,6 +79,11 @@ func (r Result[T]) ErrVal() any {
 	return e
 }
 
+// ToX converts from `Result[T]` to Result[any].
+func (r Result[T]) ToX() Result[any] {
+	return Result[any]{inner: r.inner.ToOkX()}
+}
+
 // Map maps a Result[T] to Result[T] by applying a function to a contained Ok value, leaving an error untouched.
 // This function can be used to compose the results of two functions.
 func (r Result[T]) Map(f func(T) T) Result[T] {
@@ -196,6 +201,14 @@ func (r Result[T]) UnwrapErr() error {
 func (r Result[T]) And(res Result[T]) Result[T] {
 	if r.IsErr() {
 		return r
+	}
+	return res
+}
+
+// XAnd returns res if the result is Ok, otherwise returns the error of self.
+func (r Result[T]) XAnd(res Result[any]) Result[any] {
+	if r.IsErr() {
+		return Err[any](r.inner.safeGetE())
 	}
 	return res
 }
