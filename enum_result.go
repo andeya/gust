@@ -286,6 +286,15 @@ func (r EnumResult[T, E]) Or(res EnumResult[T, E]) EnumResult[T, E] {
 	return r
 }
 
+// XOr returns res if the result is E, otherwise returns the T value of r.
+// Arguments passed to or are eagerly evaluated; if you are passing the result of a function call, it is recommended to use XOrElse, which is lazily evaluated.
+func (r EnumResult[T, E]) XOr(res EnumResult[T, any]) EnumResult[T, any] {
+	if r.IsErr() {
+		return res
+	}
+	return EnumOk[T, any](r.safeGetT())
+}
+
 // OrElse calls op if the result is E, otherwise returns the T value of self.
 // This function can be used for control flow based on result values.
 func (r EnumResult[T, E]) OrElse(op func(E) EnumResult[T, E]) EnumResult[T, E] {
