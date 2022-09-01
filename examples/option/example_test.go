@@ -20,12 +20,11 @@ func TestOption(t *testing.T) {
 	divide(2.0, 3.0).
 		Inspect(func(x float64) {
 			// Pattern match to retrieve the value
-			fmt.Println("Result:", x)
+			t.Log("Result:", x)
 		}).
 		InspectNone(func() {
-			fmt.Println("Cannot divide by 0")
+			t.Log("Cannot divide by 0")
 		})
-
 }
 
 func ExampleOption() {
