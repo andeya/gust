@@ -44,14 +44,14 @@ func (f FilterIterator[T]) realTryFold(init any, fold func(any, T) gust.Result[a
 }
 
 func (f FilterIterator[T]) realCount() uint {
-	return Map[T, uint](f.iter, func(x T) uint {
+	return Fold[uint, uint](Map[T, uint](f.iter, func(x T) uint {
 		if f.predicate(x) {
 			return 1
 		}
 		return 0
-	}).Fold(uint(0), func(count any, x uint) any {
-		return count.(uint) + x
-	}).(uint)
+	}), uint(0), func(count uint, x uint) uint {
+		return count + x
+	})
 }
 
 func (f FilterIterator[T]) realSizeHint() (uint, gust.Option[uint]) {
