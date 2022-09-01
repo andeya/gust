@@ -276,10 +276,10 @@ func (o Option[T]) XorElse(optb Option[T]) Option[T] {
 }
 
 // Insert inserts `value` into the option, then returns a reference to it.
-func (o Option[T]) Insert(some T) T {
+func (o Option[T]) Insert(some T) *T {
 	v := &some
 	o.value = &v
-	return some
+	return v
 }
 
 // GetOrInsert inserts `value` into the option if it is [`None`], then
