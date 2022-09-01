@@ -91,6 +91,7 @@ func newZipSizeDeIterator[A any, B any](a SizeDeIterator[A], b SizeDeIterator[B]
 	return p
 }
 
+// ZipSizeDeIterator is a double-ended 2-in-1 iterator with explicit size
 type ZipSizeDeIterator[A any, B any] struct {
 	sizeDeIterTrait[gust.Pair[A, B]]
 	a SizeDeIterator[A]
