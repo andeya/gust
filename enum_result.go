@@ -91,6 +91,30 @@ func (r EnumResult[T, E]) Err() Option[E] {
 	return None[E]()
 }
 
+// ToOkX converts from `EnumResult[T,E]` to EnumResult[any,E].
+func (r EnumResult[T, E]) ToOkX() EnumResult[any, E] {
+	return EnumResult[any, E]{
+		value: r.value,
+		isErr: r.isErr,
+	}
+}
+
+// ToErrX converts from `EnumResult[T,E]` to Result[T,any].
+func (r EnumResult[T, E]) ToErrX() EnumResult[T, any] {
+	return EnumResult[T, any]{
+		value: r.value,
+		isErr: r.isErr,
+	}
+}
+
+// ToX converts from `EnumResult[T,E]` to Result[any,any].
+func (r EnumResult[T, E]) ToX() EnumResult[any, any] {
+	return EnumResult[any, any]{
+		value: r.value,
+		isErr: r.isErr,
+	}
+}
+
 // Map maps a EnumResult[T,E] to EnumResult[T,E] by applying a function to a contained T value, leaving an E untouched.
 // This function can be used to compose the results of two functions.
 func (r EnumResult[T, E]) Map(f func(T) T) EnumResult[T, E] {
@@ -223,6 +247,14 @@ func (r EnumResult[T, E]) UnwrapErr() E {
 func (r EnumResult[T, E]) And(res EnumResult[T, E]) EnumResult[T, E] {
 	if r.IsErr() {
 		return r
+	}
+	return res
+}
+
+// XAnd returns res if the result is T, otherwise returns the E of self.
+func (r EnumResult[T, E]) XAnd(res EnumResult[any, E]) EnumResult[any, E] {
+	if r.IsErr() {
+		return EnumErr[any](r.safeGetE())
 	}
 	return res
 }
