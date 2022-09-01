@@ -91,23 +91,23 @@ func (r EnumResult[T, E]) Err() Option[E] {
 	return None[E]()
 }
 
-// ToOkX converts from `EnumResult[T,E]` to EnumResult[any,E].
-func (r EnumResult[T, E]) ToOkX() EnumResult[any, E] {
+// ToXOk converts from `EnumResult[T,E]` to EnumResult[any,E].
+func (r EnumResult[T, E]) ToXOk() EnumResult[any, E] {
 	return EnumResult[any, E]{
 		value: r.value,
 		isErr: r.isErr,
 	}
 }
 
-// ToErrX converts from `EnumResult[T,E]` to Result[T,any].
-func (r EnumResult[T, E]) ToErrX() EnumResult[T, any] {
+// ToXErr converts from `EnumResult[T,E]` to EnumResult[T,any].
+func (r EnumResult[T, E]) ToXErr() EnumResult[T, any] {
 	return EnumResult[T, any]{
 		value: r.value,
 		isErr: r.isErr,
 	}
 }
 
-// ToX converts from `EnumResult[T,E]` to Result[any,any].
+// ToX converts from `EnumResult[T,E]` to EnumResult[any,any].
 func (r EnumResult[T, E]) ToX() EnumResult[any, any] {
 	return EnumResult[any, any]{
 		value: r.value,

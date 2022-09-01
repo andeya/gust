@@ -10,6 +10,30 @@ func EnumAssert[T any, E any, U any, F any](o gust.EnumResult[T, E]) gust.EnumRe
 	return gust.EnumErr[U, F](any(o.UnwrapErr()).(F))
 }
 
+// EnumXOkAssert asserts gust.EnumResult[any, E] as gust.EnumResult[U, E].
+func EnumXOkAssert[T any, E any, U any](o gust.EnumResult[any, E]) gust.EnumResult[U, E] {
+	if o.IsOk() {
+		return gust.EnumOk[U, E](o.Unwrap().(U))
+	}
+	return gust.EnumErr[U, E](o.UnwrapErr())
+}
+
+// EnumXErrAssert asserts gust.EnumResult[T, any] as gust.EnumResult[T, E].
+func EnumXErrAssert[T any, E any](o gust.EnumResult[T, any]) gust.EnumResult[T, E] {
+	if o.IsOk() {
+		return gust.EnumOk[T, E](o.Unwrap())
+	}
+	return gust.EnumErr[T, E](o.UnwrapErr().(E))
+}
+
+// EnumXAssert asserts gust.EnumResult[any, any] as gust.EnumResult[T, E].
+func EnumXAssert[T any, E any](o gust.EnumResult[any, any]) gust.EnumResult[T, E] {
+	if o.IsOk() {
+		return gust.EnumOk[T, E](o.Unwrap().(T))
+	}
+	return gust.EnumErr[T, E](o.UnwrapErr().(E))
+}
+
 // EnumMap maps a gust.EnumResult[T,E] to gust.EnumResult[U,E] by applying a function to a contained Ok value, leaving an error untouched.
 // This function can be used to compose the results of two functions.
 func EnumMap[T any, U any, E any](r gust.EnumResult[T, E], f func(T) U) gust.EnumResult[U, E] {

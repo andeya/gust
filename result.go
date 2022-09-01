@@ -81,7 +81,7 @@ func (r Result[T]) ErrVal() any {
 
 // ToX converts from `Result[T]` to Result[any].
 func (r Result[T]) ToX() Result[any] {
-	return Result[any]{inner: r.inner.ToOkX()}
+	return Result[any]{inner: r.inner.ToXOk()}
 }
 
 // Map maps a Result[T] to Result[T] by applying a function to a contained Ok value, leaving an error untouched.
