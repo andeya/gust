@@ -1,4 +1,4 @@
-package result
+package result_test
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 )
 
 // [`Result`] comes with some convenience methods that make working with it more succinct.
-func TestExample(t *testing.T) {
+func TestResult(t *testing.T) {
 	var goodResult1 = gust.Ok(10)
 	var badResult1 = gust.Err[int](10)
 
