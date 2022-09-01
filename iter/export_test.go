@@ -3,6 +3,7 @@ package iter
 import (
 	"testing"
 
+	"github.com/andeya/gust"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -35,8 +36,8 @@ func TestZip(t *testing.T) {
 	var a = FromVec([]string{"x", "y", "z"})
 	var b = FromVec([]int{1, 2})
 	var iter = Zip[string, int](a, b)
-	var pairs = Fold[Pair[string, int]](iter, nil, func(acc []Pair[string, int], t Pair[string, int]) []Pair[string, int] {
+	var pairs = Fold[gust.Pair[string, int]](iter, nil, func(acc []gust.Pair[string, int], t gust.Pair[string, int]) []gust.Pair[string, int] {
 		return append(acc, t)
 	})
-	assert.Equal(t, []Pair[string, int]{{"x", 1}, {"y", 2}}, pairs)
+	assert.Equal(t, []gust.Pair[string, int]{{"x", 1}, {"y", 2}}, pairs)
 }

@@ -275,16 +275,16 @@ func (o Option[T]) XorElse(optb Option[T]) Option[T] {
 	return None[T]()
 }
 
-// Insert inserts `value` into the option, then returns a reference to it.
-func (o Option[T]) Insert(some T) *T {
+// Insert inserts `value` into the option, then returns it.
+func (o *Option[T]) Insert(some T) T {
 	v := &some
 	o.value = &v
-	return v
+	return some
 }
 
 // GetOrInsert inserts `value` into the option if it is [`None`], then
-// returns a reference to the contained value.
-func (o Option[T]) GetOrInsert(some T) T {
+// returns the contained value.
+func (o *Option[T]) GetOrInsert(some T) T {
 	if o.IsNone() {
 		v := &some
 		o.value = &v
@@ -293,8 +293,8 @@ func (o Option[T]) GetOrInsert(some T) T {
 }
 
 // GetOrInsertWith inserts a value computed from `f` into the option if it is [`None`],
-// then returns a mutable reference to the contained value.
-func (o Option[T]) GetOrInsertWith(f func() T) T {
+// then returns the contained value.
+func (o *Option[T]) GetOrInsertWith(f func() T) T {
 	if o.IsNone() {
 		var some = f()
 		v := &some
@@ -306,10 +306,10 @@ func (o Option[T]) GetOrInsertWith(f func() T) T {
 // Replace replaces the actual value in the option by the value given in parameter,
 // returning the old value if present,
 // leaving a [`Some`] in its place without deinitializing either one.
-func (o Option[T]) Replace(some T) Option[T] {
+func (o *Option[T]) Replace(some T) Option[T] {
 	v := &some
 	o.value = &v
-	return o
+	return *o
 }
 
 func (o Option[T]) MarshalJSON() ([]byte, error) {

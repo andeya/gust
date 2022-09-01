@@ -55,11 +55,11 @@ func (f FlattenIterator[T, D]) realNext() gust.Option[T] {
 }
 
 func (f FlattenIterator[T, D]) realSizeHint() (uint, gust.Option[uint]) {
-	var fl = opt.MapOr(f.frontiter, Pair[uint, gust.Option[uint]]{0, gust.Some[uint](0)}, func(i Iterator[T]) (x Pair[uint, gust.Option[uint]]) {
+	var fl = opt.MapOr(f.frontiter, gust.Pair[uint, gust.Option[uint]]{0, gust.Some[uint](0)}, func(i Iterator[T]) (x gust.Pair[uint, gust.Option[uint]]) {
 		x.A, x.B = i.SizeHint()
 		return x
 	})
-	var bl = opt.MapOr(f.backiter, Pair[uint, gust.Option[uint]]{0, gust.Some[uint](0)}, func(i Iterator[T]) (x Pair[uint, gust.Option[uint]]) {
+	var bl = opt.MapOr(f.backiter, gust.Pair[uint, gust.Option[uint]]{0, gust.Some[uint](0)}, func(i Iterator[T]) (x gust.Pair[uint, gust.Option[uint]]) {
 		x.A, x.B = i.SizeHint()
 		return x
 	})
@@ -237,11 +237,11 @@ func (f FlattenDeIterator[T, D]) realNext() gust.Option[T] {
 }
 
 func (f FlattenDeIterator[T, D]) realSizeHint() (uint, gust.Option[uint]) {
-	var fl = opt.MapOr(f.frontiter, Pair[uint, gust.Option[uint]]{0, gust.Some[uint](0)}, func(i DeIterator[T]) (x Pair[uint, gust.Option[uint]]) {
+	var fl = opt.MapOr(f.frontiter, gust.Pair[uint, gust.Option[uint]]{0, gust.Some[uint](0)}, func(i DeIterator[T]) (x gust.Pair[uint, gust.Option[uint]]) {
 		x.A, x.B = i.SizeHint()
 		return x
 	})
-	var bl = opt.MapOr(f.backiter, Pair[uint, gust.Option[uint]]{0, gust.Some[uint](0)}, func(i DeIterator[T]) (x Pair[uint, gust.Option[uint]]) {
+	var bl = opt.MapOr(f.backiter, gust.Pair[uint, gust.Option[uint]]{0, gust.Some[uint](0)}, func(i DeIterator[T]) (x gust.Pair[uint, gust.Option[uint]]) {
 		x.A, x.B = i.SizeHint()
 		return x
 	})

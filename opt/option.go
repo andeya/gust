@@ -78,3 +78,14 @@ func ZipWith[T any, U any, R any](some gust.Option[T], other gust.Option[U], f f
 	}
 	return gust.None[R]()
 }
+
+// Zip zips `a` with b `Option`.
+//
+// If `a` is `gust.Some(s)` and `b` is `gust.Some(o)`, this method returns `gust.Some(gust.Pair{A:s, B:o})`.
+// Otherwise, `None` is returned.
+func Zip[A any, B any](a gust.Option[A], b gust.Option[B]) gust.Option[gust.Pair[A, B]] {
+	if a.IsSome() && b.IsSome() {
+		return gust.Some[gust.Pair[A, B]](gust.Pair[A, B]{A: a.Unwrap(), B: b.Unwrap()})
+	}
+	return gust.None[gust.Pair[A, B]]()
+}
