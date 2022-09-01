@@ -65,39 +65,29 @@ Improve `func() (T,error)`, handle result with chain methods.
 - Result Example
 
 ```go
-func ExampleResult_AndThen() {
-	var divide = func(i, j float32) gust.Result[float32] {
-		if j == 0 {
-			return gust.Err[float32]("j can not be 0")
-		}
-		return gust.Ok(i / j)
-	}
-	var ret float32 = divide(1, 2).AndThen(func(i float32) gust.Result[float32] {
-		return gust.Ok(i * 10)
-	}).Unwrap()
-	fmt.Println(ret)
-	// Output:
-	// 5
-}
-```
+func TestResult(t *testing.T) {
+	var goodResult1 = gust.Ok(10)
+	var badResult1 = gust.Err[int](10)
 
-```go
-func ExampleResult_UnwrapOr() {
-	const def int = 10
+	// The `IsOk` and `IsErr` methods do what they say.
+	assert.True(t, goodResult1.IsOk() && !goodResult1.IsErr())
+	assert.True(t, badResult1.IsErr() && !badResult1.IsOk())
 
-	// before
-	i, err := strconv.Atoi("1")
-	if err != nil {
-		i = def
-	}
-	fmt.Println(i * 2)
+	// `map` consumes the `Result` and produces another.
+	var goodResult2 = goodResult1.Map(func(i int) int { return i + 1 })
+	var badResult2 = badResult1.Map(func(i int) int { return i - 1 })
 
-	// now
-	fmt.Println(gust.Ret(strconv.Atoi("1")).UnwrapOr(def) * 2)
+	// Use `AndThen` to continue the computation.
+	var goodResult3 = ret.AndThen(goodResult2, func(i int) gust.Result[bool] { return gust.Ok(i == 11) })
 
-	// Output:
-	// 2
-	// 2
+	// Use `OrElse` to handle the error.
+	var _ = badResult2.OrElse(func(err error) gust.Result[int] {
+		fmt.Println(err)
+		return gust.Ok(20)
+	})
+
+	// Consume the result and return the contents with `Unwrap`.
+	var _ = goodResult3.Unwrap()
 }
 ```
 
@@ -105,44 +95,36 @@ func ExampleResult_UnwrapOr() {
 
 Improve `func()(T, bool)` and `if *U != nil`, handle value with `Option` type.
 
+Type [`Option`] represents an optional value, and has a number of uses:
+* Initial values
+* Return values for functions that are not defined
+  over their entire input range (partial functions)
+* Return value for otherwise reporting simple errors, where [`None`] is
+  returned on error
+* Optional struct fields
+* Optional function arguments
+* Nil-able pointers
+
 - Option Example
 
 ```go
-func ExampleOption() {
-	type A struct {
-		X int
-	}
-	var a = gust.Some(A{X: 1})
-	fmt.Println(a.IsSome(), a.IsNone())
-
-	var b = gust.None[A]()
-	fmt.Println(b.IsSome(), b.IsNone())
-
-	var x = b.UnwrapOr(A{X: 2})
-	fmt.Println(x)
-
-	var c *A
-	fmt.Println(gust.Ptr(c).IsNone())
-	c = new(A)
-	fmt.Println(gust.Ptr(c).IsNone())
-
-	type B struct {
-		Y string
-	}
-	var d = opt.Map(a, func(t A) B {
-		return B{
-			Y: strconv.Itoa(t.X),
+func TestOption(t *testing.T) {
+	var divide = func(numerator, denominator float64) gust.Option[float64] {
+		if denominator == 0.0 {
+			return gust.None[float64]()
 		}
-	})
-	fmt.Println(d)
+		return gust.Some(numerator / denominator)
+	}
+	// The return value of the function is an option
+	divide(2.0, 3.0).
+		Inspect(func(x float64) {
+			// Pattern match to retrieve the value
+			fmt.Println("Result:", x)
+		}).
+		InspectNone(func() {
+			fmt.Println("Cannot divide by 0")
+		})
 
-	// Output:
-	// true false
-	// false true
-	// {2}
-	// true
-	// false
-	// Some({1})
 }
 ```
 
