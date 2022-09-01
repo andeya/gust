@@ -54,7 +54,7 @@ func ExampleVersion() {
 
 ## Go Version
 
-go≥1.18
+go≥1.19
 
 ## Features
 
