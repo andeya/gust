@@ -53,6 +53,14 @@ func (o Option[T]) String() string {
 	return fmt.Sprintf("Some(%v)", o.UnwrapUnchecked())
 }
 
+// ToX converts to `Option[any]`.
+func (o Option[T]) ToX() Option[any] {
+	if o.IsNone() {
+		return None[any]()
+	}
+	return Some[any](o.UnwrapUnchecked())
+}
+
 // IsSome returns `true` if the option has value.
 func (o Option[T]) IsSome() bool {
 	return !o.IsNone()
