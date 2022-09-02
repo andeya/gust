@@ -87,7 +87,7 @@ func (f FlattenIterator[T, D]) realFold(init any, fold func(any, T) any) any {
 func (f FlattenIterator[T, D]) iterTryFold(acc any, fold func(any, Iterator[T]) gust.Result[any]) gust.Result[any] {
 	var flatten = func(frontiter *gust.Option[Iterator[T]], fold func(any, Iterator[T]) gust.Result[any]) func(any, D) gust.Result[any] {
 		return func(acc any, iter D) gust.Result[any] {
-			return fold(acc, frontiter.Insert(FromIterable[T](iter)))
+			return fold(acc, *frontiter.Insert(FromIterable[T](iter)))
 		}
 	}
 	if f.frontiter.IsSome() {
@@ -331,7 +331,7 @@ func (f FlattenDeIterator[T, D]) realLast() gust.Option[T] {
 func (f FlattenDeIterator[T, D]) iterTryFold(acc any, fold func(any, DeIterator[T]) gust.Result[any]) gust.Result[any] {
 	var flatten = func(frontiter *gust.Option[DeIterator[T]], fold func(any, DeIterator[T]) gust.Result[any]) func(any, D) gust.Result[any] {
 		return func(acc any, iter D) gust.Result[any] {
-			return fold(acc, frontiter.Insert(FromDeIterable[T](iter)))
+			return fold(acc, *frontiter.Insert(FromDeIterable[T](iter)))
 		}
 	}
 	if f.frontiter.IsSome() {
@@ -373,7 +373,7 @@ func (f FlattenDeIterator[T, D]) iterFold(acc any, fold func(any, DeIterator[T])
 func (f FlattenDeIterator[T, D]) iterTryRfold(acc any, fold func(any, DeIterator[T]) gust.Result[any]) gust.Result[any] {
 	var flatten = func(backiter *gust.Option[DeIterator[T]], fold func(any, DeIterator[T]) gust.Result[any]) func(any, D) gust.Result[any] {
 		return func(acc any, iter D) gust.Result[any] {
-			return fold(acc, backiter.Insert(FromDeIterable[T](iter)))
+			return fold(acc, *backiter.Insert(FromDeIterable[T](iter)))
 		}
 	}
 	if f.backiter.IsSome() {

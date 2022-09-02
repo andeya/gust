@@ -289,11 +289,11 @@ func (o Option[T]) Xor(optb Option[T]) Option[T] {
 	return None[T]()
 }
 
-// Insert inserts `value` into the option, then returns it.
-func (o *Option[T]) Insert(some T) T {
+// Insert inserts `value` into the option, then returns its pointer.
+func (o *Option[T]) Insert(some T) *T {
 	v := &some
 	o.value = &v
-	return some
+	return v
 }
 
 // GetOrInsert inserts `value` into the option if it is [`None`], then
