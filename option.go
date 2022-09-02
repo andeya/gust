@@ -297,13 +297,13 @@ func (o *Option[T]) Insert(some T) *T {
 }
 
 // GetOrInsert inserts `value` into the option if it is [`None`], then
-// returns the contained value.
-func (o *Option[T]) GetOrInsert(some T) T {
+// returns the contained value pointer.
+func (o *Option[T]) GetOrInsert(some T) *T {
 	if o.IsNone() {
 		v := &some
 		o.value = &v
 	}
-	return o.unwrapUnchecked()
+	return *o.value
 }
 
 // GetOrInsertWith inserts a value computed from `f` into the option if it is [`None`],
