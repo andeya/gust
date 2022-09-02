@@ -320,10 +320,11 @@ func (o *Option[T]) GetOrInsertWith(f func() T) *T {
 // Replace replaces the actual value in the option by the value given in parameter,
 // returning the old value if present,
 // leaving a [`Some`] in its place without deinitializing either one.
-func (o *Option[T]) Replace(some T) Option[T] {
+func (o *Option[T]) Replace(some T) (old Option[T]) {
+	old.value = o.value
 	v := &some
 	o.value = &v
-	return *o
+	return old
 }
 
 func (o Option[T]) MarshalJSON() ([]byte, error) {
