@@ -278,8 +278,8 @@ func (o Option[T]) OrElse(f func() Option[T]) Option[T] {
 	return o
 }
 
-// XorElse [`Some`] if exactly one of `self`, `optb` is [`Some`], otherwise returns [`None`].
-func (o Option[T]) XorElse(optb Option[T]) Option[T] {
+// Xor [`Some`] if exactly one of `self`, `optb` is [`Some`], otherwise returns [`None`].
+func (o Option[T]) Xor(optb Option[T]) Option[T] {
 	if o.IsSome() && optb.IsNone() {
 		return o
 	}
