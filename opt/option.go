@@ -68,6 +68,17 @@ func Contains[T comparable](o gust.Option[T], x T) bool {
 	return o.Unwrap() == x
 }
 
+// Zip zips `a` with b `Option`.
+//
+// If `a` is `gust.Some(s)` and `b` is `gust.Some(o)`, this method returns `gust.Some(gust.Pair{A:s, B:o})`.
+// Otherwise, `None` is returned.
+func Zip[A any, B any](a gust.Option[A], b gust.Option[B]) gust.Option[gust.Pair[A, B]] {
+	if a.IsSome() && b.IsSome() {
+		return gust.Some[gust.Pair[A, B]](gust.Pair[A, B]{A: a.Unwrap(), B: b.Unwrap()})
+	}
+	return gust.None[gust.Pair[A, B]]()
+}
+
 // ZipWith zips `value` and another `gust.Option` with function `f`.
 //
 // If `value` is `Some(s)` and `other` is `Some(o)`, this method returns `Some(f(s, o))`.
@@ -79,13 +90,11 @@ func ZipWith[T any, U any, R any](some gust.Option[T], other gust.Option[U], f f
 	return gust.None[R]()
 }
 
-// Zip zips `a` with b `Option`.
-//
-// If `a` is `gust.Some(s)` and `b` is `gust.Some(o)`, this method returns `gust.Some(gust.Pair{A:s, B:o})`.
-// Otherwise, `None` is returned.
-func Zip[A any, B any](a gust.Option[A], b gust.Option[B]) gust.Option[gust.Pair[A, B]] {
-	if a.IsSome() && b.IsSome() {
-		return gust.Some[gust.Pair[A, B]](gust.Pair[A, B]{A: a.Unwrap(), B: b.Unwrap()})
+// Unzip unzips an option containing a `Pair` of two values.
+func Unzip[T any, U any](p gust.Option[gust.Pair[T, U]]) gust.Pair[gust.Option[T], gust.Option[U]] {
+	if p.IsSome() {
+		v := p.Unwrap()
+		return gust.Pair[gust.Option[T], gust.Option[U]]{A: gust.Some[T](v.A), B: gust.Some[U](v.B)}
 	}
-	return gust.None[gust.Pair[A, B]]()
+	return gust.Pair[gust.Option[T], gust.Option[U]]{A: gust.None[T](), B: gust.None[U]()}
 }
