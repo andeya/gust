@@ -308,13 +308,13 @@ func (o *Option[T]) GetOrInsert(some T) *T {
 
 // GetOrInsertWith inserts a value computed from `f` into the option if it is [`None`],
 // then returns the contained value.
-func (o *Option[T]) GetOrInsertWith(f func() T) T {
+func (o *Option[T]) GetOrInsertWith(f func() T) *T {
 	if o.IsNone() {
 		var some = f()
 		v := &some
 		o.value = &v
 	}
-	return o.unwrapUnchecked()
+	return *o.value
 }
 
 // Replace replaces the actual value in the option by the value given in parameter,
