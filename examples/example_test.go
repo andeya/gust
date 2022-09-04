@@ -77,3 +77,25 @@ func TestResultFlatten(t *testing.T) {
 	fmt.Printf("errs %v\n", errs)
 	fmt.Printf("nums %v\n", nums)
 }
+
+// GpigZ
+func TestResultOption(t *testing.T) {
+	var okStr = "20"
+	var errStr = "not a number"
+	var nilStr = ""
+	// Ret encapsulates value and err into result
+	okResult := gust.Ret(strconv.ParseUint(okStr, 10, 64))
+	errResult := gust.Ret(strconv.ParseUint(errStr, 10, 64))
+	nilResult := gust.Ret(strconv.ParseUint(nilStr, 10, 64))
+	assert.Equal(t, uint64(20), okResult.Unwrap())
+	assert.Equal(t, true, errResult.IsErr())
+	assert.Equal(t, true, errResult.IsErr())
+	// If an error occurs Ok will set it to empty
+	// If you encounter the return value is empty but err is also empty, You can use ok to convert result to option
+	okOption := okResult.Ok()
+	errOption := errResult.Ok()
+	nilOption := nilResult.Ok()
+	assert.Equal(t, uint64(20), okOption.Unwrap())
+	assert.Equal(t, true, errOption.IsNone())
+	assert.Equal(t, true, nilOption.IsNone())
+}
