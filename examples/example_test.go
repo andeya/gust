@@ -81,11 +81,11 @@ func TestResultFlatten(t *testing.T) {
 func TestResultOption(t *testing.T) {
 	var okStr = "20"
 	var errStr = "not a number"
-	var nilStr string
+	var emptyStr string
 	// Ret encapsulates value and err into result
 	okResult := gust.Ret(strconv.ParseUint(okStr, 10, 64))
 	errResult := gust.Ret(strconv.ParseUint(errStr, 10, 64))
-	emptyResult := gust.Ret(strconv.ParseUint(nilStr, 10, 64))
+	emptyResult := gust.Ret(strconv.ParseUint(emptyStr, 10, 64))
 	assert.Equal(t, uint64(20), okResult.Unwrap())
 	assert.Equal(t, true, errResult.IsErr())
 	assert.Equal(t, true, emptyResult.IsErr())
