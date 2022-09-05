@@ -77,7 +77,7 @@ func (r *IterableRange[T]) SizeHint() (uint, gust.Option[uint]) {
 }
 
 func (r *IterableRange[T]) Count() uint {
-	if !r.ended {
+	if r.ended {
 		return 0
 	}
 	r.ended = true
@@ -85,7 +85,7 @@ func (r *IterableRange[T]) Count() uint {
 }
 
 func (r *IterableRange[T]) Remaining() uint {
-	if !r.ended {
+	if r.ended {
 		return 0
 	}
 	return uint(r.backNextValue - r.nextValue + 1)
