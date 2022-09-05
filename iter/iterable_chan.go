@@ -10,19 +10,12 @@ var (
 	_ gust.IterableCount    = (*IterableChan[any])(nil)
 )
 
-type IterableChan[T any] struct {
-	c chan T
-}
-
-func (c IterableChan[T]) Count() uint {
-	defer func() { recover() }()
-	var count = uint(len(c.c))
-	close(c.c)
-	return count
-}
-
 func NewIterableChan[T any](c chan T) IterableChan[T] {
 	return IterableChan[T]{c: c}
+}
+
+type IterableChan[T any] struct {
+	c chan T
 }
 
 func (c IterableChan[T]) ToIterator() Iterator[T] {
@@ -39,4 +32,11 @@ func (c IterableChan[T]) Next() gust.Option[T] {
 
 func (c IterableChan[T]) SizeHint() (uint, gust.Option[uint]) {
 	return uint(len(c.c)), gust.Some(uint(cap(c.c)))
+}
+
+func (c IterableChan[T]) Count() uint {
+	defer func() { recover() }()
+	var count = uint(len(c.c))
+	close(c.c)
+	return count
 }
