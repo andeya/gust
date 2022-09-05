@@ -18,18 +18,9 @@ func TestAny(t *testing.T) {
 
 func TestNextChunk(t *testing.T) {
 	var iter = FromVec([]int{1, 2, 3})
-
-	var chunk, ok = iter.NextChunk(2)
-	assert.Equal(t, []int{1, 2}, chunk)
-	assert.True(t, ok)
-
-	chunk, ok = iter.NextChunk(2)
-	assert.Equal(t, []int{3}, chunk)
-	assert.False(t, ok)
-
-	chunk, ok = iter.NextChunk(2)
-	assert.Equal(t, []int{}, chunk)
-	assert.False(t, ok)
+	assert.Equal(t, []int{1, 2}, iter.NextChunk(2).Unwrap())
+	assert.Equal(t, []int{3}, iter.NextChunk(2).UnwrapErr())
+	assert.Equal(t, []int{}, iter.NextChunk(2).UnwrapErr())
 }
 
 func TestZip(t *testing.T) {

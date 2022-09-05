@@ -43,7 +43,7 @@ type Iterator[T any] interface {
 	//
 	// If there are not enough elements to fill the array then `false` is returned
 	// containing an iterator over the remaining elements.
-	NextChunk(n uint) ([]T, bool)
+	NextChunk(n uint) gust.EnumResult[[]T, []T]
 	// SizeHint returns the bounds on the remaining length of the data.
 	//
 	// Specifically, `SizeHint()` returns a tuple where the first element
@@ -646,7 +646,7 @@ type Iterator[T any] interface {
 	// [`gust.Some(T)`] again. `Fuse()` adapts an iterator, ensuring that after a
 	// [`gust.None[T]()`] is given, it will always return [`gust.None[T]()`] forever.
 	Fuse() *FuseIterator[T]
-	// Collect collects all the items in the iterator into a slice.
+	// Collect collects all the items in the iterator into a s.
 	Collect() []T
 }
 
