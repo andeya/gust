@@ -51,7 +51,7 @@ func FromRange[T digit.Integer](start T, end T, rightClosed ...bool) SizeDeItera
 }
 
 // FromChan creates an iterator from a channel.
-func FromChan[T any](c <-chan T) Iterator[T] {
+func FromChan[T any](c chan T) Iterator[T] {
 	return NewIterableChan[T](c).ToIterator()
 }
 
