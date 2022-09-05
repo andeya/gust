@@ -53,8 +53,9 @@ func (v *IterableVec[T]) SizeHint() (uint, gust.Option[uint]) {
 }
 
 func (v *IterableVec[T]) Count() uint {
+	count := uint(v.backNextIndex - v.nextIndex + 1)
 	v.nextIndex = v.backNextIndex
-	return uint(v.backNextIndex - v.nextIndex + 1)
+	return count
 }
 
 func (v *IterableVec[T]) Remaining() uint {
