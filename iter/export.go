@@ -1,6 +1,9 @@
 package iter
 
 import (
+	"unicode/utf8"
+	"unsafe"
+
 	"github.com/andeya/gust"
 	"github.com/andeya/gust/digit"
 )
@@ -32,7 +35,7 @@ func FromSizeDeIterable[T any](data gust.SizeDeIterable[T]) SizeDeIterator[T] {
 	return fromSizeDeIterable[T](data)
 }
 
-// FromVec creates an iterator from a slice.
+// FromVec creates an iterator from a s.
 func FromVec[T any](slice []T) SizeDeIterator[T] {
 	return NewIterableVec(slice).ToSizeDeIterator()
 }
@@ -60,6 +63,36 @@ func FromResult[T any](ret gust.Result[T]) SizeDeIterator[T] {
 // FromOption creates an iterator from an option.
 func FromOption[T any](opt gust.Option[T]) SizeDeIterator[T] {
 	return FromSizeDeIterable[T](opt)
+}
+
+// FromString creates an iterator from a string.
+func FromString[T ~byte | ~rune](s string) SizeDeIterator[T] {
+	if len(s) == 0 {
+		return NewIterableVec[T]([]T{}).ToSizeDeIterator()
+	}
+	const bn = rune(^byte(0))
+	if bn == rune(^T(0)) {
+		var rs = *(*[]T)(unsafe.Pointer(
+			&struct {
+				string
+				Cap int
+			}{s, len(s)},
+		))
+		return NewIterableVec[T](rs).ToSizeDeIterator()
+	}
+	var rs = make([]T, 0, len(s))
+	var b = *(*[]byte)(unsafe.Pointer(
+		&struct {
+			string
+			Cap int
+		}{s, len(s)},
+	))
+	for len(b) > 0 {
+		r, size := utf8.DecodeRune(b)
+		rs = append(rs, T(r))
+		b = b[size:]
+	}
+	return NewIterableVec[T](rs).ToSizeDeIterator()
 }
 
 // TryFold a data method that applies a function as long as it returns
