@@ -248,9 +248,9 @@ type Iterator[T any] interface {
 	// Like most indexing operations, the iCount starts from zero, so `Nth(0)`
 	// returns the first value, `Nth(1)` the second, and so on.
 	//
-	// Note that iAll preceding elements, as well as the returned element, will be
+	// Note that `All()` preceding elements, as well as the returned element, will be
 	// consumed from the data. That means that the preceding elements will be
-	// discarded, and also that calling `iNth(0)` multiple times on the same data
+	// discarded, and also that calling `Nth(0)` multiple times on the same data
 	// will return different elements.
 	//
 	// `Nth()` will return [`gust.None[T]()`] if `n` is greater than or equal to the length of the
