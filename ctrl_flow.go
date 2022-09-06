@@ -1,0 +1,118 @@
+package gust
+
+// CtrlFlow is used to tell an operation whether it should exit early or go on as usual.
+//
+// This is used when exposing things (like graph traversals or visitors) where
+// you want the user to be able to choose whether to exit early.
+type CtrlFlow[B any, C any] struct {
+	_break    Option[B]
+	_continue Option[C]
+}
+
+func Continue[B any, C any](c C) CtrlFlow[B, C] {
+	return CtrlFlow[B, C]{_continue: Some(c)}
+}
+
+func Break[B any, C any](b B) CtrlFlow[B, C] {
+	return CtrlFlow[B, C]{_break: Some(b)}
+}
+
+// IsBreak returns `true` if this is a `Break` variant.
+func (c CtrlFlow[B, C]) IsBreak() bool {
+	return c._break.IsSome()
+}
+
+// IsContinue returns `true` if this is a `Continue` variant.
+func (c CtrlFlow[B, C]) IsContinue() bool {
+	return c._continue.IsSome()
+}
+
+// BreakValue returns the inner value of a `Break` variant.
+func (c CtrlFlow[B, C]) BreakValue() Option[B] {
+	return c._break
+}
+
+// ContinueValue returns the inner value of a `Continue` variant.
+func (c CtrlFlow[B, C]) ContinueValue() Option[C] {
+	return c._continue
+}
+
+// MapBreak maps `Break` value by applying a function
+// to the break value in case it exists.
+func (c CtrlFlow[B, C]) MapBreak(f func(B) B) CtrlFlow[B, C] {
+	if c.IsBreak() {
+		return CtrlFlow[B, C]{
+			_break:    c._break.Map(f),
+			_continue: c._continue,
+		}
+	}
+	return c
+}
+
+// XMapBreak maps `Break` value by applying a function
+// to the break value in case it exists.
+func (c CtrlFlow[B, C]) XMapBreak(f func(B) any) CtrlFlow[any, C] {
+	if c.IsBreak() {
+		return CtrlFlow[any, C]{
+			_break:    c._break.XMap(f),
+			_continue: c._continue,
+		}
+	}
+	return CtrlFlow[any, C]{
+		_break:    c._break.ToX(),
+		_continue: c._continue,
+	}
+}
+
+// MapContinue maps `Continue` value by applying a function
+// to the continue value in case it exists.
+func (c CtrlFlow[B, C]) MapContinue(f func(C) C) CtrlFlow[B, C] {
+	if c.IsContinue() {
+		return CtrlFlow[B, C]{
+			_break:    c._break,
+			_continue: c._continue.Map(f),
+		}
+	}
+	return c
+}
+
+// XMapContinue maps `Continue` value by applying a function
+// to the continue value in case it exists.
+func (c CtrlFlow[B, C]) XMapContinue(f func(C) any) CtrlFlow[B, any] {
+	if c.IsContinue() {
+		return CtrlFlow[B, any]{
+			_break:    c._break,
+			_continue: c._continue.XMap(f),
+		}
+	}
+	return CtrlFlow[B, any]{
+		_break:    c._break,
+		_continue: c._continue.ToX(),
+	}
+}
+
+// Map maps both `Break` and `Continue` values by applying a function
+// to the respective value in case it exists.
+func (c CtrlFlow[B, C]) Map(f func(B) B, g func(C) C) CtrlFlow[B, C] {
+	return c.MapBreak(f).MapContinue(g)
+}
+
+// XMap maps both `Break` and `Continue` values by applying functions
+// to the break and continue values in case they exist.
+func (c CtrlFlow[B, C]) XMap(f func(B) any, g func(C) any) CtrlFlow[any, any] {
+	return c.XMapBreak(f).XMapContinue(g)
+}
+
+// UnwrapBreak returns the inner value of a `Break` variant.
+//
+// Panics if the variant is not a `Break`.
+func (c CtrlFlow[B, C]) UnwrapBreak() B {
+	return c._break.Unwrap()
+}
+
+// UnwrapContinue returns the inner value of a `Continue` variant.
+//
+// Panics if the variant is not a `Continue`.
+func (c CtrlFlow[B, C]) UnwrapContinue() C {
+	return c._continue.Unwrap()
+}
