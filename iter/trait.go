@@ -253,11 +253,18 @@ func (iter iterTrait[T]) Filter(f func(T) bool) *FilterIterator[T] {
 	return newFilterIterator[T](iter, f)
 }
 
-func (iter iterTrait[T]) FilterMap(f func(T) gust.Option[T]) *FilterMapIterator[T] {
+func (iter iterTrait[T]) FilterMap(f func(T) gust.Option[T]) *FilterMapIterator[T, T] {
 	if cover, ok := iter.facade.(iRealFilterMap[T]); ok {
 		return cover.realFilterMap(f)
 	}
-	return newFilterMapIterator[T](iter, f)
+	return newFilterMapIterator[T, T](iter, f)
+}
+
+func (iter iterTrait[T]) XFilterMap(f func(T) gust.Option[any]) *FilterMapIterator[T, any] {
+	if cover, ok := iter.facade.(iRealFilterMap[T]); ok {
+		return cover.realXFilterMap(f)
+	}
+	return newFilterMapIterator[T, any](iter, f)
 }
 
 func (iter iterTrait[T]) Chain(other Iterator[T]) *ChainIterator[T] {

@@ -564,8 +564,8 @@ type Iterator[T any] interface {
 	// The returned iterator yields only the `value`s for which the supplied
 	// closure returns `gust.Some(value)`.
 	//
-	// `FilterMap` can be used to make chains of [`filter`] and [`map`] more
-	// concise. The example below shows how a `map().filter().map()` can be
+	// `FilterMap` can be used to make chains of [`Filter`] and [`Map`] more
+	// concise. The example below shows how a `Map().Filter().Map()` can be
 	// shortened to a single call to `FilterMap`.
 	//
 	// # Examples
@@ -581,7 +581,9 @@ type Iterator[T any] interface {
 	// assert.Equal(iter.Next(), gust.Some(5));
 	// assert.Equal(iter.Next(), gust.None[string]());
 	// ```
-	FilterMap(f func(T) gust.Option[T]) *FilterMapIterator[T]
+	FilterMap(f func(T) gust.Option[T]) *FilterMapIterator[T, T]
+	// XFilterMap creates an iterator that both filters and maps.
+	XFilterMap(f func(T) gust.Option[any]) *FilterMapIterator[T, any]
 	// Chain takes two iterators and creates a new data over both in sequence.
 	//
 	// `Chain()` will return a new data which will first iterate over
@@ -733,7 +735,8 @@ type (
 	}
 
 	iRealFilterMap[T any] interface {
-		realFilterMap(f func(T) gust.Option[T]) *FilterMapIterator[T]
+		realFilterMap(f func(T) gust.Option[T]) *FilterMapIterator[T, T]
+		realXFilterMap(f func(T) gust.Option[any]) *FilterMapIterator[T, any]
 	}
 
 	iRealChain[T any] interface {

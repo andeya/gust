@@ -223,6 +223,18 @@ func Map[T any, B any](iter Iterator[T], f func(T) B) *MapIterator[T, B] {
 	return newMapIterator(iter, f)
 }
 
+// FilterMap creates an iterator that both filters and maps.
+//
+// The returned iterator yields only the `value`s for which the supplied
+// closure returns `gust.Some(value)`.
+//
+// `FilterMap` can be used to make chains of [`Filter`] and [`Map`] more
+// concise. The example below shows how a `Map().Filter().Map()` can be
+// shortened to a single call to `FilterMap`.
+func FilterMap[T any, B any](iter Iterator[T], f func(T) gust.Option[B]) *FilterMapIterator[T, B] {
+	return newFilterMapIterator[T, B](iter, f)
+}
+
 // FindMap applies function to the elements of data and returns
 // the first non-none
 //
