@@ -214,7 +214,7 @@ func (s *implPeekable[T]) realFold(init any, f func(any, T) any) any {
 	if taken.IsSome() {
 		peeked := taken.Unwrap()
 		if peeked.IsNone() {
-			return gust.Ok(init)
+			return init
 		}
 		acc = f(init, peeked.Unwrap())
 	}
