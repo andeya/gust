@@ -403,3 +403,11 @@ func (o Option[T]) Branch() CtrlFlow[Void, T] {
 	}
 	return Continue[Void, T](o.Unwrap())
 }
+
+// ToErrable converts from `Option[T]` to `Errable[T]`.
+func (o Option[T]) ToErrable() Errable[T] {
+	if o.IsSome() {
+		return ToErrable[T](o.UnwrapUnchecked())
+	}
+	return NonErrable[T]()
+}

@@ -5,46 +5,70 @@ import (
 	"reflect"
 )
 
-type Errable[T any] struct {
-	errVal *T
+// Errable is the type that indicates whether there is an error.
+type Errable[E any] struct {
+	errVal *E
 }
 
-func NonErrable[T any]() Errable[T] {
-	return Errable[T]{}
+// NonErrable returns no error object.
+func NonErrable[E any]() Errable[E] {
+	return Errable[E]{}
 }
 
-func ToErrable[T any](errVal T) Errable[T] {
+// ToErrable converts an error value (E) to `Errable[T]`.
+func ToErrable[E any](errVal E) Errable[E] {
 	if any(errVal) == nil {
-		return Errable[T]{}
+		return Errable[E]{}
 	} else {
 		v := reflect.ValueOf(errVal)
 		if v.Kind() == reflect.Ptr && v.IsNil() {
-			return Errable[T]{}
+			return Errable[E]{}
 		}
 	}
-	return Errable[T]{errVal: &errVal}
+	return Errable[E]{errVal: &errVal}
 }
 
-func (e Errable[T]) IsErr() bool {
+func (e Errable[E]) IsErr() bool {
 	return e.errVal != nil
 }
 
-func (e Errable[T]) ToError() error {
+func (e Errable[E]) ToError() error {
 	if !e.IsErr() {
 		return nil
 	}
 	return newAnyError(e.UnwrapErr())
 }
 
-func (e Errable[T]) UnwrapErr() T {
+func (e Errable[E]) UnwrapErr() E {
 	return *e.errVal
 }
 
-func (e Errable[T]) UnwrapErrOr(def T) T {
+func (e Errable[E]) UnwrapErrOr(def E) E {
 	if e.IsErr() {
 		return e.UnwrapErr()
 	}
 	return def
+}
+
+func (e Errable[E]) EnumResult() EnumResult[Void, E] {
+	if e.IsErr() {
+		return EnumErr[Void, E](e.UnwrapErr())
+	}
+	return EnumOk[Void, E](nil)
+}
+
+func (e Errable[E]) Result() Result[Void] {
+	if e.IsErr() {
+		return Err[Void](e.UnwrapErr())
+	}
+	return Ok[Void](nil)
+}
+
+func (e Errable[E]) Option() Option[E] {
+	if e.IsErr() {
+		return Some[E](e.UnwrapErr())
+	}
+	return None[E]()
 }
 
 type errorWithVal struct {

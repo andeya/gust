@@ -49,6 +49,14 @@ func (r Result[T]) EnumResult() EnumResult[T, error] {
 	return r.inner
 }
 
+// Errable converts from `Result[T]` to `Errable[error]`.
+func (r Result[T]) Errable() Errable[error] {
+	if r.IsErr() {
+		return ToErrable[error](r.inner.safeGetE())
+	}
+	return NonErrable[error]()
+}
+
 // IsOkAnd returns true if the result is Ok and the value inside it matches a predicate.
 func (r Result[T]) IsOkAnd(f func(T) bool) bool {
 	return r.inner.IsOkAnd(f)
