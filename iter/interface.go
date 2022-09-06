@@ -646,7 +646,8 @@ type Iterator[T any] interface {
 	// [`gust.Some(T)`] again. `Fuse()` adapts an iterator, ensuring that after a
 	// [`gust.None[T]()`] is given, it will always return [`gust.None[T]()`] forever.
 	Fuse() *FuseIterator[T]
-	// Collect collects all the items in the iterator into a s.
+	Peekable() PeekableIterator[T]
+	// Collect collects all the items in the iterator into a slice.
 	Collect() []T
 }
 
@@ -757,6 +758,8 @@ type (
 		// [`gust.Some(T)`] again. `Fuse()` adapts an iterator, ensuring that after a
 		// [`gust.None[T]()`] is given, it will always return [`gust.None[T]()`] forever.
 		DeFuse() *FuseDeIterator[T]
+		// DePeekable creates a double ended iterator which can peek at the next element.
+		DePeekable() DePeekableIterator[T]
 	}
 
 	iNextBack[T any] interface {
@@ -833,10 +836,6 @@ type (
 )
 
 type (
-	// SizeIterator is an iterator that knows the exact size.
-	SizeIterator[T any] interface {
-		iRemaining[T]
-	}
 	iRemaining[T any] interface {
 		// Remaining returns the exact remaining length of the iterator.
 		//
@@ -857,10 +856,34 @@ type (
 	// SizeDeIterator is a double ended iterator that knows the exact size.
 	SizeDeIterator[T any] interface {
 		DeIterator[T]
-		SizeIterator[T]
+		iRemaining[T]
+		SizeDePeekable() SizeDePeekableIterator[T]
 	}
 	iRealSizeDeIterable[T any] interface {
 		iRealDeIterable[T]
 		iRealRemaining
+	}
+)
+
+type (
+	iPeek[T any] interface {
+		// Peek returns a pointer to the Next() value without advancing the iterator.
+		Peek() gust.Option[T]
+		// PeekPtr returns a pointer to the Next() value without advancing the iterator.
+		PeekPtr() gust.Option[*T]
+		// NextIf consume and return the next value of this iterator if a condition is true.
+		NextIf(func(T) bool) gust.Option[T]
+	}
+	PeekableIterator[T any] interface {
+		Iterator[T]
+		iPeek[T]
+	}
+	DePeekableIterator[T any] interface {
+		SizeDeIterator[T]
+		iPeek[T]
+	}
+	SizeDePeekableIterator[T any] interface {
+		SizeDeIterator[T]
+		iPeek[T]
 	}
 )

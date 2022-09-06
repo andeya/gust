@@ -275,6 +275,10 @@ func (iter iterTrait[T]) Fuse() *FuseIterator[T] {
 	return newFuseIterator[T](iter)
 }
 
+func (iter iterTrait[T]) Peekable() PeekableIterator[T] {
+	return newPeekableIterator[T](iter)
+}
+
 func (iter iterTrait[T]) Collect() []T {
 	lower, _ := iter.SizeHint()
 	return Fold[T, []T](iter, make([]T, 0, lower), func(slice []T, x T) []T {
@@ -368,11 +372,14 @@ func (d sizeDeIterTrait[T]) Rfind(predicate func(T) bool) gust.Option[T] {
 	return gust.None[T]()
 }
 
-// DeFuse creates an iterator which ends after the first [`gust.None[T]()`].
-//
-// After an iterator returns [`gust.None[T]()`], future calls may or may not yield
-// [`gust.Some(T)`] again. `Fuse()` adapts an iterator, ensuring that after a
-// [`gust.None[T]()`] is given, it will always return [`gust.None[T]()`] forever.
 func (d sizeDeIterTrait[T]) DeFuse() *FuseDeIterator[T] {
 	return newFuseDeIterator[T](d)
+}
+
+func (d sizeDeIterTrait[T]) DePeekable() DePeekableIterator[T] {
+	return newSizeDePeekableIterator[T](d)
+}
+
+func (d sizeDeIterTrait[T]) SizeDePeekable() SizeDePeekableIterator[T] {
+	return newSizeDePeekableIterator[T](d)
 }
