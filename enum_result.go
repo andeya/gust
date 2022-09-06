@@ -401,8 +401,8 @@ func (r EnumResult[T, E]) Remaining() uint {
 	return 1
 }
 
-// Branch returns the `CtrlFlow[E, T]`.
-func (r EnumResult[T, E]) Branch() CtrlFlow[E, T] {
+// CtrlFlow returns the `CtrlFlow[E, T]`.
+func (r EnumResult[T, E]) CtrlFlow() CtrlFlow[E, T] {
 	if r.IsErr() {
 		return Break[E, T](r.UnwrapErr())
 	}

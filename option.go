@@ -396,8 +396,8 @@ func (o Option[T]) Remaining() uint {
 	return 1
 }
 
-// Branch returns the `CtrlFlow[Void, T]`.
-func (o Option[T]) Branch() CtrlFlow[Void, T] {
+// CtrlFlow returns the `CtrlFlow[Void, T]`.
+func (o Option[T]) CtrlFlow() CtrlFlow[Void, T] {
 	if o.IsNone() {
 		return Break[Void, T](nil)
 	}

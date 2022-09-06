@@ -306,8 +306,8 @@ func (r Result[T]) Remaining() uint {
 	return r.inner.Remaining()
 }
 
-// Branch returns the `CtrlFlow[error, T]`.
-func (r Result[T]) Branch() CtrlFlow[error, T] {
+// CtrlFlow returns the `CtrlFlow[error, T]`.
+func (r Result[T]) CtrlFlow() CtrlFlow[error, T] {
 	if r.IsErr() {
 		return Break[error, T](r.UnwrapErr())
 	}

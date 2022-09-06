@@ -71,6 +71,14 @@ func (e Errable[E]) Option() Option[E] {
 	return None[E]()
 }
 
+// CtrlFlow returns the `CtrlFlow[E, Void]`.
+func (e Errable[E]) CtrlFlow() CtrlFlow[E, Void] {
+	if e.IsErr() {
+		return Break[E, Void](e.UnwrapErr())
+	}
+	return Continue[E, Void](nil)
+}
+
 type errorWithVal struct {
 	val any
 }
