@@ -31,6 +31,6 @@ func TestResult(t *testing.T) {
 		return gust.Ok(20)
 	})
 
-	// Consume the result and return the contents with `UnwrapErr`.
+	// Consume the result and return the contents with `Unwrap`.
 	var _ = goodResult3.Unwrap()
 }

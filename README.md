@@ -143,13 +143,13 @@ func ExampleErrable() {
 		return gust.NonErrable[int]()
 	}
 	var r = f()
-	fmt.Println(r.AsError())
-	fmt.Println(r.Unwrap())
+	fmt.Println(r.IsErr())
+	fmt.Println(r.UnwrapErr())
 	fmt.Printf("%#v", r.ToError())
 	// Output:
 	// true
 	// 1
-	// &errors.errorString{s:"1"}
+	// &gust.errorWithVal{val:1}
 }
 ```
 
