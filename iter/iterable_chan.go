@@ -23,6 +23,9 @@ func (c IterableChan[T]) ToIterator() Iterator[T] {
 }
 
 func (c IterableChan[T]) Next() gust.Option[T] {
+	if cap(c.c) > 0 && len(c.c) == 0 {
+		return gust.None[T]()
+	}
 	var x, ok = <-c.c
 	if ok {
 		return gust.Some(x)
