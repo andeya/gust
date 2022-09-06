@@ -44,6 +44,11 @@ func (r Result[T]) String() string {
 	return r.inner.String()
 }
 
+// EnumResult returns the inner EnumResult[T, error].
+func (r Result[T]) EnumResult() EnumResult[T, error] {
+	return r.inner
+}
+
 // IsOkAnd returns true if the result is Ok and the value inside it matches a predicate.
 func (r Result[T]) IsOkAnd(f func(T) bool) bool {
 	return r.inner.IsOkAnd(f)
@@ -291,4 +296,12 @@ func (r Result[T]) NextBack() Option[T] {
 
 func (r Result[T]) Remaining() uint {
 	return r.inner.Remaining()
+}
+
+// Branch returns the `CtrlFlow[error, T]`.
+func (r Result[T]) Branch() CtrlFlow[error, T] {
+	if r.IsErr() {
+		return Break[error, T](r.UnwrapErr())
+	}
+	return Continue[error, T](r.Unwrap())
 }
