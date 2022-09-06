@@ -128,6 +128,16 @@ func (o Option[T]) UnwrapOrElse(defaultSome func() T) T {
 	return defaultSome()
 }
 
+// Take takes the value out of the option, leaving a [`None`] in its place.
+func (o Option[T]) Take() Option[T] {
+	if o.IsNone() {
+		return None[T]()
+	}
+	v := *o.value
+	*o.value = nil
+	return Option[T]{value: &v}
+}
+
 // unwrapUnchecked returns the contained value.
 func (o Option[T]) unwrapUnchecked() T {
 	return **o.value
