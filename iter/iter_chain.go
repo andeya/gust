@@ -5,31 +5,31 @@ import (
 )
 
 var (
-	_ Iterator[any]       = (*ChainIterator[any])(nil)
-	_ iRealLast[any]      = (*ChainIterator[any])(nil)
-	_ iRealFind[any]      = (*ChainIterator[any])(nil)
-	_ iRealNext[any]      = (*ChainIterator[any])(nil)
-	_ iRealSizeHint       = (*ChainIterator[any])(nil)
-	_ iRealCount          = (*ChainIterator[any])(nil)
-	_ iRealTryFold[any]   = (*ChainIterator[any])(nil)
-	_ iRealFold[any]      = (*ChainIterator[any])(nil)
-	_ iRealAdvanceBy[any] = (*ChainIterator[any])(nil)
-	_ iRealNth[any]       = (*ChainIterator[any])(nil)
+	_ Iterator[any]       = (*chainIterator[any])(nil)
+	_ iRealLast[any]      = (*chainIterator[any])(nil)
+	_ iRealFind[any]      = (*chainIterator[any])(nil)
+	_ iRealNext[any]      = (*chainIterator[any])(nil)
+	_ iRealSizeHint       = (*chainIterator[any])(nil)
+	_ iRealCount          = (*chainIterator[any])(nil)
+	_ iRealTryFold[any]   = (*chainIterator[any])(nil)
+	_ iRealFold[any]      = (*chainIterator[any])(nil)
+	_ iRealAdvanceBy[any] = (*chainIterator[any])(nil)
+	_ iRealNth[any]       = (*chainIterator[any])(nil)
 )
 
-func newChainIterator[T any](inner Iterator[T], other Iterator[T]) *ChainIterator[T] {
-	iter := &ChainIterator[T]{inner: inner, other: other}
+func newChainIterator[T any](inner Iterator[T], other Iterator[T]) Iterator[T] {
+	iter := &chainIterator[T]{inner: inner, other: other}
 	iter.setFacade(iter)
 	return iter
 }
 
-type ChainIterator[T any] struct {
-	iterTrait[T]
+type chainIterator[T any] struct {
+	iterBackground[T]
 	inner Iterator[T]
 	other Iterator[T]
 }
 
-func (s *ChainIterator[T]) realLast() gust.Option[T] {
+func (s *chainIterator[T]) realLast() gust.Option[T] {
 	// Must exhaust a before b.
 	var aLast gust.Option[T]
 	var bLast gust.Option[T]
@@ -45,7 +45,7 @@ func (s *ChainIterator[T]) realLast() gust.Option[T] {
 	return aLast
 }
 
-func (s *ChainIterator[T]) realFind(predicate func(T) bool) gust.Option[T] {
+func (s *chainIterator[T]) realFind(predicate func(T) bool) gust.Option[T] {
 	if s.inner != nil {
 		item := s.inner.Find(predicate)
 		if item.IsSome() {
@@ -59,11 +59,11 @@ func (s *ChainIterator[T]) realFind(predicate func(T) bool) gust.Option[T] {
 	return gust.None[T]()
 }
 
-func (s *ChainIterator[T]) realNth(n uint) gust.Option[T] {
+func (s *chainIterator[T]) realNth(n uint) gust.Option[T] {
 	if s.inner != nil {
 		r := s.inner.AdvanceBy(n)
-		if r.AsError() {
-			n -= r.Unwrap()
+		if r.IsErr() {
+			n -= r.UnwrapErr()
 		} else {
 			item := s.inner.Next()
 			if item.IsSome() {
@@ -79,22 +79,22 @@ func (s *ChainIterator[T]) realNth(n uint) gust.Option[T] {
 	return gust.None[T]()
 }
 
-func (s *ChainIterator[T]) realAdvanceBy(n uint) gust.Errable[uint] {
+func (s *chainIterator[T]) realAdvanceBy(n uint) gust.Errable[uint] {
 	var rem = n
 	if s.inner != nil {
 		r := s.inner.AdvanceBy(rem)
-		if !r.AsError() {
+		if !r.IsErr() {
 			return r
 		}
-		rem -= r.Unwrap()
+		rem -= r.UnwrapErr()
 		s.inner = nil
 	}
 	if s.other != nil {
 		r := s.other.AdvanceBy(rem)
-		if !r.AsError() {
+		if !r.IsErr() {
 			return r
 		}
-		rem -= r.Unwrap()
+		rem -= r.UnwrapErr()
 		// we don't fuse the second iterator
 	}
 	if rem == 0 {
@@ -103,7 +103,7 @@ func (s *ChainIterator[T]) realAdvanceBy(n uint) gust.Errable[uint] {
 	return gust.ToErrable(n - rem)
 }
 
-func (s *ChainIterator[T]) realFold(acc any, f func(any, T) any) any {
+func (s *chainIterator[T]) realFold(acc any, f func(any, T) any) any {
 	if s.inner != nil {
 		acc = s.inner.Fold(acc, f)
 	}
@@ -113,7 +113,7 @@ func (s *ChainIterator[T]) realFold(acc any, f func(any, T) any) any {
 	return acc
 }
 
-func (s *ChainIterator[T]) realTryFold(acc any, f func(any, T) gust.Result[any]) gust.Result[any] {
+func (s *chainIterator[T]) realTryFold(acc any, f func(any, T) gust.Result[any]) gust.Result[any] {
 	if s.inner != nil {
 		r := s.inner.TryFold(acc, f)
 		if r.IsErr() {
@@ -133,7 +133,7 @@ func (s *ChainIterator[T]) realTryFold(acc any, f func(any, T) gust.Result[any])
 	return gust.Ok(acc)
 }
 
-func (s *ChainIterator[T]) realNext() gust.Option[T] {
+func (s *chainIterator[T]) realNext() gust.Option[T] {
 	if s.inner != nil {
 		item := s.inner.Next()
 		if item.IsSome() {
@@ -147,7 +147,7 @@ func (s *ChainIterator[T]) realNext() gust.Option[T] {
 	return gust.None[T]()
 }
 
-func (s *ChainIterator[T]) realSizeHint() (uint, gust.Option[uint]) {
+func (s *chainIterator[T]) realSizeHint() (uint, gust.Option[uint]) {
 	if s.inner != nil && s.other != nil {
 		var aLower, aUpper = s.inner.SizeHint()
 		var bLower, bUpper = s.other.SizeHint()
@@ -167,7 +167,7 @@ func (s *ChainIterator[T]) realSizeHint() (uint, gust.Option[uint]) {
 	return 0, gust.Some[uint](0)
 }
 
-func (s *ChainIterator[T]) realCount() uint {
+func (s *chainIterator[T]) realCount() uint {
 	var aCount uint
 	if s.inner != nil {
 		aCount = s.inner.Count()

@@ -6,8 +6,12 @@ type (
 	Iterable[T any] interface {
 		Next() Option[T]
 	}
+	SizeIterable[T any] interface {
+		Remaining() uint
+	}
 	DeIterable[T any] interface {
 		Iterable[T]
+		SizeIterable[T]
 		NextBack() Option[T]
 	}
 	IterableCount interface {
@@ -15,14 +19,6 @@ type (
 	}
 	IterableSizeHint interface {
 		SizeHint() (uint, Option[uint])
-	}
-	SizeIterable[T any] interface {
-		Remaining() uint
-	}
-	// SizeDeIterable is a double ended iterator that knows the exact size.
-	SizeDeIterable[T any] interface {
-		DeIterable[T]
-		SizeIterable[T]
 	}
 )
 

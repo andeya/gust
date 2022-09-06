@@ -49,7 +49,7 @@ func (iter *iterableWrapper[T]) realRemaining() uint {
 }
 
 type baseIterator[T any] struct {
-	iterTrait[T]
+	iterBackground[T]
 	iterableWrapper[T]
 }
 
@@ -60,23 +60,12 @@ func fromIterable[T any](data gust.Iterable[T]) Iterator[T] {
 }
 
 type baseDeIterator[T any] struct {
-	sizeDeIterTrait[T]
+	deIterBackground[T]
 	iterableWrapper[T]
 }
 
 func fromDeIterable[T any](data gust.DeIterable[T]) DeIterator[T] {
 	iter := &baseDeIterator[T]{iterableWrapper: wrapIterable[T](data)}
-	iter.setFacade(iter)
-	return iter
-}
-
-type baseSizeDeIterator[T any] struct {
-	sizeDeIterTrait[T]
-	iterableWrapper[T]
-}
-
-func fromSizeDeIterable[T any](data gust.SizeDeIterable[T]) SizeDeIterator[T] {
-	iter := &baseSizeDeIterator[T]{iterableWrapper: wrapIterable[T](data)}
 	iter.setFacade(iter)
 	return iter
 }

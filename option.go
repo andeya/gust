@@ -109,7 +109,7 @@ func (o Option[T]) Unwrap() T {
 		return o.unwrapUnchecked()
 	}
 	var t T
-	panic(fmt.Sprintf("call Option[%T].Unwrap() on none", t))
+	panic(fmt.Sprintf("call Option[%T].UnwrapErr() on none", t))
 }
 
 // UnwrapOr returns the contained value or a provided default.

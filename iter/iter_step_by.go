@@ -8,31 +8,31 @@ import (
 )
 
 var (
-	_ Iterator[any]     = (*StepByIterator[any])(nil)
-	_ iRealNext[any]    = (*StepByIterator[any])(nil)
-	_ iRealSizeHint     = (*StepByIterator[any])(nil)
-	_ iRealNth[any]     = (*StepByIterator[any])(nil)
-	_ iRealTryFold[any] = (*StepByIterator[any])(nil)
-	_ iRealFold[any]    = (*StepByIterator[any])(nil)
+	_ Iterator[any]     = (*stepByIterator[any])(nil)
+	_ iRealNext[any]    = (*stepByIterator[any])(nil)
+	_ iRealSizeHint     = (*stepByIterator[any])(nil)
+	_ iRealNth[any]     = (*stepByIterator[any])(nil)
+	_ iRealTryFold[any] = (*stepByIterator[any])(nil)
+	_ iRealFold[any]    = (*stepByIterator[any])(nil)
 )
 
-func newStepByIterator[T any](iter Iterator[T], step uint) *StepByIterator[T] {
+func newStepByIterator[T any](iter Iterator[T], step uint) Iterator[T] {
 	if step == 0 {
 		panic("step must be non-zero")
 	}
-	p := &StepByIterator[T]{iter: iter, step: step - 1, firstTake: true}
+	p := &stepByIterator[T]{iter: iter, step: step - 1, firstTake: true}
 	p.setFacade(p)
 	return p
 }
 
-type StepByIterator[T any] struct {
-	iterTrait[T]
+type stepByIterator[T any] struct {
+	iterBackground[T]
 	iter      Iterator[T]
 	step      uint
 	firstTake bool
 }
 
-func (s *StepByIterator[T]) realFold(acc any, f func(any, T) any) any {
+func (s *stepByIterator[T]) realFold(acc any, f func(any, T) any) any {
 	if s.firstTake {
 		s.firstTake = false
 		r := s.iter.Next()
@@ -48,7 +48,7 @@ func (s *StepByIterator[T]) realFold(acc any, f func(any, T) any) any {
 	return acc
 }
 
-func (s *StepByIterator[T]) realTryFold(acc any, f func(any, T) gust.Result[any]) gust.Result[any] {
+func (s *stepByIterator[T]) realTryFold(acc any, f func(any, T) gust.Result[any]) gust.Result[any] {
 	if s.firstTake {
 		s.firstTake = false
 		r := s.iter.Next()
@@ -68,7 +68,7 @@ func (s *StepByIterator[T]) realTryFold(acc any, f func(any, T) gust.Result[any]
 	return gust.Ok(acc)
 }
 
-func (s *StepByIterator[T]) realNth(n uint) gust.Option[T] {
+func (s *stepByIterator[T]) realNth(n uint) gust.Option[T] {
 	if s.firstTake {
 		s.firstTake = false
 		var first = s.iter.Next()
@@ -111,7 +111,7 @@ func (s *StepByIterator[T]) realNth(n uint) gust.Option[T] {
 	}
 }
 
-func (s *StepByIterator[T]) realSizeHint() (uint, gust.Option[uint]) {
+func (s *stepByIterator[T]) realSizeHint() (uint, gust.Option[uint]) {
 	var firstSize = func(step uint) func(uint) uint {
 		return func(n uint) uint {
 			if n == 0 {
@@ -135,7 +135,7 @@ func (s *StepByIterator[T]) realSizeHint() (uint, gust.Option[uint]) {
 	return f(low), opt.Map[uint](high, f)
 }
 
-func (s *StepByIterator[T]) realNext() gust.Option[T] {
+func (s *stepByIterator[T]) realNext() gust.Option[T] {
 	if s.firstTake {
 		s.firstTake = false
 		return s.iter.Next()

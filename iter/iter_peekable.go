@@ -15,6 +15,7 @@ var (
 	_ iRealNextBack[any] = (*implPeekable[any])(nil)
 	_ iRealTryRfold[any] = (*implPeekable[any])(nil)
 	_ iRealRfold[any]    = (*implPeekable[any])(nil)
+	_ iRealRemaining     = (*implPeekable[any])(nil)
 )
 
 func newPeekableIterator[T any](iter Iterator[T]) PeekableIterator[T] {
@@ -26,36 +27,36 @@ func newPeekableIterator[T any](iter Iterator[T]) PeekableIterator[T] {
 }
 
 type peekableIterator[T any] struct {
-	iterTrait[T]
+	iterBackground[T]
 	implPeekable[T]
 }
 
-func (s *peekableIterator[T]) Intersperse(separator T) *IntersperseIterator[T] {
+func (s *peekableIterator[T]) Intersperse(separator T) Iterator[T] {
 	return newIntersperseIterator[T](s, separator)
 }
 
-func (s *peekableIterator[T]) IntersperseWith(separator func() T) *IntersperseIterator[T] {
+func (s *peekableIterator[T]) IntersperseWith(separator func() T) Iterator[T] {
 	return newIntersperseWithIterator[T](s, separator)
 }
 
-func newSizeDePeekableIterator[T any](iter SizeDeIterator[T]) SizeDePeekableIterator[T] {
-	p := &sizeDePeekableIterator[T]{
+func newDePeekableIterator[T any](iter DeIterator[T]) DePeekableIterator[T] {
+	p := &dePeekableIterator[T]{
 		implPeekable: implPeekable[T]{iter: iter},
 	}
 	p.setFacade(p)
 	return p
 }
 
-type sizeDePeekableIterator[T any] struct {
-	sizeDeIterTrait[T]
+type dePeekableIterator[T any] struct {
+	deIterBackground[T]
 	implPeekable[T]
 }
 
-func (s *sizeDePeekableIterator[T]) Intersperse(separator T) *IntersperseIterator[T] {
+func (s *dePeekableIterator[T]) Intersperse(separator T) Iterator[T] {
 	return newIntersperseIterator[T](s, separator)
 }
 
-func (s *sizeDePeekableIterator[T]) IntersperseWith(separator func() T) *IntersperseIterator[T] {
+func (s *dePeekableIterator[T]) IntersperseWith(separator func() T) Iterator[T] {
 	return newIntersperseWithIterator[T](s, separator)
 }
 
@@ -63,6 +64,13 @@ type implPeekable[T any] struct {
 	iter Iterator[T]
 	// Remember a peeked value, even if it was None.
 	peeked gust.Option[gust.Option[T]]
+}
+
+func (s *implPeekable[T]) realRemaining() uint {
+	if x, ok := s.iter.(iRemaining[T]); ok {
+		return x.Remaining()
+	}
+	return defaultRemaining(s.iter)
 }
 
 func (s *implPeekable[T]) NextIf(f func(T) bool) gust.Option[T] {

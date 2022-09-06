@@ -22,9 +22,11 @@ func newFlattenIterator[T any, D gust.Iterable[T]](iter Iterator[D]) *FlattenIte
 	return p
 }
 
+// FlattenIterator is an iterator that flattens one level of nesting in an iterator of things
+// that can be turned into iterators.
 type FlattenIterator[T any, D gust.Iterable[T]] struct {
-	iterTrait[T]
-	iter      *FuseIterator[D]
+	iterBackground[T]
+	iter      Iterator[D]
 	frontiter gust.Option[Iterator[T]]
 	backiter  gust.Option[Iterator[T]]
 }
@@ -129,8 +131,8 @@ func (f FlattenIterator[T, D]) iterFold(acc any, fold func(any, Iterator[T]) any
 func (f FlattenIterator[T, D]) realAdvanceBy(n uint) gust.Errable[uint] {
 	var advance = func(n any, iter Iterator[T]) gust.Result[any] {
 		x := iter.AdvanceBy(n.(uint))
-		if x.AsError() {
-			return gust.Err[any](n.(uint) - x.Unwrap())
+		if x.IsErr() {
+			return gust.Err[any](n.(uint) - x.UnwrapErr())
 		}
 		return gust.Ok[any](nil)
 	}
@@ -171,6 +173,7 @@ var (
 	_ iRealAdvanceBackBy[any] = (*FlattenDeIterator[any, gust.DeIterable[any]])(nil)
 	_ iRealCount              = (*FlattenDeIterator[any, gust.DeIterable[any]])(nil)
 	_ iRealLast[any]          = (*FlattenDeIterator[any, gust.DeIterable[any]])(nil)
+	_ iRealRemaining          = (*FlattenDeIterator[any, gust.DeIterable[any]])(nil)
 )
 
 func newFlattenDeIterator[T any, D gust.DeIterable[T]](iter DeIterator[D]) *FlattenDeIterator[T, D] {
@@ -180,10 +183,14 @@ func newFlattenDeIterator[T any, D gust.DeIterable[T]](iter DeIterator[D]) *Flat
 }
 
 type FlattenDeIterator[T any, D gust.DeIterable[T]] struct {
-	sizeDeIterTrait[T]
-	iter      *FuseDeIterator[D]
+	deIterBackground[T]
+	iter      DeIterator[D]
 	frontiter gust.Option[DeIterator[T]]
 	backiter  gust.Option[DeIterator[T]]
+}
+
+func (f FlattenDeIterator[T, D]) realRemaining() uint {
+	return f.iter.Remaining()
 }
 
 func (f FlattenDeIterator[T, D]) realNextBack() gust.Option[T] {
@@ -281,8 +288,8 @@ func (f FlattenDeIterator[T, D]) realRfold(init any, fold func(any, T) any) any 
 func (f FlattenDeIterator[T, D]) realAdvanceBy(n uint) gust.Errable[uint] {
 	var advance = func(n any, iter DeIterator[T]) gust.Result[any] {
 		x := iter.AdvanceBy(n.(uint))
-		if x.AsError() {
-			return gust.Err[any](n.(uint) - x.Unwrap())
+		if x.IsErr() {
+			return gust.Err[any](n.(uint) - x.UnwrapErr())
 		}
 		return gust.Ok[any](nil)
 	}
@@ -299,8 +306,8 @@ func (f FlattenDeIterator[T, D]) realAdvanceBy(n uint) gust.Errable[uint] {
 func (f FlattenDeIterator[T, D]) realAdvanceBackBy(n uint) gust.Errable[uint] {
 	var advance = func(n any, iter DeIterator[T]) gust.Result[any] {
 		x := iter.AdvanceBackBy(n.(uint))
-		if x.AsError() {
-			return gust.Err[any](n.(uint) - x.Unwrap())
+		if x.IsErr() {
+			return gust.Err[any](n.(uint) - x.UnwrapErr())
 		}
 		return gust.Ok[any](nil)
 	}

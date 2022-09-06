@@ -9,14 +9,14 @@ import (
 )
 
 func TestErrable(t *testing.T) {
-	assert.False(t, gust.ToErrable[any](nil).AsError())
-	assert.False(t, gust.NonErrable[any]().AsError())
+	assert.False(t, gust.ToErrable[any](nil).IsErr())
+	assert.False(t, gust.NonErrable[any]().IsErr())
 
-	assert.False(t, gust.ToErrable[error](nil).AsError())
-	assert.False(t, gust.NonErrable[int]().AsError())
+	assert.False(t, gust.ToErrable[error](nil).IsErr())
+	assert.False(t, gust.NonErrable[int]().IsErr())
 
-	assert.False(t, gust.ToErrable[*int](nil).AsError())
-	assert.False(t, gust.NonErrable[*int]().AsError())
+	assert.False(t, gust.ToErrable[*int](nil).IsErr())
+	assert.False(t, gust.NonErrable[*int]().IsErr())
 }
 
 func ExampleErrable() {
@@ -28,8 +28,8 @@ func ExampleErrable() {
 		return gust.NonErrable[int]()
 	}
 	var r = f()
-	fmt.Println(r.AsError())
-	fmt.Println(r.Unwrap())
+	fmt.Println(r.IsErr())
+	fmt.Println(r.UnwrapErr())
 	fmt.Printf("%#v", r.ToError())
 	// Output:
 	// true

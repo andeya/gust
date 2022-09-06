@@ -25,8 +25,8 @@ func NewIterableVec[T any](slice []T) *IterableVec[T] {
 	}
 }
 
-func (v *IterableVec[T]) ToSizeDeIterator() SizeDeIterator[T] {
-	return FromSizeDeIterable[T](v)
+func (v *IterableVec[T]) ToDeIterator() DeIterator[T] {
+	return FromDeIterable[T](v)
 }
 
 func (v *IterableVec[T]) Next() gust.Option[T] {

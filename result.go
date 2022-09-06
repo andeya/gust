@@ -175,7 +175,7 @@ func (r Result[T]) Expect(msg string) T {
 // Instead, prefer to use pattern matching and handle the error case explicitly, or call UnwrapOr or UnwrapOrElse.
 func (r Result[T]) Unwrap() T {
 	if r.IsErr() {
-		panic(fmt.Sprintf("called `Result.Unwrap()` on an `err` value: %v", r.inner.safeGetE()))
+		panic(fmt.Sprintf("called `Result.UnwrapErr()` on an `err` value: %v", r.inner.safeGetE()))
 	}
 	return r.inner.safeGetT()
 }

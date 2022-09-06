@@ -5,22 +5,22 @@ import (
 	"github.com/andeya/gust/opt"
 )
 
-var _ Iterator[any] = iterTrait[any]{}
+var _ Iterator[any] = iterBackground[any]{}
 
-type iterTrait[T any] struct {
+type iterBackground[T any] struct {
 	facade iRealNext[T]
 }
 
 //goland:noinspection GoMixedReceiverTypes
-func (iter *iterTrait[T]) setFacade(facade iRealNext[T]) {
+func (iter *iterBackground[T]) setFacade(facade iRealNext[T]) {
 	iter.facade = facade
 }
 
-func (iter iterTrait[T]) Next() gust.Option[T] {
+func (iter iterBackground[T]) Next() gust.Option[T] {
 	return iter.facade.realNext()
 }
 
-func (iter iterTrait[T]) NextChunk(n uint) gust.EnumResult[[]T, []T] {
+func (iter iterBackground[T]) NextChunk(n uint) gust.EnumResult[[]T, []T] {
 	var chunk = make([]T, 0, n)
 	for i := uint(0); i < n; i++ {
 		item := iter.Next()
@@ -33,14 +33,14 @@ func (iter iterTrait[T]) NextChunk(n uint) gust.EnumResult[[]T, []T] {
 	return gust.EnumOk[[]T, []T](chunk)
 }
 
-func (iter iterTrait[T]) SizeHint() (uint, gust.Option[uint]) {
+func (iter iterBackground[T]) SizeHint() (uint, gust.Option[uint]) {
 	if cover, ok := iter.facade.(iRealSizeHint); ok {
 		return cover.realSizeHint()
 	}
 	return 0, gust.None[uint]()
 }
 
-func (iter iterTrait[T]) Count() uint {
+func (iter iterBackground[T]) Count() uint {
 	if cover, ok := iter.facade.(iRealCount); ok {
 		return cover.realCount()
 	}
@@ -52,21 +52,21 @@ func (iter iterTrait[T]) Count() uint {
 	)
 }
 
-func (iter iterTrait[T]) Fold(init any, f func(any, T) any) any {
+func (iter iterBackground[T]) Fold(init any, f func(any, T) any) any {
 	if cover, ok := iter.facade.(iRealFold[T]); ok {
 		return cover.realFold(init, f)
 	}
 	return Fold[T, any](iter, init, f)
 }
 
-func (iter iterTrait[T]) TryFold(init any, f func(any, T) gust.Result[any]) gust.Result[any] {
+func (iter iterBackground[T]) TryFold(init any, f func(any, T) gust.Result[any]) gust.Result[any] {
 	if cover, ok := iter.facade.(iRealTryFold[T]); ok {
 		return cover.realTryFold(init, f)
 	}
 	return TryFold[T, any](iter, init, f)
 }
 
-func (iter iterTrait[T]) Last() gust.Option[T] {
+func (iter iterBackground[T]) Last() gust.Option[T] {
 	if cover, ok := iter.facade.(iRealLast[T]); ok {
 		return cover.realLast()
 	}
@@ -78,7 +78,7 @@ func (iter iterTrait[T]) Last() gust.Option[T] {
 		})
 }
 
-func (iter iterTrait[T]) AdvanceBy(n uint) gust.Errable[uint] {
+func (iter iterBackground[T]) AdvanceBy(n uint) gust.Errable[uint] {
 	if cover, ok := iter.facade.(iRealAdvanceBy[T]); ok {
 		return cover.realAdvanceBy(n)
 	}
@@ -90,18 +90,18 @@ func (iter iterTrait[T]) AdvanceBy(n uint) gust.Errable[uint] {
 	return gust.NonErrable[uint]()
 }
 
-func (iter iterTrait[T]) Nth(n uint) gust.Option[T] {
+func (iter iterBackground[T]) Nth(n uint) gust.Option[T] {
 	if cover, ok := iter.facade.(iRealNth[T]); ok {
 		return cover.realNth(n)
 	}
 	var res = iter.AdvanceBy(n)
-	if res.AsError() {
+	if res.IsErr() {
 		return gust.None[T]()
 	}
 	return iter.Next()
 }
 
-func (iter iterTrait[T]) ForEach(f func(T)) {
+func (iter iterBackground[T]) ForEach(f func(T)) {
 	if cover, ok := iter.facade.(iRealForEach[T]); ok {
 		cover.realForEach(f)
 		return
@@ -115,7 +115,7 @@ func (iter iterTrait[T]) ForEach(f func(T)) {
 	_ = iter.Fold(nil, call(f))
 }
 
-func (iter iterTrait[T]) Reduce(f func(accum T, item T) T) gust.Option[T] {
+func (iter iterBackground[T]) Reduce(f func(accum T, item T) T) gust.Option[T] {
 	if cover, ok := iter.facade.(iRealReduce[T]); ok {
 		return cover.realReduce(f)
 	}
@@ -128,7 +128,7 @@ func (iter iterTrait[T]) Reduce(f func(accum T, item T) T) gust.Option[T] {
 	}))
 }
 
-func (iter iterTrait[T]) All(predicate func(T) bool) bool {
+func (iter iterBackground[T]) All(predicate func(T) bool) bool {
 	if cover, ok := iter.facade.(iRealAll[T]); ok {
 		return cover.realAll(predicate)
 	}
@@ -144,7 +144,7 @@ func (iter iterTrait[T]) All(predicate func(T) bool) bool {
 	return iter.TryFold(nil, check(predicate)).IsOk()
 }
 
-func (iter iterTrait[T]) Any(predicate func(T) bool) bool {
+func (iter iterBackground[T]) Any(predicate func(T) bool) bool {
 	if cover, ok := iter.facade.(iRealAny[T]); ok {
 		return cover.realAny(predicate)
 	}
@@ -160,7 +160,7 @@ func (iter iterTrait[T]) Any(predicate func(T) bool) bool {
 	return iter.TryFold(nil, check(predicate)).IsErr()
 }
 
-func (iter iterTrait[T]) Find(predicate func(T) bool) gust.Option[T] {
+func (iter iterBackground[T]) Find(predicate func(T) bool) gust.Option[T] {
 	if cover, ok := iter.facade.(iRealFind[T]); ok {
 		return cover.realFind(predicate)
 	}
@@ -180,21 +180,21 @@ func (iter iterTrait[T]) Find(predicate func(T) bool) gust.Option[T] {
 	return gust.None[T]()
 }
 
-func (iter iterTrait[T]) FindMap(f func(T) gust.Option[T]) gust.Option[T] {
+func (iter iterBackground[T]) FindMap(f func(T) gust.Option[T]) gust.Option[T] {
 	if cover, ok := iter.facade.(iRealFindMap[T]); ok {
 		return cover.realFindMap(f)
 	}
 	return FindMap[T, T](iter, f)
 }
 
-func (iter iterTrait[T]) XFindMap(f func(T) gust.Option[any]) gust.Option[any] {
+func (iter iterBackground[T]) XFindMap(f func(T) gust.Option[any]) gust.Option[any] {
 	if cover, ok := iter.facade.(iRealFindMap[T]); ok {
 		return cover.realXFindMap(f)
 	}
 	return FindMap[T, any](iter, f)
 }
 
-func (iter iterTrait[T]) TryFind(predicate func(T) gust.Result[bool]) gust.Result[gust.Option[T]] {
+func (iter iterBackground[T]) TryFind(predicate func(T) gust.Result[bool]) gust.Result[gust.Option[T]] {
 	if cover, ok := iter.facade.(iRealTryFind[T]); ok {
 		return cover.realTryFind(predicate)
 	}
@@ -219,7 +219,7 @@ func (iter iterTrait[T]) TryFind(predicate func(T) gust.Result[bool]) gust.Resul
 	return gust.Ok[gust.Option[T]](gust.None[T]())
 }
 
-func (iter iterTrait[T]) Position(predicate func(T) bool) gust.Option[int] {
+func (iter iterBackground[T]) Position(predicate func(T) bool) gust.Option[int] {
 	if cover, ok := iter.facade.(iRealPosition[T]); ok {
 		return cover.realPosition(predicate)
 	}
@@ -239,100 +239,102 @@ func (iter iterTrait[T]) Position(predicate func(T) bool) gust.Option[int] {
 	return gust.None[int]()
 }
 
-func (iter iterTrait[T]) StepBy(step uint) *StepByIterator[T] {
+func (iter iterBackground[T]) StepBy(step uint) Iterator[T] {
 	if cover, ok := iter.facade.(iRealStepBy[T]); ok {
 		return cover.realStepBy(step)
 	}
 	return newStepByIterator[T](iter, step)
 }
 
-func (iter iterTrait[T]) Filter(f func(T) bool) *FilterIterator[T] {
+func (iter iterBackground[T]) Filter(f func(T) bool) Iterator[T] {
 	if cover, ok := iter.facade.(iRealFilter[T]); ok {
 		return cover.realFilter(f)
 	}
 	return newFilterIterator[T](iter, f)
 }
 
-func (iter iterTrait[T]) FilterMap(f func(T) gust.Option[T]) *FilterMapIterator[T, T] {
+func (iter iterBackground[T]) FilterMap(f func(T) gust.Option[T]) Iterator[T] {
 	if cover, ok := iter.facade.(iRealFilterMap[T]); ok {
 		return cover.realFilterMap(f)
 	}
 	return newFilterMapIterator[T, T](iter, f)
 }
 
-func (iter iterTrait[T]) XFilterMap(f func(T) gust.Option[any]) *FilterMapIterator[T, any] {
+func (iter iterBackground[T]) XFilterMap(f func(T) gust.Option[any]) Iterator[any] {
 	if cover, ok := iter.facade.(iRealFilterMap[T]); ok {
 		return cover.realXFilterMap(f)
 	}
 	return newFilterMapIterator[T, any](iter, f)
 }
 
-func (iter iterTrait[T]) Chain(other Iterator[T]) *ChainIterator[T] {
+func (iter iterBackground[T]) Chain(other Iterator[T]) Iterator[T] {
 	if cover, ok := iter.facade.(iRealChain[T]); ok {
 		return cover.realChain(other)
 	}
 	return newChainIterator[T](iter, other)
 }
 
-func (iter iterTrait[T]) Map(f func(T) T) *MapIterator[T, T] {
+func (iter iterBackground[T]) Map(f func(T) T) Iterator[T] {
 	if cover, ok := iter.facade.(iRealMap[T]); ok {
 		return cover.realMap(f)
 	}
 	return newMapIterator[T, T](iter, f)
 }
 
-func (iter iterTrait[T]) XMap(f func(T) any) *MapIterator[T, any] {
+func (iter iterBackground[T]) XMap(f func(T) any) Iterator[any] {
 	if cover, ok := iter.facade.(iRealMap[T]); ok {
 		return cover.realXMap(f)
 	}
 	return newMapIterator[T, any](iter, f)
 }
 
-func (iter iterTrait[T]) Inspect(f func(T)) *InspectIterator[T] {
+func (iter iterBackground[T]) Inspect(f func(T)) Iterator[T] {
 	return newInspectIterator[T](iter, f)
 }
 
-func (iter iterTrait[T]) Fuse() *FuseIterator[T] {
+func (iter iterBackground[T]) Fuse() Iterator[T] {
 	return newFuseIterator[T](iter)
 }
 
-func (iter iterTrait[T]) Peekable() PeekableIterator[T] {
+func (iter iterBackground[T]) Peekable() PeekableIterator[T] {
 	return newPeekableIterator[T](iter)
 }
 
-func (iter iterTrait[T]) Intersperse(separator T) *IntersperseIterator[T] {
+func (iter iterBackground[T]) Intersperse(separator T) Iterator[T] {
 	return newIntersperseIterator[T](iter.Peekable(), separator)
 }
 
-func (iter iterTrait[T]) IntersperseWith(separator func() T) *IntersperseIterator[T] {
+func (iter iterBackground[T]) IntersperseWith(separator func() T) Iterator[T] {
 	return newIntersperseWithIterator[T](iter.Peekable(), separator)
 }
 
-func (iter iterTrait[T]) Collect() []T {
+func (iter iterBackground[T]) Collect() []T {
 	lower, _ := iter.SizeHint()
 	return Fold[T, []T](iter, make([]T, 0, lower), func(slice []T, x T) []T {
 		return append(slice, x)
 	})
 }
 
-var _ SizeDeIterator[any] = sizeDeIterTrait[any]{}
+var _ DeIterator[any] = deIterBackground[any]{}
 
-type sizeDeIterTrait[T any] struct {
-	iterTrait[T]
-	facade iRealDeIterable[T]
+type deIterBackground[T any] struct {
+	iterBackground[T]
 }
 
 //goland:noinspection GoMixedReceiverTypes
-func (d *sizeDeIterTrait[T]) setFacade(facade iRealDeIterable[T]) {
-	d.iterTrait.facade = facade
-	d.facade = facade
+func (d *deIterBackground[T]) setFacade(facade iRealDeIterable[T]) {
+	d.iterBackground.facade = facade
 }
 
-func (d sizeDeIterTrait[T]) Remaining() uint {
-	if size, ok := d.facade.(iRealSizeDeIterable[T]); ok {
+func (d deIterBackground[T]) Remaining() uint {
+	if size, ok := d.facade.(iRealRemaining); ok {
 		return size.realRemaining()
 	}
-	lo, hi := d.SizeHint()
+	return defaultRemaining[T](d)
+}
+
+func defaultRemaining[T any](iter Iterator[T]) uint {
+	lo, hi := iter.SizeHint()
 	if opt.MapOr[uint, bool](hi, false, func(x uint) bool {
 		return x == lo
 	}) {
@@ -341,11 +343,11 @@ func (d sizeDeIterTrait[T]) Remaining() uint {
 	return lo
 }
 
-func (d sizeDeIterTrait[T]) NextBack() gust.Option[T] {
-	return d.facade.realNextBack()
+func (d deIterBackground[T]) NextBack() gust.Option[T] {
+	return d.facade.(iRealDeIterable[T]).realNextBack()
 }
 
-func (d sizeDeIterTrait[T]) AdvanceBackBy(n uint) gust.Errable[uint] {
+func (d deIterBackground[T]) AdvanceBackBy(n uint) gust.Errable[uint] {
 	if cover, ok := d.facade.(iRealAdvanceBackBy[T]); ok {
 		return cover.realAdvanceBackBy(n)
 	}
@@ -357,31 +359,31 @@ func (d sizeDeIterTrait[T]) AdvanceBackBy(n uint) gust.Errable[uint] {
 	return gust.NonErrable[uint]()
 }
 
-func (d sizeDeIterTrait[T]) NthBack(n uint) gust.Option[T] {
+func (d deIterBackground[T]) NthBack(n uint) gust.Option[T] {
 	if cover, ok := d.facade.(iRealNthBack[T]); ok {
 		return cover.realNthBack(n)
 	}
-	if d.AdvanceBackBy(n).AsError() {
+	if d.AdvanceBackBy(n).IsErr() {
 		return gust.None[T]()
 	}
 	return d.NextBack()
 }
 
-func (d sizeDeIterTrait[T]) TryRfold(init any, fold func(any, T) gust.Result[any]) gust.Result[any] {
+func (d deIterBackground[T]) TryRfold(init any, fold func(any, T) gust.Result[any]) gust.Result[any] {
 	if cover, ok := d.facade.(iRealTryRfold[T]); ok {
 		return cover.realTryRfold(init, fold)
 	}
 	return TryRfold[T](d, init, fold)
 }
 
-func (d sizeDeIterTrait[T]) Rfold(init any, fold func(any, T) any) any {
+func (d deIterBackground[T]) Rfold(init any, fold func(any, T) any) any {
 	if cover, ok := d.facade.(iRealRfold[T]); ok {
 		return cover.realRfold(init, fold)
 	}
 	return Rfold[T](d, init, fold)
 }
 
-func (d sizeDeIterTrait[T]) Rfind(predicate func(T) bool) gust.Option[T] {
+func (d deIterBackground[T]) Rfind(predicate func(T) bool) gust.Option[T] {
 	if cover, ok := d.facade.(iRealRfind[T]); ok {
 		return cover.realRfind(predicate)
 	}
@@ -401,14 +403,14 @@ func (d sizeDeIterTrait[T]) Rfind(predicate func(T) bool) gust.Option[T] {
 	return gust.None[T]()
 }
 
-func (d sizeDeIterTrait[T]) DeFuse() *FuseDeIterator[T] {
+func (d deIterBackground[T]) DeFuse() DeIterator[T] {
 	return newFuseDeIterator[T](d)
 }
 
-func (d sizeDeIterTrait[T]) DePeekable() DePeekableIterator[T] {
-	return newSizeDePeekableIterator[T](d)
+func (d deIterBackground[T]) DePeekable() DePeekableIterator[T] {
+	return newDePeekableIterator[T](d)
 }
 
-func (d sizeDeIterTrait[T]) SizeDePeekable() SizeDePeekableIterator[T] {
-	return newSizeDePeekableIterator[T](d)
+func (d deIterBackground[T]) SizeDePeekable() DePeekableIterator[T] {
+	return newDePeekableIterator[T](d)
 }

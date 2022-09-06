@@ -4,34 +4,34 @@ import (
 	"github.com/andeya/gust"
 )
 
-func newIntersperseIterator[T any](iter PeekableIterator[T], separator T) *IntersperseIterator[T] {
-	p := &IntersperseIterator[T]{iter: iter, separator: func() T { return separator }}
+func newIntersperseIterator[T any](iter PeekableIterator[T], separator T) Iterator[T] {
+	p := &intersperseIterator[T]{iter: iter, separator: func() T { return separator }}
 	p.setFacade(p)
 	return p
 }
 
-func newIntersperseWithIterator[T any](iter PeekableIterator[T], separator func() T) *IntersperseIterator[T] {
-	p := &IntersperseIterator[T]{iter: iter, separator: separator}
+func newIntersperseWithIterator[T any](iter PeekableIterator[T], separator func() T) Iterator[T] {
+	p := &intersperseIterator[T]{iter: iter, separator: separator}
 	p.setFacade(p)
 	return p
 }
 
 var (
-	_ Iterator[any]  = (*IntersperseIterator[any])(nil)
-	_ iRealFold[any] = (*IntersperseIterator[any])(nil)
-	_ iRealNext[any] = (*IntersperseIterator[any])(nil)
-	_ iRealSizeHint  = (*IntersperseIterator[any])(nil)
+	_ Iterator[any]  = (*intersperseIterator[any])(nil)
+	_ iRealFold[any] = (*intersperseIterator[any])(nil)
+	_ iRealNext[any] = (*intersperseIterator[any])(nil)
+	_ iRealSizeHint  = (*intersperseIterator[any])(nil)
 )
 
-// IntersperseIterator is an iterator adapter that places a separator between all elements.
-type IntersperseIterator[T any] struct {
-	iterTrait[T]
+// intersperseIterator is an iterator adapter that places a separator between all elements.
+type intersperseIterator[T any] struct {
+	iterBackground[T]
 	iter      PeekableIterator[T]
 	separator func() T
 	needsSep  bool
 }
 
-func (f *IntersperseIterator[T]) realFold(init any, fold func(any, T) any) any {
+func (f *intersperseIterator[T]) realFold(init any, fold func(any, T) any) any {
 	var accum = init
 	if !f.needsSep {
 		if x := f.iter.Next(); x.IsSome() {
@@ -47,7 +47,7 @@ func (f *IntersperseIterator[T]) realFold(init any, fold func(any, T) any) any {
 	})
 }
 
-func (f *IntersperseIterator[T]) realSizeHint() (uint, gust.Option[uint]) {
+func (f *intersperseIterator[T]) realSizeHint() (uint, gust.Option[uint]) {
 	lo, hi := f.iter.SizeHint()
 	var nextIsElem uint = 0
 	if !f.needsSep {
@@ -58,7 +58,7 @@ func (f *IntersperseIterator[T]) realSizeHint() (uint, gust.Option[uint]) {
 	})
 }
 
-func (f *IntersperseIterator[T]) realNext() gust.Option[T] {
+func (f *intersperseIterator[T]) realNext() gust.Option[T] {
 	if f.needsSep && f.iter.Peek().IsSome() {
 		f.needsSep = false
 		return gust.Some(f.separator())

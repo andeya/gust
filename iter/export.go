@@ -26,28 +26,19 @@ func FromDeIterable[T any](data gust.DeIterable[T]) DeIterator[T] {
 	return fromDeIterable[T](data)
 }
 
-// FromSizeDeIterable creates an iterator from an Iterable.
-func FromSizeDeIterable[T any](data gust.SizeDeIterable[T]) SizeDeIterator[T] {
-	iter, _ := data.(SizeDeIterator[T])
-	if iter != nil {
-		return iter
-	}
-	return fromSizeDeIterable[T](data)
-}
-
-// FromVec creates an iterator from a s.
-func FromVec[T any](slice []T) SizeDeIterator[T] {
-	return NewIterableVec(slice).ToSizeDeIterator()
+// FromVec creates an iterator from a slice.
+func FromVec[T any](slice []T) DeIterator[T] {
+	return NewIterableVec(slice).ToDeIterator()
 }
 
 // FromElements creates an iterator from a set of elements.
-func FromElements[T any](elem ...T) SizeDeIterator[T] {
-	return NewIterableVec(elem).ToSizeDeIterator()
+func FromElements[T any](elem ...T) DeIterator[T] {
+	return NewIterableVec(elem).ToDeIterator()
 }
 
 // FromRange creates an iterator from a range.
-func FromRange[T digit.Integer](start T, end T, rightClosed ...bool) SizeDeIterator[T] {
-	return NewIterableRange[T](start, end, rightClosed...).ToSizeDeIterator()
+func FromRange[T digit.Integer](start T, end T, rightClosed ...bool) DeIterator[T] {
+	return NewIterableRange[T](start, end, rightClosed...).ToDeIterator()
 }
 
 // FromChan creates an iterator from a channel.
@@ -56,19 +47,19 @@ func FromChan[T any](c chan T) Iterator[T] {
 }
 
 // FromResult creates an iterator from a result.
-func FromResult[T any](ret gust.Result[T]) SizeDeIterator[T] {
-	return FromSizeDeIterable[T](ret)
+func FromResult[T any](ret gust.Result[T]) DeIterator[T] {
+	return FromDeIterable[T](ret)
 }
 
 // FromOption creates an iterator from an option.
-func FromOption[T any](opt gust.Option[T]) SizeDeIterator[T] {
-	return FromSizeDeIterable[T](opt)
+func FromOption[T any](opt gust.Option[T]) DeIterator[T] {
+	return FromDeIterable[T](opt)
 }
 
 // FromString creates an iterator from a string.
-func FromString[T ~byte | ~rune](s string) SizeDeIterator[T] {
+func FromString[T ~byte | ~rune](s string) DeIterator[T] {
 	if len(s) == 0 {
-		return NewIterableVec[T]([]T{}).ToSizeDeIterator()
+		return NewIterableVec[T]([]T{}).ToDeIterator()
 	}
 	const bn = rune(^byte(0))
 	if bn == rune(^T(0)) {
@@ -78,7 +69,7 @@ func FromString[T ~byte | ~rune](s string) SizeDeIterator[T] {
 				Cap int
 			}{s, len(s)},
 		))
-		return NewIterableVec[T](rs).ToSizeDeIterator()
+		return NewIterableVec[T](rs).ToDeIterator()
 	}
 	var rs = make([]T, 0, len(s))
 	var b = *(*[]byte)(unsafe.Pointer(
@@ -92,7 +83,7 @@ func FromString[T ~byte | ~rune](s string) SizeDeIterator[T] {
 		rs = append(rs, T(r))
 		b = b[size:]
 	}
-	return NewIterableVec[T](rs).ToSizeDeIterator()
+	return NewIterableVec[T](rs).ToDeIterator()
 }
 
 // TryFold a data method that applies a function as long as it returns
@@ -219,7 +210,7 @@ func Fold[T any, B any](iter Iterator[T], init B, f func(B, T) B) B {
 // assert.Equal(iter.Next(), gust.Some(6));
 // assert.Equal(iter.Next(), gust.None[int]());
 // ```
-func Map[T any, B any](iter Iterator[T], f func(T) B) *MapIterator[T, B] {
+func Map[T any, B any](iter Iterator[T], f func(T) B) Iterator[B] {
 	return newMapIterator(iter, f)
 }
 
@@ -231,7 +222,7 @@ func Map[T any, B any](iter Iterator[T], f func(T) B) *MapIterator[T, B] {
 // `FilterMap` can be used to make chains of [`Filter`] and [`Map`] more
 // concise. The example below shows how a `Map().Filter().Map()` can be
 // shortened to a single call to `FilterMap`.
-func FilterMap[T any, B any](iter Iterator[T], f func(T) gust.Option[B]) *FilterMapIterator[T, B] {
+func FilterMap[T any, B any](iter Iterator[T], f func(T) gust.Option[B]) Iterator[B] {
 	return newFilterMapIterator[T, B](iter, f)
 }
 
@@ -278,9 +269,9 @@ func Zip[A any, B any](a Iterator[A], b Iterator[B]) *ZipIterator[A, B] {
 	return newZipIterator[A, B](a, b)
 }
 
-// SizeDeZip is similar to `Zip`, but it supports take elements starting from the back of the iterator.
-func SizeDeZip[A any, B any](a SizeDeIterator[A], b SizeDeIterator[B]) *ZipSizeDeIterator[A, B] {
-	return newZipSizeDeIterator[A, B](a, b)
+// DeZip is similar to `Zip`, but it supports take elements starting from the back of the iterator.
+func DeZip[A any, B any](a DeIterator[A], b DeIterator[B]) *ZipDeIterator[A, B] {
+	return newZipDeIterator[A, B](a, b)
 }
 
 // TryRfold is the reverse version of [`Iterator[T].TryFold()`]: it takes

@@ -5,38 +5,38 @@ import (
 )
 
 var (
-	_ Iterator[any]     = (*MapIterator[any, any])(nil)
-	_ iRealNext[any]    = (*MapIterator[any, any])(nil)
-	_ iRealTryFold[any] = (*MapIterator[any, any])(nil)
-	_ iRealFold[any]    = (*MapIterator[any, any])(nil)
-	_ iRealSizeHint     = (*MapIterator[any, any])(nil)
+	_ Iterator[any]     = (*mapIterator[any, any])(nil)
+	_ iRealNext[any]    = (*mapIterator[any, any])(nil)
+	_ iRealTryFold[any] = (*mapIterator[any, any])(nil)
+	_ iRealFold[any]    = (*mapIterator[any, any])(nil)
+	_ iRealSizeHint     = (*mapIterator[any, any])(nil)
 )
 
-func newMapIterator[T any, B any](iter Iterator[T], f func(T) B) *MapIterator[T, B] {
-	p := &MapIterator[T, B]{iter: iter, f: f}
-	p.facade = p
+func newMapIterator[T any, B any](iter Iterator[T], f func(T) B) Iterator[B] {
+	p := &mapIterator[T, B]{iter: iter, f: f}
+	p.setFacade(p)
 	return p
 }
 
-type MapIterator[T any, B any] struct {
-	iterTrait[B]
+type mapIterator[T any, B any] struct {
+	iterBackground[B]
 	iter Iterator[T]
 	f    func(T) B
 }
 
-func (s MapIterator[T, B]) realSizeHint() (uint, gust.Option[uint]) {
+func (s mapIterator[T, B]) realSizeHint() (uint, gust.Option[uint]) {
 	return s.iter.SizeHint()
 }
 
-func (s MapIterator[T, B]) realFold(init any, g func(any, B) any) any {
+func (s mapIterator[T, B]) realFold(init any, g func(any, B) any) any {
 	return Fold[T, any](s.iter, init, func(acc any, elt T) any { return g(acc, s.f(elt)) })
 }
 
-func (s MapIterator[T, B]) realTryFold(init any, g func(any, B) gust.Result[any]) gust.Result[any] {
+func (s mapIterator[T, B]) realTryFold(init any, g func(any, B) gust.Result[any]) gust.Result[any] {
 	return TryFold[T, any](s.iter, init, func(acc any, elt T) gust.Result[any] { return g(acc, s.f(elt)) })
 }
 
-func (s MapIterator[T, B]) realNext() gust.Option[B] {
+func (s mapIterator[T, B]) realNext() gust.Option[B] {
 	r := s.iter.Next()
 	if r.IsSome() {
 		return gust.Some(s.f(r.Unwrap()))

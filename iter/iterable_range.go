@@ -41,8 +41,8 @@ func NewIterableRange[T digit.Integer](start T, end T, rightClosed ...bool) *Ite
 	}
 }
 
-func (r *IterableRange[T]) ToSizeDeIterator() SizeDeIterator[T] {
-	return FromSizeDeIterable[T](r)
+func (r *IterableRange[T]) ToDeIterator() DeIterator[T] {
+	return FromDeIterable[T](r)
 }
 
 func (r *IterableRange[T]) Next() gust.Option[T] {

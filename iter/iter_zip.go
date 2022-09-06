@@ -13,13 +13,13 @@ var (
 
 func newZipIterator[A any, B any](a Iterator[A], b Iterator[B]) *ZipIterator[A, B] {
 	p := &ZipIterator[A, B]{a: a, b: b}
-	p.facade = p
+	p.setFacade(p)
 	return p
 }
 
 type (
 	ZipIterator[A any, B any] struct {
-		iterTrait[gust.Pair[A, B]]
+		iterBackground[gust.Pair[A, B]]
 		a Iterator[A]
 		b Iterator[B]
 	}
@@ -79,26 +79,26 @@ func (s ZipIterator[A, B]) realNth(n uint) gust.Option[gust.Pair[A, B]] {
 }
 
 var (
-	_ SizeDeIterator[gust.Pair[any, any]]  = (*ZipSizeDeIterator[any, any])(nil)
-	_ iRealSizeHint                        = (*ZipSizeDeIterator[any, any])(nil)
-	_ iRealNth[gust.Pair[any, any]]        = (*ZipSizeDeIterator[any, any])(nil)
-	_ iRealDeIterable[gust.Pair[any, any]] = (*ZipSizeDeIterator[any, any])(nil)
+	_ DeIterator[gust.Pair[any, any]]      = (*ZipDeIterator[any, any])(nil)
+	_ iRealSizeHint                        = (*ZipDeIterator[any, any])(nil)
+	_ iRealNth[gust.Pair[any, any]]        = (*ZipDeIterator[any, any])(nil)
+	_ iRealDeIterable[gust.Pair[any, any]] = (*ZipDeIterator[any, any])(nil)
 )
 
-func newZipSizeDeIterator[A any, B any](a SizeDeIterator[A], b SizeDeIterator[B]) *ZipSizeDeIterator[A, B] {
-	p := &ZipSizeDeIterator[A, B]{a: a, b: b}
+func newZipDeIterator[A any, B any](a DeIterator[A], b DeIterator[B]) *ZipDeIterator[A, B] {
+	p := &ZipDeIterator[A, B]{a: a, b: b}
 	p.setFacade(p)
 	return p
 }
 
-// ZipSizeDeIterator is a double-ended 2-in-1 iterator with explicit size
-type ZipSizeDeIterator[A any, B any] struct {
-	sizeDeIterTrait[gust.Pair[A, B]]
-	a SizeDeIterator[A]
-	b SizeDeIterator[B]
+// ZipDeIterator is a double-ended 2-in-1 iterator with explicit size
+type ZipDeIterator[A any, B any] struct {
+	deIterBackground[gust.Pair[A, B]]
+	a DeIterator[A]
+	b DeIterator[B]
 }
 
-func (s ZipSizeDeIterator[A, B]) realRemaining() uint {
+func (s ZipDeIterator[A, B]) realRemaining() uint {
 	aLen := s.a.Remaining()
 	bLen := s.b.Remaining()
 	if aLen < bLen {
@@ -107,7 +107,7 @@ func (s ZipSizeDeIterator[A, B]) realRemaining() uint {
 	return bLen
 }
 
-func (s ZipSizeDeIterator[A, B]) realNextBack() gust.Option[gust.Pair[A, B]] {
+func (s ZipDeIterator[A, B]) realNextBack() gust.Option[gust.Pair[A, B]] {
 	var aLen = s.a.Remaining()
 	var bLen = s.b.Remaining()
 	if aLen != bLen {
@@ -132,7 +132,7 @@ func (s ZipSizeDeIterator[A, B]) realNextBack() gust.Option[gust.Pair[A, B]] {
 	return gust.None[gust.Pair[A, B]]()
 }
 
-func (s ZipSizeDeIterator[A, B]) SuperNth(n uint) gust.Option[gust.Pair[A, B]] {
+func (s ZipDeIterator[A, B]) SuperNth(n uint) gust.Option[gust.Pair[A, B]] {
 	for {
 		p := s.Next()
 		if p.IsNone() {
@@ -145,7 +145,7 @@ func (s ZipSizeDeIterator[A, B]) SuperNth(n uint) gust.Option[gust.Pair[A, B]] {
 	}
 }
 
-func (s ZipSizeDeIterator[A, B]) realNext() gust.Option[gust.Pair[A, B]] {
+func (s ZipDeIterator[A, B]) realNext() gust.Option[gust.Pair[A, B]] {
 	var x = s.a.Next()
 	if x.IsNone() {
 		return gust.None[gust.Pair[A, B]]()
@@ -157,7 +157,7 @@ func (s ZipSizeDeIterator[A, B]) realNext() gust.Option[gust.Pair[A, B]] {
 	return gust.Some(gust.Pair[A, B]{A: x.Unwrap(), B: y.Unwrap()})
 }
 
-func (s ZipSizeDeIterator[A, B]) realSizeHint() (uint, gust.Option[uint]) {
+func (s ZipDeIterator[A, B]) realSizeHint() (uint, gust.Option[uint]) {
 	var aLower, aUpper = s.a.SizeHint()
 	var bLower, bUpper = s.b.SizeHint()
 
@@ -181,6 +181,6 @@ func (s ZipSizeDeIterator[A, B]) realSizeHint() (uint, gust.Option[uint]) {
 	return lower, upper
 }
 
-func (s ZipSizeDeIterator[A, B]) realNth(n uint) gust.Option[gust.Pair[A, B]] {
+func (s ZipDeIterator[A, B]) realNth(n uint) gust.Option[gust.Pair[A, B]] {
 	return s.SuperNth(n)
 }

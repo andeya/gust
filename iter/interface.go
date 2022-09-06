@@ -5,9 +5,7 @@ import (
 )
 
 var (
-	_ Iterator[any]   = (DeIterator[any])(nil)
-	_ Iterator[any]   = (SizeDeIterator[any])(nil)
-	_ DeIterator[any] = (SizeDeIterator[any])(nil)
+	_ Iterator[any] = (DeIterator[any])(nil)
 )
 
 // Iterator is an interface for dealing with iterators.
@@ -284,7 +282,7 @@ type Iterator[T any] interface {
 	// more idiomatic to use a `for` loop, but `ForEach` may be more legible
 	// when processing items at the end of longer data chains. In some
 	// cases `ForEach` may also be faster than a loop, because it will use
-	// internal iteration on adapters like `ChainIterator`.
+	// internal iteration on adapters like `chainIterator`.
 	//
 	// # Examples
 	//
@@ -464,7 +462,7 @@ type Iterator[T any] interface {
 	// assert.Equal(t, result, A(Some("2")));
 	//
 	// var result = FromVec(a).TryFind(func(s string)bool{return is_my_num(s, 5)});
-	// assert.True(t, result.AsError());
+	// assert.True(t, result.IsErr());
 	TryFind(predicate func(T) gust.Result[bool]) gust.Result[gust.Option[T]]
 	// Position searches for an element in a data, returning its index.
 	//
@@ -521,7 +519,7 @@ type Iterator[T any] interface {
 	// regardless of the step given.
 	//
 	// Note 2: The time at which ignored elements are pulled is not fixed.
-	// `StepByIterator` behaves like the sequence `iter.Next()`, `iter.Nth(step-1)`,
+	// `stepByIterator` behaves like the sequence `iter.Next()`, `iter.Nth(step-1)`,
 	// `iter.Nth(step-1)`, …, but is also free to behave like the sequence.
 	//
 	// # Examples
@@ -535,7 +533,7 @@ type Iterator[T any] interface {
 	// assert.Equal(t, iter.Next(), gust.Some(2));
 	// assert.Equal(t, iter.Next(), gust.Some(4));
 	// assert.Equal(t, iter.Next(), gust.None[T]());
-	StepBy(step uint) *StepByIterator[T]
+	StepBy(step uint) Iterator[T]
 	// Filter creates an iterator which uses a closure to determine if an element
 	// should be yielded.
 	//
@@ -558,7 +556,7 @@ type Iterator[T any] interface {
 	// ```
 	//
 	// Note that `iter.Filter(f).Next()` is equivalent to `iter.Find(f)`.
-	Filter(f func(T) bool) *FilterIterator[T]
+	Filter(f func(T) bool) Iterator[T]
 	// FilterMap creates an iterator that both filters and maps.
 	//
 	// The returned iterator yields only the `value`s for which the supplied
@@ -581,9 +579,9 @@ type Iterator[T any] interface {
 	// assert.Equal(iter.Next(), gust.Some(5));
 	// assert.Equal(iter.Next(), gust.None[string]());
 	// ```
-	FilterMap(f func(T) gust.Option[T]) *FilterMapIterator[T, T]
+	FilterMap(f func(T) gust.Option[T]) Iterator[T]
 	// XFilterMap creates an iterator that both filters and maps.
-	XFilterMap(f func(T) gust.Option[any]) *FilterMapIterator[T, any]
+	XFilterMap(f func(T) gust.Option[any]) Iterator[any]
 	// Chain takes two iterators and creates a new data over both in sequence.
 	//
 	// `Chain()` will return a new data which will first iterate over
@@ -613,7 +611,7 @@ type Iterator[T any] interface {
 	// assert.Equal(t, iter.Next(), gust.Some(6));
 	// assert.Equal(t, iter.Next(), gust.None[int]());
 	//
-	Chain(other Iterator[T]) *ChainIterator[T]
+	Chain(other Iterator[T]) Iterator[T]
 	// Map takes a closure and creates an iterator which calls that closure on each
 	// element.
 	//
@@ -642,18 +640,18 @@ type Iterator[T any] interface {
 	// assert.Equal(iter.Next(), gust.None[int]());
 	// ```
 	//
-	Map(f func(T) T) *MapIterator[T, T]
+	Map(f func(T) T) Iterator[T]
 	// XMap takes a closure and creates an iterator which calls that closure on each
 	// element.
-	XMap(f func(T) any) *MapIterator[T, any]
+	XMap(f func(T) any) Iterator[any]
 	// Inspect takes a closure and executes it with each element.
-	Inspect(f func(T)) *InspectIterator[T]
+	Inspect(f func(T)) Iterator[T]
 	// Fuse creates an iterator which ends after the first [`gust.None[T]()`].
 	//
 	// After an iterator returns [`gust.None[T]()`], future calls may or may not yield
 	// [`gust.Some(T)`] again. `Fuse()` adapts an iterator, ensuring that after a
 	// [`gust.None[T]()`] is given, it will always return [`gust.None[T]()`] forever.
-	Fuse() *FuseIterator[T]
+	Fuse() Iterator[T]
 	Peekable() PeekableIterator[T]
 	// Collect collects all the items in the iterator into a slice.
 	Collect() []T
@@ -727,25 +725,25 @@ type (
 	}
 
 	iRealStepBy[T any] interface {
-		realStepBy(step uint) *StepByIterator[T]
+		realStepBy(step uint) Iterator[T]
 	}
 
 	iRealFilter[T any] interface {
-		realFilter(f func(T) bool) *FilterIterator[T]
+		realFilter(f func(T) bool) Iterator[T]
 	}
 
 	iRealFilterMap[T any] interface {
-		realFilterMap(f func(T) gust.Option[T]) *FilterMapIterator[T, T]
-		realXFilterMap(f func(T) gust.Option[any]) *FilterMapIterator[T, any]
+		realFilterMap(f func(T) gust.Option[T]) Iterator[T]
+		realXFilterMap(f func(T) gust.Option[any]) Iterator[any]
 	}
 
 	iRealChain[T any] interface {
-		realChain(other Iterator[T]) *ChainIterator[T]
+		realChain(other Iterator[T]) Iterator[T]
 	}
 
 	iRealMap[T any] interface {
-		realMap(f func(T) T) *MapIterator[T, T]
-		realXMap(f func(T) any) *MapIterator[T, any]
+		realMap(f func(T) T) Iterator[T]
+		realXMap(f func(T) any) Iterator[any]
 	}
 
 	iRealFindMap[T any] interface {
@@ -769,9 +767,10 @@ type (
 		// After an iterator returns [`gust.None[T]()`], future calls may or may not yield
 		// [`gust.Some(T)`] again. `Fuse()` adapts an iterator, ensuring that after a
 		// [`gust.None[T]()`] is given, it will always return [`gust.None[T]()`] forever.
-		DeFuse() *FuseDeIterator[T]
+		DeFuse() DeIterator[T]
 		// DePeekable creates a double ended iterator which can peek at the next element.
 		DePeekable() DePeekableIterator[T]
+		iRemaining[T]
 	}
 
 	iNextBack[T any] interface {
@@ -865,26 +864,13 @@ type (
 )
 
 type (
-	// SizeDeIterator is a double ended iterator that knows the exact size.
-	SizeDeIterator[T any] interface {
-		DeIterator[T]
-		iRemaining[T]
-		SizeDePeekable() SizeDePeekableIterator[T]
-	}
-	iRealSizeDeIterable[T any] interface {
-		iRealDeIterable[T]
-		iRealRemaining
-	}
-)
-
-type (
 	iIntersperse[T any] interface {
 		// Intersperse creates a new iterator which places a copy of `separator` between adjacent
 		// items of the original iterator.
-		Intersperse(separator T) *IntersperseIterator[T]
+		Intersperse(separator T) Iterator[T]
 		// IntersperseWith creates a new iterator which places an item generated by `separator`
 		// between adjacent items of the original iterator.
-		IntersperseWith(separator func() T) *IntersperseIterator[T]
+		IntersperseWith(separator func() T) Iterator[T]
 	}
 	iPeek[T any] interface {
 		// Peek returns a pointer to the Next() value without advancing the iterator.
@@ -899,11 +885,7 @@ type (
 		iPeek[T]
 	}
 	DePeekableIterator[T any] interface {
-		SizeDeIterator[T]
-		iPeek[T]
-	}
-	SizeDePeekableIterator[T any] interface {
-		SizeDeIterator[T]
+		DeIterator[T]
 		iPeek[T]
 	}
 )
