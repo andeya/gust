@@ -1,5 +1,18 @@
 package gust
 
+// AnyCtrlFlow is a placeholder for wildcard control flow statements.
+type AnyCtrlFlow = CtrlFlow[any, any]
+
+// AnyContinue returns a AnyCtrlFlow that tells the operation to continue.
+func AnyContinue(c any) AnyCtrlFlow {
+	return CtrlFlow[any, any]{_continue: Some(c)}
+}
+
+// AnyBreak returns a AnyCtrlFlow that tells the operation to break.
+func AnyBreak(b any) AnyCtrlFlow {
+	return CtrlFlow[any, any]{_break: Some(b)}
+}
+
 // CtrlFlow is used to tell an operation whether it should exit early or go on as usual.
 //
 // This is used when exposing things (like graph traversals or visitors) where
@@ -9,10 +22,12 @@ type CtrlFlow[B any, C any] struct {
 	_continue Option[C]
 }
 
+// Continue returns a CtrlFlow that tells the operation to continue.
 func Continue[B any, C any](c C) CtrlFlow[B, C] {
 	return CtrlFlow[B, C]{_continue: Some(c)}
 }
 
+// Break returns a CtrlFlow that tells the operation to break.
 func Break[B any, C any](b B) CtrlFlow[B, C] {
 	return CtrlFlow[B, C]{_break: Some(b)}
 }
