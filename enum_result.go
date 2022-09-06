@@ -59,6 +59,14 @@ func (r EnumResult[T, E]) String() string {
 	return fmt.Sprintf("Ok(%v)", r.safeGetT())
 }
 
+// Result converts from `EnumResult[T,E]` to `Result[T]`.
+func (r EnumResult[T, E]) Result() Result[T] {
+	if r.IsErr() {
+		return Err[T](r.safeGetE())
+	}
+	return Ok[T](r.safeGetT())
+}
+
 // IsOkAnd returns true if the result is Ok and the value inside it matches a predicate.
 func (r EnumResult[T, E]) IsOkAnd(f func(T) bool) bool {
 	if r.IsOk() {
@@ -383,4 +391,12 @@ func (r EnumResult[T, E]) Remaining() uint {
 		return 0
 	}
 	return 1
+}
+
+// Branch returns the `CtrlFlow[E, T]`.
+func (r EnumResult[T, E]) Branch() CtrlFlow[E, T] {
+	if r.IsErr() {
+		return Break[E, T](r.UnwrapErr())
+	}
+	return Continue[E, T](r.Unwrap())
 }
