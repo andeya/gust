@@ -5,7 +5,6 @@ import (
 )
 
 var (
-	_ iPeek[any]         = (*implPeekable[any])(nil)
 	_ iRealNext[any]     = (*implPeekable[any])(nil)
 	_ iRealCount         = (*implPeekable[any])(nil)
 	_ iRealNth[any]      = (*implPeekable[any])(nil)
@@ -19,25 +18,45 @@ var (
 )
 
 func newPeekableIterator[T any](iter Iterator[T]) PeekableIterator[T] {
-	p := struct {
-		iterTrait[T]
-		implPeekable[T]
-	}{
+	p := peekableIterator[T]{
 		implPeekable: implPeekable[T]{iter: iter},
 	}
 	p.setFacade(p)
 	return p
 }
 
+type peekableIterator[T any] struct {
+	iterTrait[T]
+	implPeekable[T]
+}
+
+func (s peekableIterator[T]) Intersperse(separator T) IntersperseIterator[T] {
+	return newIntersperseIterator[T](s, separator)
+}
+
+func (s peekableIterator[T]) IntersperseWith(separator func() T) IntersperseIterator[T] {
+	return newIntersperseWithIterator[T](s, separator)
+}
+
 func newSizeDePeekableIterator[T any](iter SizeDeIterator[T]) SizeDePeekableIterator[T] {
-	p := struct {
-		sizeDeIterTrait[T]
-		implPeekable[T]
-	}{
+	p := sizeDePeekableIterator[T]{
 		implPeekable: implPeekable[T]{iter: iter},
 	}
 	p.setFacade(p)
 	return p
+}
+
+type sizeDePeekableIterator[T any] struct {
+	sizeDeIterTrait[T]
+	implPeekable[T]
+}
+
+func (s sizeDePeekableIterator[T]) Intersperse(separator T) IntersperseIterator[T] {
+	return newIntersperseIterator[T](s, separator)
+}
+
+func (s sizeDePeekableIterator[T]) IntersperseWith(separator func() T) IntersperseIterator[T] {
+	return newIntersperseWithIterator[T](s, separator)
 }
 
 type implPeekable[T any] struct {

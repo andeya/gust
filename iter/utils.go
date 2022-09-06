@@ -13,6 +13,13 @@ func saturatingAdd(a, b uint) uint {
 	return math.MaxUint
 }
 
+func saturatingSub(a, b uint) uint {
+	if a > b {
+		return a - b
+	}
+	return 0
+}
+
 func checkedAdd(a, b uint) gust.Option[uint] {
 	if a <= math.MaxUint-b {
 		return gust.Some(a + b)
