@@ -312,3 +312,13 @@ func Flatten[T any, D gust.Iterable[T]](iter Iterator[D]) *FlattenIterator[T, D]
 func DeFlatten[T any, D gust.DeIterable[T]](iter DeIterator[D]) *FlattenDeIterator[T, D] {
 	return newFlattenDeIterator[T, D](iter)
 }
+
+// Enumerate creates an iterator that yields pairs of the index and the value.
+func Enumerate[T any](iter Iterator[T]) Iterator[KV[T]] {
+	return newEnumerateIterator(iter)
+}
+
+// DeEnumerate creates a double ended iterator that yields pairs of the index and the value.
+func DeEnumerate[T any](iter DeIterator[T]) DeIterator[KV[T]] {
+	return newDeEnumerateIterator(iter)
+}

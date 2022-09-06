@@ -322,15 +322,15 @@ type deIterBackground[T any] struct {
 }
 
 //goland:noinspection GoMixedReceiverTypes
-func (d *deIterBackground[T]) setFacade(facade iRealDeIterable[T]) {
-	d.iterBackground.facade = facade
+func (iter *deIterBackground[T]) setFacade(facade iRealDeIterable[T]) {
+	iter.iterBackground.facade = facade
 }
 
-func (d deIterBackground[T]) Remaining() uint {
-	if size, ok := d.facade.(iRealRemaining); ok {
+func (iter deIterBackground[T]) Remaining() uint {
+	if size, ok := iter.facade.(iRealRemaining); ok {
 		return size.realRemaining()
 	}
-	return defaultRemaining[T](d)
+	return defaultRemaining[T](iter)
 }
 
 func defaultRemaining[T any](iter Iterator[T]) uint {
@@ -343,48 +343,48 @@ func defaultRemaining[T any](iter Iterator[T]) uint {
 	return lo
 }
 
-func (d deIterBackground[T]) NextBack() gust.Option[T] {
-	return d.facade.(iRealDeIterable[T]).realNextBack()
+func (iter deIterBackground[T]) NextBack() gust.Option[T] {
+	return iter.facade.(iRealDeIterable[T]).realNextBack()
 }
 
-func (d deIterBackground[T]) AdvanceBackBy(n uint) gust.Errable[uint] {
-	if cover, ok := d.facade.(iRealAdvanceBackBy[T]); ok {
+func (iter deIterBackground[T]) AdvanceBackBy(n uint) gust.Errable[uint] {
+	if cover, ok := iter.facade.(iRealAdvanceBackBy[T]); ok {
 		return cover.realAdvanceBackBy(n)
 	}
 	for i := uint(0); i < n; i++ {
-		if d.NextBack().IsNone() {
+		if iter.NextBack().IsNone() {
 			return gust.ToErrable[uint](i)
 		}
 	}
 	return gust.NonErrable[uint]()
 }
 
-func (d deIterBackground[T]) NthBack(n uint) gust.Option[T] {
-	if cover, ok := d.facade.(iRealNthBack[T]); ok {
+func (iter deIterBackground[T]) NthBack(n uint) gust.Option[T] {
+	if cover, ok := iter.facade.(iRealNthBack[T]); ok {
 		return cover.realNthBack(n)
 	}
-	if d.AdvanceBackBy(n).IsErr() {
+	if iter.AdvanceBackBy(n).IsErr() {
 		return gust.None[T]()
 	}
-	return d.NextBack()
+	return iter.NextBack()
 }
 
-func (d deIterBackground[T]) TryRfold(init any, fold func(any, T) gust.Result[any]) gust.Result[any] {
-	if cover, ok := d.facade.(iRealTryRfold[T]); ok {
+func (iter deIterBackground[T]) TryRfold(init any, fold func(any, T) gust.Result[any]) gust.Result[any] {
+	if cover, ok := iter.facade.(iRealTryRfold[T]); ok {
 		return cover.realTryRfold(init, fold)
 	}
-	return TryRfold[T](d, init, fold)
+	return TryRfold[T](iter, init, fold)
 }
 
-func (d deIterBackground[T]) Rfold(init any, fold func(any, T) any) any {
-	if cover, ok := d.facade.(iRealRfold[T]); ok {
+func (iter deIterBackground[T]) Rfold(init any, fold func(any, T) any) any {
+	if cover, ok := iter.facade.(iRealRfold[T]); ok {
 		return cover.realRfold(init, fold)
 	}
-	return Rfold[T](d, init, fold)
+	return Rfold[T](iter, init, fold)
 }
 
-func (d deIterBackground[T]) Rfind(predicate func(T) bool) gust.Option[T] {
-	if cover, ok := d.facade.(iRealRfind[T]); ok {
+func (iter deIterBackground[T]) Rfind(predicate func(T) bool) gust.Option[T] {
+	if cover, ok := iter.facade.(iRealRfind[T]); ok {
 		return cover.realRfind(predicate)
 	}
 	var check = func(f func(T) bool) func(any, T) gust.Result[any] {
@@ -396,21 +396,17 @@ func (d deIterBackground[T]) Rfind(predicate func(T) bool) gust.Option[T] {
 			}
 		}
 	}
-	r := d.TryRfold(nil, check(predicate))
+	r := iter.TryRfold(nil, check(predicate))
 	if r.IsErr() {
 		return gust.Some[T](r.ErrVal().(T))
 	}
 	return gust.None[T]()
 }
 
-func (d deIterBackground[T]) DeFuse() DeIterator[T] {
-	return newFuseDeIterator[T](d)
+func (iter deIterBackground[T]) DeFuse() DeIterator[T] {
+	return newFuseDeIterator[T](iter)
 }
 
-func (d deIterBackground[T]) DePeekable() DePeekableIterator[T] {
-	return newDePeekableIterator[T](d)
-}
-
-func (d deIterBackground[T]) SizeDePeekable() DePeekableIterator[T] {
-	return newDePeekableIterator[T](d)
+func (iter deIterBackground[T]) DePeekable() DePeekableIterator[T] {
+	return newDePeekableIterator[T](iter)
 }
