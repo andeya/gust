@@ -17,7 +17,12 @@ func FromIterable[T any](data gust.Iterable[T]) Iterator[T] {
 	return fromIterable[T](data)
 }
 
-// FromDeIterable creates an iterator from an Iterable.
+// EnumIterable creates an iterator with index from an Iterable.
+func EnumIterable[T any](data gust.Iterable[T]) Iterator[KV[T]] {
+	return Enumerate[T](FromIterable[T](data))
+}
+
+// FromDeIterable creates a double ended iterator from an Iterable.
 func FromDeIterable[T any](data gust.DeIterable[T]) DeIterator[T] {
 	iter, _ := data.(DeIterator[T])
 	if iter != nil {
@@ -26,19 +31,39 @@ func FromDeIterable[T any](data gust.DeIterable[T]) DeIterator[T] {
 	return fromDeIterable[T](data)
 }
 
-// FromVec creates an iterator from a slice.
+// EnumDeIterable creates a double ended iterator with index from an Iterable.
+func EnumDeIterable[T any](data gust.DeIterable[T]) DeIterator[KV[T]] {
+	return DeEnumerate[T](FromDeIterable[T](data))
+}
+
+// FromVec creates a double ended iterator from a slice.
 func FromVec[T any](slice []T) DeIterator[T] {
 	return NewIterableVec(slice).ToDeIterator()
 }
 
-// FromElements creates an iterator from a set of elements.
-func FromElements[T any](elem ...T) DeIterator[T] {
-	return NewIterableVec(elem).ToDeIterator()
+// EnumVec creates a double ended iterator with index from a slice.
+func EnumVec[T any](slice []T) DeIterator[KV[T]] {
+	return DeEnumerate[T](FromVec[T](slice))
 }
 
-// FromRange creates an iterator from a range.
+// FromElements creates a double ended iterator from a set of elements.
+func FromElements[T any](elems ...T) DeIterator[T] {
+	return NewIterableVec(elems).ToDeIterator()
+}
+
+// EnumElements creates a double ended iterator with index from a set of elements.
+func EnumElements[T any](elems ...T) DeIterator[KV[T]] {
+	return DeEnumerate[T](FromVec[T](elems))
+}
+
+// FromRange creates a double ended iterator from a range.
 func FromRange[T digit.Integer](start T, end T, rightClosed ...bool) DeIterator[T] {
 	return NewIterableRange[T](start, end, rightClosed...).ToDeIterator()
+}
+
+// EnumRange creates a double ended iterator with index from a range.
+func EnumRange[T digit.Integer](start T, end T, rightClosed ...bool) DeIterator[KV[T]] {
+	return DeEnumerate[T](FromRange[T](start, end, rightClosed...))
 }
 
 // FromChan creates an iterator from a channel.
@@ -46,17 +71,32 @@ func FromChan[T any](c chan T) Iterator[T] {
 	return NewIterableChan[T](c).ToIterator()
 }
 
-// FromResult creates an iterator from a result.
+// EnumChan creates an iterator with index from a channel.
+func EnumChan[T any](c chan T) Iterator[KV[T]] {
+	return Enumerate[T](FromChan(c))
+}
+
+// FromResult creates a double ended iterator from a result.
 func FromResult[T any](ret gust.Result[T]) DeIterator[T] {
 	return FromDeIterable[T](ret)
 }
 
-// FromOption creates an iterator from an option.
+// EnumResult creates a double ended iterator with index from a result.
+func EnumResult[T any](ret gust.Result[T]) DeIterator[KV[T]] {
+	return EnumDeIterable[T](ret)
+}
+
+// FromOption creates a double ended iterator from an option.
 func FromOption[T any](opt gust.Option[T]) DeIterator[T] {
 	return FromDeIterable[T](opt)
 }
 
-// FromString creates an iterator from a string.
+// EnumOption creates a double ended iterator with index from an option.
+func EnumOption[T any](opt gust.Option[T]) DeIterator[KV[T]] {
+	return EnumDeIterable[T](opt)
+}
+
+// FromString creates a double ended iterator from a string.
 func FromString[T ~byte | ~rune](s string) DeIterator[T] {
 	if len(s) == 0 {
 		return NewIterableVec[T]([]T{}).ToDeIterator()
@@ -84,6 +124,11 @@ func FromString[T ~byte | ~rune](s string) DeIterator[T] {
 		b = b[size:]
 	}
 	return NewIterableVec[T](rs).ToDeIterator()
+}
+
+// EnumString creates a double ended iterator with index from a string.
+func EnumString[T ~byte | ~rune](s string) DeIterator[KV[T]] {
+	return DeEnumerate[T](FromString[T](s))
 }
 
 // TryFold a data method that applies a function as long as it returns
