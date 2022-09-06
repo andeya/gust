@@ -173,36 +173,36 @@ func (s *implPeekable[T]) realSizeHint() (uint, gust.Option[uint]) {
 	return lo, hi
 }
 
-func (s *implPeekable[T]) realTryFold(init any, f func(any, T) gust.Result[any]) gust.Result[any] {
+func (s *implPeekable[T]) realTryFold(init any, f func(any, T) gust.AnyCtrlFlow) gust.AnyCtrlFlow {
 	var acc = init
 	taken := s.peeked.Take()
 	if taken.IsSome() {
 		peeked := taken.Unwrap()
 		if peeked.IsNone() {
-			return gust.Ok(init)
+			return gust.AnyContinue(init)
 		}
 		x := f(init, peeked.Unwrap())
-		if x.IsErr() {
+		if x.IsBreak() {
 			return x
 		}
-		acc = x.Unwrap()
+		acc = x.UnwrapContinue()
 	}
 	return TryFold[T, any](s.iter, acc, f)
 }
 
-func (s *implPeekable[T]) realTryRfold(init any, fold func(any, T) gust.Result[any]) gust.Result[any] {
+func (s *implPeekable[T]) realTryRfold(init any, fold func(any, T) gust.AnyCtrlFlow) gust.AnyCtrlFlow {
 	var taken = s.peeked.Take()
 	if taken.IsNone() {
 		return TryRfold[T, any](s.iter.(DeIterator[T]), init, fold)
 	}
 	peeked := taken.Unwrap()
 	if peeked.IsNone() {
-		return gust.Ok(init)
+		return gust.AnyContinue(init)
 	}
 	v := peeked.Unwrap()
 	r := TryRfold[T, any](s.iter.(DeIterator[T]), init, fold)
-	if r.IsOk() {
-		return fold(r.Unwrap(), v)
+	if r.IsContinue() {
+		return fold(r.UnwrapContinue(), v)
 	}
 	s.peeked = taken
 	return r

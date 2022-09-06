@@ -74,8 +74,8 @@ func (f FlattenIterator[T, D]) realSizeHint() (uint, gust.Option[uint]) {
 	return lo, gust.None[uint]()
 }
 
-func (f FlattenIterator[T, D]) realTryFold(init any, fold func(any, T) gust.Result[any]) gust.Result[any] {
-	return f.iterTryFold(init, func(acc any, item Iterator[T]) gust.Result[any] {
+func (f FlattenIterator[T, D]) realTryFold(init any, fold func(any, T) gust.AnyCtrlFlow) gust.AnyCtrlFlow {
+	return f.iterTryFold(init, func(acc any, item Iterator[T]) gust.AnyCtrlFlow {
 		return item.TryFold(acc, fold)
 	})
 }
@@ -86,15 +86,15 @@ func (f FlattenIterator[T, D]) realFold(init any, fold func(any, T) any) any {
 	})
 }
 
-func (f FlattenIterator[T, D]) iterTryFold(acc any, fold func(any, Iterator[T]) gust.Result[any]) gust.Result[any] {
-	var flatten = func(frontiter *gust.Option[Iterator[T]], fold func(any, Iterator[T]) gust.Result[any]) func(any, D) gust.Result[any] {
-		return func(acc any, iter D) gust.Result[any] {
+func (f FlattenIterator[T, D]) iterTryFold(acc any, fold func(any, Iterator[T]) gust.AnyCtrlFlow) gust.AnyCtrlFlow {
+	var flatten = func(frontiter *gust.Option[Iterator[T]], fold func(any, Iterator[T]) gust.AnyCtrlFlow) func(any, D) gust.AnyCtrlFlow {
+		return func(acc any, iter D) gust.AnyCtrlFlow {
 			return fold(acc, *frontiter.Insert(FromIterable[T](iter)))
 		}
 	}
 	if f.frontiter.IsSome() {
 		x := fold(acc, f.frontiter.Unwrap())
-		if x.IsErr() {
+		if x.IsBreak() {
 			return x
 		}
 		acc = x
@@ -106,13 +106,13 @@ func (f FlattenIterator[T, D]) iterTryFold(acc any, fold func(any, Iterator[T]) 
 
 	if f.backiter.IsSome() {
 		x := fold(acc, f.backiter.Unwrap())
-		if x.IsErr() {
+		if x.IsBreak() {
 			return x
 		}
 		acc = x
 		f.backiter = gust.None[Iterator[T]]()
 	}
-	return gust.Ok(acc)
+	return gust.AnyContinue(acc)
 }
 
 func (f FlattenIterator[T, D]) iterFold(acc any, fold func(any, Iterator[T]) any) any {
@@ -129,16 +129,16 @@ func (f FlattenIterator[T, D]) iterFold(acc any, fold func(any, Iterator[T]) any
 }
 
 func (f FlattenIterator[T, D]) realAdvanceBy(n uint) gust.Errable[uint] {
-	var advance = func(n any, iter Iterator[T]) gust.Result[any] {
+	var advance = func(n any, iter Iterator[T]) gust.AnyCtrlFlow {
 		x := iter.AdvanceBy(n.(uint))
 		if x.IsErr() {
-			return gust.Err[any](n.(uint) - x.UnwrapErr())
+			return gust.AnyBreak(n.(uint) - x.UnwrapErr())
 		}
-		return gust.Ok[any](nil)
+		return gust.AnyContinue(nil)
 	}
 	x := f.iterTryFold(n, advance)
-	if x.IsErr() {
-		remaining := x.ErrVal().(uint)
+	if x.IsBreak() {
+		remaining := x.UnwrapBreak().(uint)
 		if remaining > 0 {
 			return gust.ToErrable(n - remaining)
 		}
@@ -261,14 +261,14 @@ func (f FlattenDeIterator[T, D]) realSizeHint() (uint, gust.Option[uint]) {
 	return lo, gust.None[uint]()
 }
 
-func (f FlattenDeIterator[T, D]) realTryFold(init any, fold func(any, T) gust.Result[any]) gust.Result[any] {
-	return f.iterTryFold(init, func(acc any, item DeIterator[T]) gust.Result[any] {
+func (f FlattenDeIterator[T, D]) realTryFold(init any, fold func(any, T) gust.AnyCtrlFlow) gust.AnyCtrlFlow {
+	return f.iterTryFold(init, func(acc any, item DeIterator[T]) gust.AnyCtrlFlow {
 		return item.TryFold(acc, fold)
 	})
 }
 
-func (f FlattenDeIterator[T, D]) realTryRfold(init any, fold func(any, T) gust.Result[any]) gust.Result[any] {
-	return f.iterTryRfold(init, func(acc any, item DeIterator[T]) gust.Result[any] {
+func (f FlattenDeIterator[T, D]) realTryRfold(init any, fold func(any, T) gust.AnyCtrlFlow) gust.AnyCtrlFlow {
+	return f.iterTryRfold(init, func(acc any, item DeIterator[T]) gust.AnyCtrlFlow {
 		return item.TryRfold(acc, fold)
 	})
 }
@@ -286,16 +286,16 @@ func (f FlattenDeIterator[T, D]) realRfold(init any, fold func(any, T) any) any 
 }
 
 func (f FlattenDeIterator[T, D]) realAdvanceBy(n uint) gust.Errable[uint] {
-	var advance = func(n any, iter DeIterator[T]) gust.Result[any] {
+	var advance = func(n any, iter DeIterator[T]) gust.AnyCtrlFlow {
 		x := iter.AdvanceBy(n.(uint))
 		if x.IsErr() {
-			return gust.Err[any](n.(uint) - x.UnwrapErr())
+			return gust.AnyBreak(n.(uint) - x.UnwrapErr())
 		}
-		return gust.Ok[any](nil)
+		return gust.AnyContinue(nil)
 	}
 	x := f.iterTryFold(n, advance)
-	if x.IsErr() {
-		remaining := x.ErrVal().(uint)
+	if x.IsBreak() {
+		remaining := x.UnwrapBreak().(uint)
 		if remaining > 0 {
 			return gust.ToErrable(n - remaining)
 		}
@@ -304,16 +304,16 @@ func (f FlattenDeIterator[T, D]) realAdvanceBy(n uint) gust.Errable[uint] {
 }
 
 func (f FlattenDeIterator[T, D]) realAdvanceBackBy(n uint) gust.Errable[uint] {
-	var advance = func(n any, iter DeIterator[T]) gust.Result[any] {
+	var advance = func(n any, iter DeIterator[T]) gust.AnyCtrlFlow {
 		x := iter.AdvanceBackBy(n.(uint))
 		if x.IsErr() {
-			return gust.Err[any](n.(uint) - x.UnwrapErr())
+			return gust.AnyBreak(n.(uint) - x.UnwrapErr())
 		}
-		return gust.Ok[any](nil)
+		return gust.AnyContinue(nil)
 	}
 	x := f.iterTryRfold(n, advance)
-	if x.IsErr() {
-		remaining := x.ErrVal().(uint)
+	if x.IsBreak() {
+		remaining := x.UnwrapBreak().(uint)
 		if remaining > 0 {
 			return gust.ToErrable(n - remaining)
 		}
@@ -335,15 +335,15 @@ func (f FlattenDeIterator[T, D]) realLast() gust.Option[T] {
 	return f.iterFold(gust.None[T](), last).(gust.Option[T])
 }
 
-func (f FlattenDeIterator[T, D]) iterTryFold(acc any, fold func(any, DeIterator[T]) gust.Result[any]) gust.Result[any] {
-	var flatten = func(frontiter *gust.Option[DeIterator[T]], fold func(any, DeIterator[T]) gust.Result[any]) func(any, D) gust.Result[any] {
-		return func(acc any, iter D) gust.Result[any] {
+func (f FlattenDeIterator[T, D]) iterTryFold(acc any, fold func(any, DeIterator[T]) gust.AnyCtrlFlow) gust.AnyCtrlFlow {
+	var flatten = func(frontiter *gust.Option[DeIterator[T]], fold func(any, DeIterator[T]) gust.AnyCtrlFlow) func(any, D) gust.AnyCtrlFlow {
+		return func(acc any, iter D) gust.AnyCtrlFlow {
 			return fold(acc, *frontiter.Insert(FromDeIterable[T](iter)))
 		}
 	}
 	if f.frontiter.IsSome() {
 		x := fold(acc, f.frontiter.Unwrap())
-		if x.IsErr() {
+		if x.IsBreak() {
 			return x
 		}
 		acc = x
@@ -355,13 +355,13 @@ func (f FlattenDeIterator[T, D]) iterTryFold(acc any, fold func(any, DeIterator[
 
 	if f.backiter.IsSome() {
 		x := fold(acc, f.backiter.Unwrap())
-		if x.IsErr() {
+		if x.IsBreak() {
 			return x
 		}
 		acc = x
 		f.backiter = gust.None[DeIterator[T]]()
 	}
-	return gust.Ok(acc)
+	return gust.AnyContinue(acc)
 }
 
 func (f FlattenDeIterator[T, D]) iterFold(acc any, fold func(any, DeIterator[T]) any) any {
@@ -377,15 +377,15 @@ func (f FlattenDeIterator[T, D]) iterFold(acc any, fold func(any, DeIterator[T])
 	return acc
 }
 
-func (f FlattenDeIterator[T, D]) iterTryRfold(acc any, fold func(any, DeIterator[T]) gust.Result[any]) gust.Result[any] {
-	var flatten = func(backiter *gust.Option[DeIterator[T]], fold func(any, DeIterator[T]) gust.Result[any]) func(any, D) gust.Result[any] {
-		return func(acc any, iter D) gust.Result[any] {
+func (f FlattenDeIterator[T, D]) iterTryRfold(acc any, fold func(any, DeIterator[T]) gust.AnyCtrlFlow) gust.AnyCtrlFlow {
+	var flatten = func(backiter *gust.Option[DeIterator[T]], fold func(any, DeIterator[T]) gust.AnyCtrlFlow) func(any, D) gust.AnyCtrlFlow {
+		return func(acc any, iter D) gust.AnyCtrlFlow {
 			return fold(acc, *backiter.Insert(FromDeIterable[T](iter)))
 		}
 	}
 	if f.backiter.IsSome() {
 		x := fold(acc, f.backiter.Unwrap())
-		if x.IsErr() {
+		if x.IsBreak() {
 			return x
 		}
 		acc = x
@@ -397,13 +397,13 @@ func (f FlattenDeIterator[T, D]) iterTryRfold(acc any, fold func(any, DeIterator
 
 	if f.frontiter.IsSome() {
 		x := fold(acc, f.frontiter.Unwrap())
-		if x.IsErr() {
+		if x.IsBreak() {
 			return x
 		}
 		acc = x
 		f.frontiter = gust.None[DeIterator[T]]()
 	}
-	return gust.Ok(acc)
+	return gust.AnyContinue(acc)
 }
 
 func (f FlattenDeIterator[T, D]) iterRfold(acc any, fold func(any, DeIterator[T]) any) any {

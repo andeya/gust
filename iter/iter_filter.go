@@ -34,12 +34,12 @@ func (f filterIterator[T]) realFold(init any, fold func(any, T) any) any {
 	})
 }
 
-func (f filterIterator[T]) realTryFold(init any, fold func(any, T) gust.Result[any]) gust.Result[any] {
-	return f.iter.TryFold(init, func(acc any, item T) gust.Result[any] {
+func (f filterIterator[T]) realTryFold(init any, fold func(any, T) gust.AnyCtrlFlow) gust.AnyCtrlFlow {
+	return f.iter.TryFold(init, func(acc any, item T) gust.AnyCtrlFlow {
 		if f.predicate(item) {
 			return fold(acc, item)
 		}
-		return gust.Ok(acc)
+		return gust.AnyContinue(acc)
 	})
 }
 

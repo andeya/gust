@@ -32,8 +32,8 @@ func (s mapIterator[T, B]) realFold(init any, g func(any, B) any) any {
 	return Fold[T, any](s.iter, init, func(acc any, elt T) any { return g(acc, s.f(elt)) })
 }
 
-func (s mapIterator[T, B]) realTryFold(init any, g func(any, B) gust.Result[any]) gust.Result[any] {
-	return TryFold[T, any](s.iter, init, func(acc any, elt T) gust.Result[any] { return g(acc, s.f(elt)) })
+func (s mapIterator[T, B]) realTryFold(init any, g func(any, B) gust.AnyCtrlFlow) gust.AnyCtrlFlow {
+	return TryFold[T, any](s.iter, init, func(acc any, elt T) gust.AnyCtrlFlow { return g(acc, s.f(elt)) })
 }
 
 func (s mapIterator[T, B]) realNext() gust.Option[B] {

@@ -40,17 +40,17 @@ func (s *skipWhileIterator[T]) realSizeHint() (uint, gust.Option[uint]) {
 	return 0, upper // can't know a lower bound, due to the predicate
 }
 
-func (s *skipWhileIterator[T]) realTryFold(init any, fold func(any, T) gust.Result[any]) gust.Result[any] {
+func (s *skipWhileIterator[T]) realTryFold(init any, fold func(any, T) gust.AnyCtrlFlow) gust.AnyCtrlFlow {
 	if !s.flag {
 		next := s.realNext()
 		if next.IsNone() {
-			return gust.Ok[any](init)
+			return gust.AnyContinue(init)
 		}
 		r := fold(init, next.Unwrap())
-		if r.IsErr() {
+		if r.IsBreak() {
 			return r
 		}
-		init = r.Unwrap()
+		init = r.UnwrapContinue()
 	}
 	return s.iter.TryFold(init, fold)
 }

@@ -43,12 +43,12 @@ func (f filterMapIterator[T, B]) realFold(init any, fold func(any, B) any) any {
 	})
 }
 
-func (f filterMapIterator[T, B]) realTryFold(init any, fold func(any, B) gust.Result[any]) gust.Result[any] {
-	return f.iter.TryFold(init, func(acc any, item T) gust.Result[any] {
+func (f filterMapIterator[T, B]) realTryFold(init any, fold func(any, B) gust.AnyCtrlFlow) gust.AnyCtrlFlow {
+	return f.iter.TryFold(init, func(acc any, item T) gust.AnyCtrlFlow {
 		r := f.f(item)
 		if r.IsSome() {
 			return fold(acc, r.Unwrap())
 		}
-		return gust.Ok(acc)
+		return gust.AnyContinue(acc)
 	})
 }

@@ -39,8 +39,8 @@ func (s inspectIterator[T]) realSizeHint() (uint, gust.Option[uint]) {
 	return s.iter.SizeHint()
 }
 
-func (s inspectIterator[T]) realTryFold(init any, g func(any, T) gust.Result[any]) gust.Result[any] {
-	return TryFold[T, any](s.iter, init, func(acc any, elt T) gust.Result[any] {
+func (s inspectIterator[T]) realTryFold(init any, g func(any, T) gust.AnyCtrlFlow) gust.AnyCtrlFlow {
+	return TryFold[T, any](s.iter, init, func(acc any, elt T) gust.AnyCtrlFlow {
 		s.f(elt)
 		return g(acc, elt)
 	})

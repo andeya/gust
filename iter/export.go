@@ -144,15 +144,15 @@ func EnumString[T ~byte | ~rune](s string) DeIterator[KV[T]] {
 // var sum = FromVec(a).TryFold(0, func(acc int, x int) { return Ok(acc+x) });
 //
 // assert.Equal(t, sum, Ok(6));
-func TryFold[T any, B any](iter Iterator[T], init B, f func(B, T) gust.Result[B]) gust.Result[B] {
-	var accum = gust.Ok(init)
+func TryFold[T any, CB any](iter Iterator[T], init CB, f func(CB, T) gust.SigCtrlFlow[CB]) gust.SigCtrlFlow[CB] {
+	var accum = gust.SigContinue[CB](init)
 	for {
 		x := iter.Next()
 		if x.IsNone() {
 			return accum
 		}
-		accum = f(accum.Unwrap(), x.Unwrap())
-		if accum.IsErr() {
+		accum = f(accum.UnwrapContinue(), x.Unwrap())
+		if accum.IsBreak() {
 			return accum
 		}
 	}
@@ -321,15 +321,15 @@ func DeZip[A any, B any](a DeIterator[A], b DeIterator[B]) *ZipDeIterator[A, B] 
 
 // TryRfold is the reverse version of [`Iterator[T].TryFold()`]: it takes
 // elements starting from the back of the iterator.
-func TryRfold[T any, B any](iter DeIterator[T], init B, f func(B, T) gust.Result[B]) gust.Result[B] {
-	var accum = gust.Ok(init)
+func TryRfold[T any, CB any](iter DeIterator[T], init CB, f func(CB, T) gust.SigCtrlFlow[CB]) gust.SigCtrlFlow[CB] {
+	var accum = gust.SigContinue(init)
 	for {
 		x := iter.NextBack()
 		if x.IsNone() {
 			return accum
 		}
-		accum = f(accum.Unwrap(), x.Unwrap())
-		if accum.IsErr() {
+		accum = f(accum.UnwrapContinue(), x.Unwrap())
+		if accum.IsBreak() {
 			return accum
 		}
 	}

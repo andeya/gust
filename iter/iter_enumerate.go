@@ -67,8 +67,8 @@ func (f *enumerateIterator[T]) realCount() uint {
 	return f.iter.Count()
 }
 
-func (f *enumerateIterator[T]) realTryFold(acc any, fold func(any, KV[T]) gust.Result[any]) gust.Result[any] {
-	return f.iter.TryFold(acc, func(acc any, item T) gust.Result[any] {
+func (f *enumerateIterator[T]) realTryFold(acc any, fold func(any, KV[T]) gust.AnyCtrlFlow) gust.AnyCtrlFlow {
+	return f.iter.TryFold(acc, func(acc any, item T) gust.AnyCtrlFlow {
 		var r = fold(acc, KV[T]{Index: f.count, Value: item})
 		f.count += 1
 		return r
@@ -140,10 +140,10 @@ func (d *deEnumerateIterator[T]) realNthBack(n uint) gust.Option[KV[T]] {
 	return gust.Some(KV[T]{Index: d.count + sizeDeIter.Remaining(), Value: a.Unwrap()})
 }
 
-func (d *deEnumerateIterator[T]) realTryRfold(acc any, fold func(any, KV[T]) gust.Result[any]) gust.Result[any] {
+func (d *deEnumerateIterator[T]) realTryRfold(acc any, fold func(any, KV[T]) gust.AnyCtrlFlow) gust.AnyCtrlFlow {
 	var sizeDeIter = d.iter.(DeIterator[T])
 	var count = d.count + sizeDeIter.Remaining()
-	return sizeDeIter.TryRfold(acc, func(acc any, item T) gust.Result[any] {
+	return sizeDeIter.TryRfold(acc, func(acc any, item T) gust.AnyCtrlFlow {
 		count -= 1
 		return fold(acc, KV[T]{Index: count, Value: item})
 	})

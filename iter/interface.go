@@ -201,10 +201,10 @@ type Iterator[T any] interface {
 	// var a = []int{1, 2, 3};
 	//
 	// the checked sum of iAll the elements of the array
-	// var sum = FromVec(a).TryFold(0, func(acc any, x int) { return Ok(acc.(int)+x) });
+	// var sum = FromVec(a).TryFold(0, func(acc any, x int) gust.AnyCtrlFlow { return gust.Continue[any,any](acc.(int)+x) });
 	//
-	// assert.Equal(t, sum, Ok(6));
-	TryFold(init any, fold func(any, T) gust.Result[any]) gust.Result[any]
+	// assert.Equal(t,  gust.Continue[any,any](6), sum)
+	TryFold(init any, fold func(any, T) gust.AnyCtrlFlow) gust.AnyCtrlFlow
 	// Last consumes the data, returning the iLast element.
 	//
 	// This method will evaluate the data until it returns [`gust.None[T]()`]. While
@@ -670,6 +670,15 @@ type Iterator[T any] interface {
 	// After `false` is returned, `SkipWhile()`'s job is over, and the
 	// rest of the elements are yielded.
 	SkipWhile(predicate func(T) bool) Iterator[T]
+	// TakeWhile creates an iterator that yields elements based on a predicate.
+	//
+	// `TakeWhile()` takes a closure as an argument. It will call this
+	// closure on each element of the iterator, and yield elements
+	// while it returns `true`.
+	//
+	// After `false` is returned, `TakeWhile()`'s job is over, and the
+	// rest of the elements are ignored.
+	TakeWhile(predicate func(T) bool) Iterator[T]
 }
 
 type (
@@ -695,7 +704,7 @@ type (
 	}
 
 	iRealTryFold[T any] interface {
-		realTryFold(init any, fold func(any, T) gust.Result[any]) gust.Result[any]
+		realTryFold(init any, fold func(any, T) gust.AnyCtrlFlow) gust.AnyCtrlFlow
 	}
 
 	iRealLast[T any] interface {
@@ -836,10 +845,10 @@ type (
 	iTryRfold[T any] interface {
 		// TryRfold is the reverse version of [`Iterator[T].TryFold()`]: it takes
 		// elements starting from the back of the iterator.
-		TryRfold(init any, fold func(any, T) gust.Result[any]) gust.Result[any]
+		TryRfold(init any, fold func(any, T) gust.AnyCtrlFlow) gust.AnyCtrlFlow
 	}
 	iRealTryRfold[T any] interface {
-		realTryRfold(init any, fold func(any, T) gust.Result[any]) gust.Result[any]
+		realTryRfold(init any, fold func(any, T) gust.AnyCtrlFlow) gust.AnyCtrlFlow
 	}
 
 	iRfold[T any] interface {

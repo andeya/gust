@@ -113,24 +113,24 @@ func (s *chainIterator[T]) realFold(acc any, f func(any, T) any) any {
 	return acc
 }
 
-func (s *chainIterator[T]) realTryFold(acc any, f func(any, T) gust.Result[any]) gust.Result[any] {
+func (s *chainIterator[T]) realTryFold(acc any, f func(any, T) gust.AnyCtrlFlow) gust.AnyCtrlFlow {
 	if s.inner != nil {
 		r := s.inner.TryFold(acc, f)
-		if r.IsErr() {
+		if r.IsBreak() {
 			return r
 		}
-		acc = r.Unwrap()
+		acc = r.UnwrapContinue()
 		s.inner = nil
 	}
 	if s.other != nil {
 		r := s.other.TryFold(acc, f)
-		if r.IsErr() {
+		if r.IsBreak() {
 			return r
 		}
-		acc = r.Unwrap()
+		acc = r.UnwrapContinue()
 		// we don't fuse the second iterator
 	}
-	return gust.Ok(acc)
+	return gust.AnyContinue(acc)
 }
 
 func (s *chainIterator[T]) realNext() gust.Option[T] {

@@ -72,9 +72,9 @@ func (f *fuseIterator[T]) realSizeHint() (uint, gust.Option[uint]) {
 	return f.iter.SizeHint()
 }
 
-func (f *fuseIterator[T]) realTryFold(acc any, fold func(any, T) gust.Result[any]) gust.Result[any] {
+func (f *fuseIterator[T]) realTryFold(acc any, fold func(any, T) gust.AnyCtrlFlow) gust.AnyCtrlFlow {
 	if f.isNone {
-		return gust.Err[any]("fuse iterator is empty")
+		return gust.AnyBreak("fuse iterator is empty")
 	}
 	r := f.iter.TryFold(acc, fold)
 	f.isNone = true
@@ -153,9 +153,9 @@ func (d *fuseDeIterator[T]) realNthBack(n uint) gust.Option[T] {
 	})
 }
 
-func (d *fuseDeIterator[T]) realTryRfold(acc any, fold func(any, T) gust.Result[any]) gust.Result[any] {
+func (d *fuseDeIterator[T]) realTryRfold(acc any, fold func(any, T) gust.AnyCtrlFlow) gust.AnyCtrlFlow {
 	if d.isNone {
-		return gust.Err[any]("fuse iterator is empty")
+		return gust.AnyBreak("fuse iterator is empty")
 	}
 	deIter := d.iter.(DeIterator[T])
 	r := deIter.TryRfold(acc, fold)

@@ -48,24 +48,24 @@ func (s *stepByIterator[T]) realFold(acc any, f func(any, T) any) any {
 	return acc
 }
 
-func (s *stepByIterator[T]) realTryFold(acc any, f func(any, T) gust.Result[any]) gust.Result[any] {
+func (s *stepByIterator[T]) realTryFold(acc any, f func(any, T) gust.AnyCtrlFlow) gust.AnyCtrlFlow {
 	if s.firstTake {
 		s.firstTake = false
 		r := s.iter.Next()
 		if r.IsNone() {
-			return gust.Ok(acc)
+			return gust.AnyContinue(acc)
 		}
 		v := f(acc, r.Unwrap())
-		if v.IsErr() {
+		if v.IsBreak() {
 			return v
 		}
-		acc = v.Unwrap()
+		acc = v.UnwrapContinue()
 	}
 	r := s.iter.Nth(s.step)
 	if r.IsSome() {
 		return f(acc, r.Unwrap())
 	}
-	return gust.Ok(acc)
+	return gust.AnyContinue(acc)
 }
 
 func (s *stepByIterator[T]) realNth(n uint) gust.Option[T] {
