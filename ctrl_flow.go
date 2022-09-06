@@ -116,3 +116,19 @@ func (c CtrlFlow[B, C]) UnwrapBreak() B {
 func (c CtrlFlow[B, C]) UnwrapContinue() C {
 	return c._continue.Unwrap()
 }
+
+// Option converts the `CtrlFlow` to an `Option`.
+func (c CtrlFlow[B, C]) Option() Option[C] {
+	if c.IsBreak() {
+		return None[C]()
+	}
+	return c._continue
+}
+
+// EnumResult converts the `CtrlFlow` to an `EnumResult`.
+func (c CtrlFlow[B, C]) EnumResult() EnumResult[C, B] {
+	if c.IsBreak() {
+		return EnumErr[C, B](c._break.UnwrapUnchecked())
+	}
+	return EnumOk[C, B](c._continue.UnwrapUnchecked())
+}
