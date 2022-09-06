@@ -64,7 +64,7 @@ func (o Option[T]) String() string {
 	if o.IsNone() {
 		return "None"
 	}
-	return fmt.Sprintf("Some(%v)", o.unwrapUnchecked())
+	return fmt.Sprintf("Some(%v)", o.UnwrapUnchecked())
 }
 
 // ToX converts to `Option[any]`.
@@ -72,7 +72,7 @@ func (o Option[T]) ToX() Option[any] {
 	if o.IsNone() {
 		return None[any]()
 	}
-	return Some[any](o.unwrapUnchecked())
+	return Some[any](o.UnwrapUnchecked())
 }
 
 // IsSome returns `true` if the option has value.
@@ -83,7 +83,7 @@ func (o Option[T]) IsSome() bool {
 // IsSomeAnd returns `true` if the option has value and the value inside it matches a predicate.
 func (o Option[T]) IsSomeAnd(f func(T) bool) bool {
 	if o.IsSome() {
-		return f(o.unwrapUnchecked())
+		return f(o.UnwrapUnchecked())
 	}
 	return false
 }
@@ -99,14 +99,14 @@ func (o Option[T]) Expect(msg string) T {
 	if o.IsNone() {
 		panic(msg)
 	}
-	return o.unwrapUnchecked()
+	return o.UnwrapUnchecked()
 }
 
 // Unwrap returns the contained value.
 // Panics if the value is none.
 func (o Option[T]) Unwrap() T {
 	if o.IsSome() {
-		return o.unwrapUnchecked()
+		return o.UnwrapUnchecked()
 	}
 	var t T
 	panic(fmt.Sprintf("call Option[%T].UnwrapErr() on none", t))
@@ -115,7 +115,7 @@ func (o Option[T]) Unwrap() T {
 // UnwrapOr returns the contained value or a provided default.
 func (o Option[T]) UnwrapOr(defaultSome T) T {
 	if o.IsSome() {
-		return o.unwrapUnchecked()
+		return o.UnwrapUnchecked()
 	}
 	return defaultSome
 }
@@ -123,7 +123,7 @@ func (o Option[T]) UnwrapOr(defaultSome T) T {
 // UnwrapOrElse returns the contained value or computes it from a closure.
 func (o Option[T]) UnwrapOrElse(defaultSome func() T) T {
 	if o.IsSome() {
-		return o.unwrapUnchecked()
+		return o.UnwrapUnchecked()
 	}
 	return defaultSome()
 }
@@ -138,15 +138,15 @@ func (o Option[T]) Take() Option[T] {
 	return Option[T]{value: &v}
 }
 
-// unwrapUnchecked returns the contained value.
-func (o Option[T]) unwrapUnchecked() T {
+// UnwrapUnchecked returns the contained value.
+func (o Option[T]) UnwrapUnchecked() T {
 	return **o.value
 }
 
 // Map maps an `Option[T]` to `Option[T]` by applying a function to a contained value.
 func (o Option[T]) Map(f func(T) T) Option[T] {
 	if o.IsSome() {
-		return Some[T](f(o.unwrapUnchecked()))
+		return Some[T](f(o.UnwrapUnchecked()))
 	}
 	return None[T]()
 }
@@ -154,7 +154,7 @@ func (o Option[T]) Map(f func(T) T) Option[T] {
 // XMap maps an `Option[T]` to `Option[any]` by applying a function to a contained value.
 func (o Option[T]) XMap(f func(T) any) Option[any] {
 	if o.IsSome() {
-		return Some[any](f(o.unwrapUnchecked()))
+		return Some[any](f(o.UnwrapUnchecked()))
 	}
 	return None[any]()
 }
@@ -162,7 +162,7 @@ func (o Option[T]) XMap(f func(T) any) Option[any] {
 // Inspect calls the provided closure with a reference to the contained value (if it has value).
 func (o Option[T]) Inspect(f func(T)) Option[T] {
 	if o.IsSome() {
-		f(o.unwrapUnchecked())
+		f(o.UnwrapUnchecked())
 	}
 	return o
 }
@@ -179,7 +179,7 @@ func (o Option[T]) InspectNone(f func()) Option[T] {
 // or applies a function to the contained value (if any).
 func (o Option[T]) MapOr(defaultSome T, f func(T) T) T {
 	if o.IsSome() {
-		return f(o.unwrapUnchecked())
+		return f(o.UnwrapUnchecked())
 	}
 	return defaultSome
 }
@@ -188,7 +188,7 @@ func (o Option[T]) MapOr(defaultSome T, f func(T) T) T {
 // or applies a function to the contained value (if any).
 func (o Option[T]) XMapOr(defaultSome any, f func(T) any) any {
 	if o.IsSome() {
-		return f(o.unwrapUnchecked())
+		return f(o.UnwrapUnchecked())
 	}
 	return defaultSome
 }
@@ -197,7 +197,7 @@ func (o Option[T]) XMapOr(defaultSome any, f func(T) any) any {
 // applies a different function to the contained value (if any).
 func (o Option[T]) MapOrElse(defaultFn func() T, f func(T) T) T {
 	if o.IsSome() {
-		return f(o.unwrapUnchecked())
+		return f(o.UnwrapUnchecked())
 	}
 	return defaultFn()
 }
@@ -206,7 +206,7 @@ func (o Option[T]) MapOrElse(defaultFn func() T, f func(T) T) T {
 // applies a different function to the contained value (if any).
 func (o Option[T]) XMapOrElse(defaultFn func() any, f func(T) any) any {
 	if o.IsSome() {
-		return f(o.unwrapUnchecked())
+		return f(o.UnwrapUnchecked())
 	}
 	return defaultFn()
 }
@@ -215,7 +215,7 @@ func (o Option[T]) XMapOrElse(defaultFn func() any, f func(T) any) any {
 // [`Ok(v)`] and [`None`] to [`Err(err)`].
 func (o Option[T]) OkOr(err any) Result[T] {
 	if o.IsSome() {
-		return Ok(o.Unwrap())
+		return Ok(o.UnwrapUnchecked())
 	}
 	return Err[T](err)
 }
@@ -224,9 +224,27 @@ func (o Option[T]) OkOr(err any) Result[T] {
 // [`Ok(v)`] and [`None`] to [`Err(errFn())`].
 func (o Option[T]) OkOrElse(errFn func() any) Result[T] {
 	if o.IsSome() {
-		return Ok(o.Unwrap())
+		return Ok(o.UnwrapUnchecked())
 	}
 	return Err[T](errFn())
+}
+
+// EnumOkOr transforms the `Option[T]` into a [`EnumResult[T,any]`], mapping [`Some(v)`] to
+// [`EnumOk(v)`] and [`None`] to [`EnumErr(err)`].
+func (o Option[T]) EnumOkOr(err any) EnumResult[T, any] {
+	if o.IsSome() {
+		return EnumOk[T, any](o.UnwrapUnchecked())
+	}
+	return EnumErr[T, any](err)
+}
+
+// EnumOkOrElse transforms the `Option[T]` into a [`EnumResult[T,any]`], mapping [`Some(v)`] to
+// [`EnumOk(v)`] and [`None`] to [`EnumErr(errFn())`].
+func (o Option[T]) EnumOkOrElse(errFn func() any) EnumResult[T, any] {
+	if o.IsSome() {
+		return EnumOk[T, any](o.UnwrapUnchecked())
+	}
+	return EnumErr[T, any](errFn())
 }
 
 // And returns [`None`] if the option is [`None`], otherwise returns `optb`.
@@ -250,7 +268,7 @@ func (o Option[T]) AndThen(f func(T) Option[T]) Option[T] {
 	if o.IsNone() {
 		return o
 	}
-	return f(o.unwrapUnchecked())
+	return f(o.UnwrapUnchecked())
 }
 
 // XAndThen returns [`None`] if the option is [`None`], otherwise calls `f` with the
@@ -258,14 +276,14 @@ func (o Option[T]) XAndThen(f func(T) Option[any]) Option[any] {
 	if o.IsNone() {
 		return None[any]()
 	}
-	return f(o.unwrapUnchecked())
+	return f(o.UnwrapUnchecked())
 }
 
 // Filter returns [`None`] if the option is [`None`], otherwise calls `predicate`
 // with the wrapped value and returns.
 func (o Option[T]) Filter(predicate func(T) bool) Option[T] {
 	if o.IsSome() {
-		if predicate(o.unwrapUnchecked()) {
+		if predicate(o.UnwrapUnchecked()) {
 			return o
 		}
 	}
@@ -376,4 +394,12 @@ func (o Option[T]) Remaining() uint {
 		return 0
 	}
 	return 1
+}
+
+// Branch returns the `CtrlFlow[Void, T]`.
+func (o Option[T]) Branch() CtrlFlow[Void, T] {
+	if o.IsNone() {
+		return Break[Void, T](nil)
+	}
+	return Continue[Void, T](o.Unwrap())
 }
