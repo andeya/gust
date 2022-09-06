@@ -1,16 +1,35 @@
 package gust
 
 // AnyCtrlFlow is a placeholder for wildcard control flow statements.
-type AnyCtrlFlow = CtrlFlow[any, any]
+type AnyCtrlFlow = SigCtrlFlow[any]
 
 // AnyContinue returns a AnyCtrlFlow that tells the operation to continue.
 func AnyContinue(c any) AnyCtrlFlow {
-	return CtrlFlow[any, any]{_continue: Some(c)}
+	return SigContinue[any](c)
 }
 
 // AnyBreak returns a AnyCtrlFlow that tells the operation to break.
 func AnyBreak(b any) AnyCtrlFlow {
-	return CtrlFlow[any, any]{_break: Some(b)}
+	return SigBreak[any](b)
+}
+
+// SigCtrlFlow is a placeholder for single type control flow statements.
+type SigCtrlFlow[T any] struct {
+	CtrlFlow[T, T]
+}
+
+// SigContinue returns a `SigCtrlFlow[T]` that tells the operation to continue.
+func SigContinue[T any](c T) SigCtrlFlow[T] {
+	return SigCtrlFlow[T]{
+		CtrlFlow[T, T]{_continue: Some(c)},
+	}
+}
+
+// SigBreak returns a `SigCtrlFlow[T]` that tells the operation to break.
+func SigBreak[T any](b T) SigCtrlFlow[T] {
+	return SigCtrlFlow[T]{
+		CtrlFlow[T, T]{_break: Some(b)},
+	}
 }
 
 // CtrlFlow is used to tell an operation whether it should exit early or go on as usual.
@@ -162,4 +181,27 @@ func (c CtrlFlow[B, C]) Errable() Errable[B] {
 		return ToErrable[B](c._break.UnwrapUnchecked())
 	}
 	return NonErrable[B]()
+}
+
+func (c CtrlFlow[B, C]) ToX() AnyCtrlFlow {
+	return SigCtrlFlow[any]{
+		CtrlFlow: CtrlFlow[any, any]{
+			_break:    c._break.ToX(),
+			_continue: c._continue.ToX(),
+		},
+	}
+}
+
+func (c CtrlFlow[B, C]) ToXBreak() CtrlFlow[any, C] {
+	return CtrlFlow[any, C]{
+		_break:    c._break.ToX(),
+		_continue: c._continue,
+	}
+}
+
+func (c CtrlFlow[B, C]) ToXContinue() CtrlFlow[B, any] {
+	return CtrlFlow[B, any]{
+		_break:    c._break,
+		_continue: c._continue.ToX(),
+	}
 }
