@@ -63,13 +63,6 @@ func (s *takeWhileIterator[T]) realTryFold(init any, fold func(any, T) gust.AnyC
 }
 
 func (s *takeWhileIterator[T]) realFold(init any, fold func(any, T) any) any {
-	if !s.flag {
-		next := s.realNext()
-		if next.IsNone() {
-			return init
-		}
-		init = fold(init, next.Unwrap())
-	}
 	return s.iter.TryFold(init, func(acc any, x T) gust.AnyCtrlFlow {
 		return gust.AnyContinue(fold(acc, x))
 	}).UnwrapContinue()
