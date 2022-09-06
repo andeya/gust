@@ -436,16 +436,19 @@ type Iterator[T any] interface {
 	// FindMap applies function to the elements of data and returns
 	// the first non-none
 	//
-	// `iter.FindMap(f)` is equivalent to `iter.FilterMap(f).Next()`.
+	// `FindMap(f)` is equivalent to `FilterMap(f).Next()`.
 	//
 	// # Examples
 	//
 	// var a = []string{"lol", "NaN", "2", "5"};
 	//
-	// var first_number = FromVec(a).FindMap(func(s A) Option[any]{ return Wrap[any](strconv.Atoi(s))});
+	// var first_number = FromVec(a).FindMap(func(s A) Option[any]{ return gust.Ret[any](strconv.Atoi(s)).Ok()});
 	//
 	// assert.Equal(t, first_number, gust.Some(2));
-	FindMap(f func(T) gust.Option[any]) gust.Option[any]
+	FindMap(f func(T) gust.Option[T]) gust.Option[T]
+	// XFindMap applies function to the elements of data and returns
+	// the first non-none
+	XFindMap(f func(T) gust.Option[any]) gust.Option[any]
 	// TryFind applies function to the elements of data and returns
 	// the first true result or the first error.
 	//
@@ -637,7 +640,10 @@ type Iterator[T any] interface {
 	// assert.Equal(iter.Next(), gust.None[int]());
 	// ```
 	//
-	Map(f func(T) any) *MapIterator[T, any]
+	Map(f func(T) T) *MapIterator[T, T]
+	// XMap takes a closure and creates an iterator which calls that closure on each
+	// element.
+	XMap(f func(T) any) *MapIterator[T, any]
 	// Inspect takes a closure and executes it with each element.
 	Inspect(f func(T)) *InspectIterator[T]
 	// Fuse creates an iterator which ends after the first [`gust.None[T]()`].
@@ -710,10 +716,6 @@ type (
 		realFind(predicate func(T) bool) gust.Option[T]
 	}
 
-	iRealFindMap[T any] interface {
-		realFindMap(f func(T) gust.Option[any]) gust.Option[any]
-	}
-
 	iRealTryFind[T any] interface {
 		realTryFind(predicate func(T) gust.Result[bool]) gust.Result[gust.Option[T]]
 	}
@@ -739,7 +741,13 @@ type (
 	}
 
 	iRealMap[T any] interface {
-		realMap(f func(T) any) *MapIterator[T, any]
+		realMap(f func(T) T) *MapIterator[T, T]
+		realXMap(f func(T) any) *MapIterator[T, any]
+	}
+
+	iRealFindMap[T any] interface {
+		realFindMap(f func(T) gust.Option[T]) gust.Option[T]
+		realXFindMap(f func(T) gust.Option[any]) gust.Option[any]
 	}
 )
 

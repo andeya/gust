@@ -180,9 +180,16 @@ func (iter iterTrait[T]) Find(predicate func(T) bool) gust.Option[T] {
 	return gust.None[T]()
 }
 
-func (iter iterTrait[T]) FindMap(f func(T) gust.Option[any]) gust.Option[any] {
+func (iter iterTrait[T]) FindMap(f func(T) gust.Option[T]) gust.Option[T] {
 	if cover, ok := iter.facade.(iRealFindMap[T]); ok {
 		return cover.realFindMap(f)
+	}
+	return FindMap[T, T](iter, f)
+}
+
+func (iter iterTrait[T]) XFindMap(f func(T) gust.Option[any]) gust.Option[any] {
+	if cover, ok := iter.facade.(iRealFindMap[T]); ok {
+		return cover.realXFindMap(f)
 	}
 	return FindMap[T, any](iter, f)
 }
@@ -260,9 +267,16 @@ func (iter iterTrait[T]) Chain(other Iterator[T]) *ChainIterator[T] {
 	return newChainIterator[T](iter, other)
 }
 
-func (iter iterTrait[T]) Map(f func(T) any) *MapIterator[T, any] {
+func (iter iterTrait[T]) Map(f func(T) T) *MapIterator[T, T] {
 	if cover, ok := iter.facade.(iRealMap[T]); ok {
 		return cover.realMap(f)
+	}
+	return newMapIterator[T, T](iter, f)
+}
+
+func (iter iterTrait[T]) XMap(f func(T) any) *MapIterator[T, any] {
+	if cover, ok := iter.facade.(iRealMap[T]); ok {
+		return cover.realXMap(f)
 	}
 	return newMapIterator[T, any](iter, f)
 }
