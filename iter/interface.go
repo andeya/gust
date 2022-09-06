@@ -679,6 +679,18 @@ type Iterator[T any] interface {
 	// After `false` is returned, `TakeWhile()`'s job is over, and the
 	// rest of the elements are ignored.
 	TakeWhile(predicate func(T) bool) Iterator[T]
+	// MapWhile creates an iterator that both yields elements based on a predicate and maps.
+	//
+	// `MapWhile()` takes a closure as an argument. It will call this
+	// closure on each element of the iterator, and yield elements
+	// while it returns [`Some`].
+	MapWhile(predicate func(T) gust.Option[T]) Iterator[T]
+	// XMapWhile creates an iterator that both yields elements based on a predicate and maps.
+	//
+	// `MapWhile()` takes a closure as an argument. It will call this
+	// closure on each element of the iterator, and yield elements
+	// while it returns [`Some`].
+	XMapWhile(predicate func(T) gust.Option[any]) Iterator[any]
 }
 
 type (

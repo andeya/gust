@@ -367,3 +367,12 @@ func Enumerate[T any](iter Iterator[T]) Iterator[KV[T]] {
 func DeEnumerate[T any](iter DeIterator[T]) DeIterator[KV[T]] {
 	return newDeEnumerateIterator(iter)
 }
+
+// MapWhile creates an iterator that both yields elements based on a predicate and maps.
+//
+// `MapWhile()` takes a closure as an argument. It will call this
+// closure on each element of the iterator, and yield elements
+// while it returns [`Some`].
+func MapWhile[T any, B any](iter Iterator[T], predicate func(T) gust.Option[B]) Iterator[B] {
+	return newMapWhileIterator[T, B](iter, predicate)
+}

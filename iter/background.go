@@ -323,6 +323,14 @@ func (iter iterBackground[T]) TakeWhile(predicate func(T) bool) Iterator[T] {
 	return newTakeWhileIterator[T](iter, predicate)
 }
 
+func (iter iterBackground[T]) MapWhile(predicate func(T) gust.Option[T]) Iterator[T] {
+	return newMapWhileIterator[T, T](iter, predicate)
+}
+
+func (iter iterBackground[T]) XMapWhile(predicate func(T) gust.Option[any]) Iterator[any] {
+	return newMapWhileIterator[T, any](iter, predicate)
+}
+
 var _ DeIterator[any] = deIterBackground[any]{}
 
 type deIterBackground[T any] struct {
