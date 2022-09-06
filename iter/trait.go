@@ -279,6 +279,14 @@ func (iter iterTrait[T]) Peekable() PeekableIterator[T] {
 	return newPeekableIterator[T](iter)
 }
 
+func (iter iterTrait[T]) Intersperse(separator T) *IntersperseIterator[T] {
+	return newIntersperseIterator[T](iter.Peekable(), separator)
+}
+
+func (iter iterTrait[T]) IntersperseWith(separator func() T) *IntersperseIterator[T] {
+	return newIntersperseWithIterator[T](iter.Peekable(), separator)
+}
+
 func (iter iterTrait[T]) Collect() []T {
 	lower, _ := iter.SizeHint()
 	return Fold[T, []T](iter, make([]T, 0, lower), func(slice []T, x T) []T {

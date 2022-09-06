@@ -18,7 +18,7 @@ var (
 )
 
 func newPeekableIterator[T any](iter Iterator[T]) PeekableIterator[T] {
-	p := peekableIterator[T]{
+	p := &peekableIterator[T]{
 		implPeekable: implPeekable[T]{iter: iter},
 	}
 	p.setFacade(p)
@@ -30,16 +30,16 @@ type peekableIterator[T any] struct {
 	implPeekable[T]
 }
 
-func (s peekableIterator[T]) Intersperse(separator T) IntersperseIterator[T] {
+func (s *peekableIterator[T]) Intersperse(separator T) *IntersperseIterator[T] {
 	return newIntersperseIterator[T](s, separator)
 }
 
-func (s peekableIterator[T]) IntersperseWith(separator func() T) IntersperseIterator[T] {
+func (s *peekableIterator[T]) IntersperseWith(separator func() T) *IntersperseIterator[T] {
 	return newIntersperseWithIterator[T](s, separator)
 }
 
 func newSizeDePeekableIterator[T any](iter SizeDeIterator[T]) SizeDePeekableIterator[T] {
-	p := sizeDePeekableIterator[T]{
+	p := &sizeDePeekableIterator[T]{
 		implPeekable: implPeekable[T]{iter: iter},
 	}
 	p.setFacade(p)
@@ -51,11 +51,11 @@ type sizeDePeekableIterator[T any] struct {
 	implPeekable[T]
 }
 
-func (s sizeDePeekableIterator[T]) Intersperse(separator T) IntersperseIterator[T] {
+func (s *sizeDePeekableIterator[T]) Intersperse(separator T) *IntersperseIterator[T] {
 	return newIntersperseIterator[T](s, separator)
 }
 
-func (s sizeDePeekableIterator[T]) IntersperseWith(separator func() T) IntersperseIterator[T] {
+func (s *sizeDePeekableIterator[T]) IntersperseWith(separator func() T) *IntersperseIterator[T] {
 	return newIntersperseWithIterator[T](s, separator)
 }
 
@@ -65,7 +65,7 @@ type implPeekable[T any] struct {
 	peeked gust.Option[gust.Option[T]]
 }
 
-func (s implPeekable[T]) NextIf(f func(T) bool) gust.Option[T] {
+func (s *implPeekable[T]) NextIf(f func(T) bool) gust.Option[T] {
 	next := s.realNext()
 	if next.IsSome() {
 		matched := next.Unwrap()
@@ -77,11 +77,11 @@ func (s implPeekable[T]) NextIf(f func(T) bool) gust.Option[T] {
 	return gust.None[T]()
 }
 
-func (s implPeekable[T]) Peek() gust.Option[T] {
+func (s *implPeekable[T]) Peek() gust.Option[T] {
 	return *s.peeked.GetOrInsertWith(s.iter.Next)
 }
 
-func (s implPeekable[T]) PeekPtr() gust.Option[*T] {
+func (s *implPeekable[T]) PeekPtr() gust.Option[*T] {
 	x := s.peeked.GetOrInsertWith(s.iter.Next)
 	if x.IsNone() {
 		return gust.None[*T]()
@@ -89,7 +89,7 @@ func (s implPeekable[T]) PeekPtr() gust.Option[*T] {
 	return gust.Some[*T](x.GetOrInsertWith(nil))
 }
 
-func (s implPeekable[T]) realNext() gust.Option[T] {
+func (s *implPeekable[T]) realNext() gust.Option[T] {
 	taken := s.peeked.Take()
 	if taken.IsSome() {
 		return taken.Unwrap()
@@ -97,7 +97,7 @@ func (s implPeekable[T]) realNext() gust.Option[T] {
 	return s.iter.Next()
 }
 
-func (s implPeekable[T]) realNextBack() gust.Option[T] {
+func (s *implPeekable[T]) realNextBack() gust.Option[T] {
 	if s.peeked.IsSome() {
 		peeked := s.peeked.Unwrap()
 		if peeked.IsSome() {
@@ -108,7 +108,7 @@ func (s implPeekable[T]) realNextBack() gust.Option[T] {
 	return s.iter.(iNextBack[T]).NextBack()
 }
 
-func (s implPeekable[T]) realCount() uint {
+func (s *implPeekable[T]) realCount() uint {
 	taken := s.peeked.Take()
 	if taken.IsSome() {
 		peeked := taken.Unwrap()
@@ -120,7 +120,7 @@ func (s implPeekable[T]) realCount() uint {
 	return s.iter.Count()
 }
 
-func (s implPeekable[T]) realNth(n uint) gust.Option[T] {
+func (s *implPeekable[T]) realNth(n uint) gust.Option[T] {
 	taken := s.peeked.Take()
 	if taken.IsNone() {
 		return gust.None[T]()
@@ -135,7 +135,7 @@ func (s implPeekable[T]) realNth(n uint) gust.Option[T] {
 	return s.iter.Nth(n - 1)
 }
 
-func (s implPeekable[T]) realLast() gust.Option[T] {
+func (s *implPeekable[T]) realLast() gust.Option[T] {
 	var peekOpt gust.Option[T]
 	taken := s.peeked.Take()
 	if taken.IsSome() {
@@ -148,7 +148,7 @@ func (s implPeekable[T]) realLast() gust.Option[T] {
 	return s.iter.Last().Or(peekOpt)
 }
 
-func (s implPeekable[T]) realSizeHint() (uint, gust.Option[uint]) {
+func (s *implPeekable[T]) realSizeHint() (uint, gust.Option[uint]) {
 	var peekLen uint
 	if s.peeked.IsSome() {
 		peeked := s.peeked.Unwrap()
@@ -165,7 +165,7 @@ func (s implPeekable[T]) realSizeHint() (uint, gust.Option[uint]) {
 	return lo, hi
 }
 
-func (s implPeekable[T]) realTryFold(init any, f func(any, T) gust.Result[any]) gust.Result[any] {
+func (s *implPeekable[T]) realTryFold(init any, f func(any, T) gust.Result[any]) gust.Result[any] {
 	var acc = init
 	taken := s.peeked.Take()
 	if taken.IsSome() {
@@ -182,7 +182,7 @@ func (s implPeekable[T]) realTryFold(init any, f func(any, T) gust.Result[any]) 
 	return TryFold[T, any](s.iter, acc, f)
 }
 
-func (s implPeekable[T]) realTryRfold(init any, fold func(any, T) gust.Result[any]) gust.Result[any] {
+func (s *implPeekable[T]) realTryRfold(init any, fold func(any, T) gust.Result[any]) gust.Result[any] {
 	var taken = s.peeked.Take()
 	if taken.IsNone() {
 		return TryRfold[T, any](s.iter.(DeIterator[T]), init, fold)
@@ -200,7 +200,7 @@ func (s implPeekable[T]) realTryRfold(init any, fold func(any, T) gust.Result[an
 	return r
 }
 
-func (s implPeekable[T]) realFold(init any, f func(any, T) any) any {
+func (s *implPeekable[T]) realFold(init any, f func(any, T) any) any {
 	var acc = init
 	taken := s.peeked.Take()
 	if taken.IsSome() {
@@ -213,7 +213,7 @@ func (s implPeekable[T]) realFold(init any, f func(any, T) any) any {
 	return Fold[T, any](s.iter, acc, f)
 }
 
-func (s implPeekable[T]) realRfold(init any, fold func(any, T) any) any {
+func (s *implPeekable[T]) realRfold(init any, fold func(any, T) any) any {
 	var taken = s.peeked.Take()
 	if taken.IsNone() {
 		return Rfold[T, any](s.iter.(DeIterator[T]), init, fold)
