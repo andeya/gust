@@ -16,6 +16,13 @@ func (iter *iterBackground[T]) setFacade(facade iRealNext[T]) {
 	iter.facade = facade
 }
 
+func (iter iterBackground[T]) Collect() []T {
+	lower, _ := iter.SizeHint()
+	return Fold[T, []T](iter, make([]T, 0, lower), func(slice []T, x T) []T {
+		return append(slice, x)
+	})
+}
+
 func (iter iterBackground[T]) Next() gust.Option[T] {
 	return iter.facade.realNext()
 }
@@ -308,11 +315,8 @@ func (iter iterBackground[T]) IntersperseWith(separator func() T) Iterator[T] {
 	return newIntersperseWithIterator[T](iter.Peekable(), separator)
 }
 
-func (iter iterBackground[T]) Collect() []T {
-	lower, _ := iter.SizeHint()
-	return Fold[T, []T](iter, make([]T, 0, lower), func(slice []T, x T) []T {
-		return append(slice, x)
-	})
+func (iter iterBackground[T]) SkipWhile(predicate func(T) bool) Iterator[T] {
+	return newSkipWhileIterator[T](iter, predicate)
 }
 
 var _ DeIterator[any] = deIterBackground[any]{}
