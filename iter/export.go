@@ -376,3 +376,21 @@ func DeEnumerate[T any](iter DeIterator[T]) DeIterator[KV[T]] {
 func MapWhile[T any, B any](iter Iterator[T], predicate func(T) gust.Option[B]) Iterator[B] {
 	return newMapWhileIterator[T, B](iter, predicate)
 }
+
+// Scan is an iterator adapter similar to [`Fold`] that holds internal state and
+// produces a new iterator.
+//
+// [`Fold`]: Iterator.Fold
+//
+// `Scan()` takes two arguments: an initial value which seeds the internal
+// state, and a closure with two arguments, the first being a mutable
+// reference to the internal state and the second an iterator element.
+// The closure can assign to the internal state to share state between
+// iterations.
+//
+// On iteration, the closure will be applied to each element of the
+// iterator and the return value from the closure, an [`Option`], is
+// yielded by the iterator.
+func Scan[T any, St any, B any](iter Iterator[T], initialState St, f func(state *St, item T) gust.Option[B]) Iterator[B] {
+	return newScanIterator[T, St, B](iter, initialState, f)
+}

@@ -318,6 +318,10 @@ func (iter iterBackground[T]) Take(n uint) Iterator[T] {
 	return newTakeIterator[T](iter, n)
 }
 
+func (iter iterBackground[T]) Scan(initialState any, f func(state *any, item T) gust.Option[any]) Iterator[any] {
+	return newScanIterator[T, any, any](iter, initialState, f)
+}
+
 var _ DeIterator[any] = deIterBackground[any]{}
 
 type deIterBackground[T any] struct {
