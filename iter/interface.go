@@ -691,6 +691,15 @@ type Iterator[T any] interface {
 	// closure on each element of the iterator, and yield elements
 	// while it returns [`Some`].
 	XMapWhile(predicate func(T) gust.Option[any]) Iterator[any]
+	// Skip creates an iterator that skips the first `n` elements.
+	//
+	// `Skip(n)` skips elements until `n` elements are skipped or the end of the
+	// iterator is reached (whichever happens first). After that, all the remaining
+	// elements are yielded. In particular, if the original iterator is too short,
+	// then the returned iterator is empty.
+	//
+	// Rather than overriding this method directly, instead override the `nth` method.
+	Skip(n uint) Iterator[T]
 }
 
 type (

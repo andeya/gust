@@ -331,6 +331,10 @@ func (iter iterBackground[T]) XMapWhile(predicate func(T) gust.Option[any]) Iter
 	return newMapWhileIterator[T, any](iter, predicate)
 }
 
+func (iter iterBackground[T]) Skip(n uint) Iterator[T] {
+	return newSkipIterator[T](iter, n)
+}
+
 var _ DeIterator[any] = deIterBackground[any]{}
 
 type deIterBackground[T any] struct {
