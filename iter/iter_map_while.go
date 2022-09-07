@@ -24,7 +24,7 @@ type mapWhileIterator[T any, B any] struct {
 	f    func(T) gust.Option[B]
 }
 
-func (s mapWhileIterator[T, B]) realNext() gust.Option[B] {
+func (s *mapWhileIterator[T, B]) realNext() gust.Option[B] {
 	r := s.iter.Next()
 	if r.IsSome() {
 		return s.f(r.Unwrap())
@@ -32,22 +32,30 @@ func (s mapWhileIterator[T, B]) realNext() gust.Option[B] {
 	return gust.None[B]()
 }
 
-func (s mapWhileIterator[T, B]) realSizeHint() (uint, gust.Option[uint]) {
+func (s *mapWhileIterator[T, B]) realSizeHint() (uint, gust.Option[uint]) {
 	var _, upper = s.iter.SizeHint()
 	return 0, upper // can't know a lower bound, due to the predicate
 }
 
-func (s mapWhileIterator[T, B]) realTryFold(init any, fold func(any, B) gust.AnyCtrlFlow) gust.AnyCtrlFlow {
-	return TryFold[T, any](s.iter, init, func(acc any, x T) gust.AnyCtrlFlow {
+func (s *mapWhileIterator[T, B]) realTryFold(init any, fold func(any, B) gust.AnyCtrlFlow) gust.AnyCtrlFlow {
+	ret := TryFold[T, any](s.iter, init, func(acc any, x T) gust.AnyCtrlFlow {
 		r := s.f(x)
 		if r.IsSome() {
-			return fold(acc, r.Unwrap())
+			y := fold(acc, r.Unwrap())
+			if y.IsBreak() {
+				return gust.AnyBreak(y)
+			}
+			return y
 		}
-		return gust.AnyBreak(acc)
+		return gust.AnyBreak(gust.AnyContinue(acc))
 	})
+	if ret.IsBreak() {
+		return ret.UnwrapBreak().(gust.AnyCtrlFlow)
+	}
+	return ret
 }
 
-func (s mapWhileIterator[T, B]) realFold(init any, fold func(any, B) any) any {
+func (s *mapWhileIterator[T, B]) realFold(init any, fold func(any, B) any) any {
 	return s.TryFold(init, func(acc any, x B) gust.AnyCtrlFlow {
 		return gust.AnyContinue(fold(acc, x))
 	}).UnwrapContinue()

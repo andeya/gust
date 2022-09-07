@@ -70,7 +70,7 @@ func (iter iterBackground[T]) TryFold(init any, f func(any, T) gust.AnyCtrlFlow)
 	if cover, ok := iter.facade.(iRealTryFold[T]); ok {
 		return cover.realTryFold(init, f)
 	}
-	return TryFold[T, any](iter, init, f).ToX()
+	return TryFold[T, any](iter, init, f)
 }
 
 func (iter iterBackground[T]) Last() gust.Option[T] {
@@ -247,51 +247,30 @@ func (iter iterBackground[T]) Position(predicate func(T) bool) gust.Option[int] 
 }
 
 func (iter iterBackground[T]) StepBy(step uint) Iterator[T] {
-	if cover, ok := iter.facade.(iRealStepBy[T]); ok {
-		return cover.realStepBy(step)
-	}
 	return newStepByIterator[T](iter, step)
 }
 
 func (iter iterBackground[T]) Filter(f func(T) bool) Iterator[T] {
-	if cover, ok := iter.facade.(iRealFilter[T]); ok {
-		return cover.realFilter(f)
-	}
 	return newFilterIterator[T](iter, f)
 }
 
 func (iter iterBackground[T]) FilterMap(f func(T) gust.Option[T]) Iterator[T] {
-	if cover, ok := iter.facade.(iRealFilterMap[T]); ok {
-		return cover.realFilterMap(f)
-	}
 	return newFilterMapIterator[T, T](iter, f)
 }
 
 func (iter iterBackground[T]) XFilterMap(f func(T) gust.Option[any]) Iterator[any] {
-	if cover, ok := iter.facade.(iRealFilterMap[T]); ok {
-		return cover.realXFilterMap(f)
-	}
 	return newFilterMapIterator[T, any](iter, f)
 }
 
 func (iter iterBackground[T]) Chain(other Iterator[T]) Iterator[T] {
-	if cover, ok := iter.facade.(iRealChain[T]); ok {
-		return cover.realChain(other)
-	}
 	return newChainIterator[T](iter, other)
 }
 
 func (iter iterBackground[T]) Map(f func(T) T) Iterator[T] {
-	if cover, ok := iter.facade.(iRealMap[T]); ok {
-		return cover.realMap(f)
-	}
 	return newMapIterator[T, T](iter, f)
 }
 
 func (iter iterBackground[T]) XMap(f func(T) any) Iterator[any] {
-	if cover, ok := iter.facade.(iRealMap[T]); ok {
-		return cover.realXMap(f)
-	}
 	return newMapIterator[T, any](iter, f)
 }
 
@@ -428,7 +407,7 @@ func (iter deIterBackground[T]) Rfind(predicate func(T) bool) gust.Option[T] {
 }
 
 func (iter deIterBackground[T]) DeFuse() DeIterator[T] {
-	return newFuseDeIterator[T](iter)
+	return newDeFuseIterator[T](iter)
 }
 
 func (iter deIterBackground[T]) DePeekable() DePeekableIterator[T] {
@@ -441,4 +420,31 @@ func (iter deIterBackground[T]) DeSkip(n uint) DeIterator[T] {
 
 func (iter deIterBackground[T]) DeTake(n uint) DeIterator[T] {
 	return newDeTakeIterator[T](iter, n)
+}
+
+func (iter deIterBackground[T]) DeChain(other DeIterator[T]) DeIterator[T] {
+	return newDeChainIterator[T](iter, other)
+}
+
+func (iter deIterBackground[T]) DeFilter(f func(T) bool) DeIterator[T] {
+	return newDeFilterIterator[T](iter, f)
+}
+
+func (iter deIterBackground[T]) DeFilterMap(f func(T) gust.Option[T]) DeIterator[T] {
+	return newDeFilterMapIterator[T, T](iter, f)
+}
+
+func (iter deIterBackground[T]) XDeFilterMap(f func(T) gust.Option[any]) DeIterator[any] {
+	return newDeFilterMapIterator[T, any](iter, f)
+}
+func (iter deIterBackground[T]) DeInspect(f func(T)) DeIterator[T] {
+	return newDeInspectIterator[T](iter, f)
+}
+
+func (iter deIterBackground[T]) DeMap(f func(T) T) DeIterator[T] {
+	return newDeMapIterator[T, T](iter, f)
+}
+
+func (iter deIterBackground[T]) XDeMap(f func(T) any) DeIterator[any] {
+	return newDeMapIterator[T, any](iter, f)
 }

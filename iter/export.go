@@ -322,7 +322,7 @@ func DeZip[A any, B any](a DeIterator[A], b DeIterator[B]) *ZipDeIterator[A, B] 
 // TryRfold is the reverse version of [`Iterator[T].TryFold()`]: it takes
 // elements starting from the back of the iterator.
 func TryRfold[T any, CB any](iter DeIterator[T], init CB, f func(CB, T) gust.SigCtrlFlow[CB]) gust.SigCtrlFlow[CB] {
-	var accum = gust.SigContinue(init)
+	var accum = gust.SigContinue[CB](init)
 	for {
 		x := iter.NextBack()
 		if x.IsNone() {

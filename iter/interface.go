@@ -592,9 +592,6 @@ type Iterator[T any] interface {
 	//
 	// In other words, it links two iterators together, in a chain. 🔗
 	//
-	// [`once`] is commonly used to adapt a single value into a chain of
-	// other kinds of iteration.
-	//
 	// # Examples
 	//
 	// Basic usage:
@@ -777,28 +774,6 @@ type (
 		realPosition(predicate func(T) bool) gust.Option[int]
 	}
 
-	iRealStepBy[T any] interface {
-		realStepBy(step uint) Iterator[T]
-	}
-
-	iRealFilter[T any] interface {
-		realFilter(f func(T) bool) Iterator[T]
-	}
-
-	iRealFilterMap[T any] interface {
-		realFilterMap(f func(T) gust.Option[T]) Iterator[T]
-		realXFilterMap(f func(T) gust.Option[any]) Iterator[any]
-	}
-
-	iRealChain[T any] interface {
-		realChain(other Iterator[T]) Iterator[T]
-	}
-
-	iRealMap[T any] interface {
-		realMap(f func(T) T) Iterator[T]
-		realXMap(f func(T) any) Iterator[any]
-	}
-
 	iRealFindMap[T any] interface {
 		realFindMap(f func(T) gust.Option[T]) gust.Option[T]
 		realXFindMap(f func(T) gust.Option[any]) gust.Option[any]
@@ -842,6 +817,115 @@ type (
 		// contains at least `n` elements, otherwise it contains all of the
 		// (fewer than `n`) elements of the original iterator.
 		DeTake(n uint) DeIterator[T]
+		// DeChain takes two iterators and creates a new data over both in sequence.
+		//
+		// `DeChain()` will return a new data which will first iterate over
+		// values from the first data and then over values from the second
+		// data.
+		//
+		// In other words, it links two iterators together, in a chain. 🔗
+		//
+		// # Examples
+		//
+		// Basic usage:
+		//
+		//
+		// var a1 = []int{1, 2, 3};
+		// var a2 = []int{4, 5, 6};
+		//
+		// var iter = FromVec(a1).Chain(FromVec(a2));
+		//
+		// assert.Equal(t, iter.Next(), gust.Some(1));
+		// assert.Equal(t, iter.Next(), gust.Some(2));
+		// assert.Equal(t, iter.Next(), gust.Some(3));
+		// assert.Equal(t, iter.Next(), gust.Some(4));
+		// assert.Equal(t, iter.Next(), gust.Some(5));
+		// assert.Equal(t, iter.Next(), gust.Some(6));
+		// assert.Equal(t, iter.Next(), gust.None[int]());
+		//
+		DeChain(other DeIterator[T]) DeIterator[T]
+		// DeFilter creates a double ended iterator which uses a closure to determine if an element
+		// should be yielded.
+		//
+		// Given an element the closure must return `true` or `false`. The returned
+		// iterator will yield only the elements for which the closure returns
+		// true.
+		//
+		// # Examples
+		//
+		// Basic usage:
+		//
+		// ```
+		// var a = []int{0, 1, 2};
+		//
+		// var iter = FromVec(a).Filter(func(x int)bool{return x>0});
+		//
+		// assert.Equal(iter.Next(), gust.Some(&1));
+		// assert.Equal(iter.Next(), gust.Some(&2));
+		// assert.Equal(iter.Next(), gust.None[int]());
+		// ```
+		//
+		// Note that `iter.DeFilter(f).Next()` is equivalent to `iter.Find(f)`.
+		DeFilter(f func(T) bool) DeIterator[T]
+		// DeFilterMap creates a double ended iterator that both filters and maps.
+		//
+		// The returned iterator yields only the `value`s for which the supplied
+		// closure returns `gust.Some(value)`.
+		//
+		// `FilterMap` can be used to make chains of [`Filter`] and [`Map`] more
+		// concise. The example below shows how a `Map().Filter().Map()` can be
+		// shortened to a single call to `FilterMap`.
+		//
+		// # Examples
+		//
+		// Basic usage:
+		//
+		// ```
+		// var a = []string{"1", "two", "NaN", "four", "5"}
+		//
+		// var iter = FromVec(a).DeFilterMap(|s| s.parse().ok());
+		//
+		// assert.Equal(iter.Next(), gust.Some(1));
+		// assert.Equal(iter.Next(), gust.Some(5));
+		// assert.Equal(iter.Next(), gust.None[string]());
+		// ```
+		DeFilterMap(f func(T) gust.Option[T]) DeIterator[T]
+		// XDeFilterMap creates an iterator that both filters and maps.
+		XDeFilterMap(f func(T) gust.Option[any]) DeIterator[any]
+		// DeInspect takes a closure and executes it with each element.
+		DeInspect(f func(T)) DeIterator[T]
+		// DeMap takes a closure and creates a double ended iterator which calls that closure on each
+		// element.
+		//
+		// If you are good at thinking in types, you can think of `DeMap()` like this:
+		// If you have an iterator that gives you elements of some type `A`, and
+		// you want an iterator of some other type `B`, you can use `DeMap()`,
+		// passing a closure that takes an `A` and returns a `B`.
+		//
+		// `DeMap()` is conceptually similar to a [`for`] loop. However, as `DeMap()` is
+		// lazy, it is best used when you're already working with other iterators.
+		// If you're doing some sort of looping for a side effect, it's considered
+		// more idiomatic to use [`for`] than `DeMap()`.
+		//
+		// # Examples
+		//
+		// Basic usage:
+		//
+		// ```
+		// var a = []int{1, 2, 3};
+		//
+		// var iter = FromVec(a).DeMap(func(x)int{ return 2 * x});
+		//
+		// assert.Equal(iter.Next(), gust.Some(2));
+		// assert.Equal(iter.Next(), gust.Some(4));
+		// assert.Equal(iter.Next(), gust.Some(6));
+		// assert.Equal(iter.Next(), gust.None[int]());
+		// ```
+		//
+		DeMap(f func(T) T) DeIterator[T]
+		// XDeMap takes a closure and creates an iterator which calls that closure on each
+		// element.
+		XDeMap(f func(T) any) DeIterator[any]
 	}
 
 	iNextBack[T any] interface {
@@ -895,6 +979,7 @@ type (
 		// elements starting from the back of the iterator.
 		TryRfold(init any, fold func(any, T) gust.AnyCtrlFlow) gust.AnyCtrlFlow
 	}
+
 	iRealTryRfold[T any] interface {
 		realTryRfold(init any, fold func(any, T) gust.AnyCtrlFlow) gust.AnyCtrlFlow
 	}

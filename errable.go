@@ -32,6 +32,10 @@ func (e Errable[E]) IsErr() bool {
 	return e.errVal != nil
 }
 
+func (e Errable[E]) IsOk() bool {
+	return e.errVal == nil
+}
+
 func (e Errable[E]) ToError() error {
 	if !e.IsErr() {
 		return nil

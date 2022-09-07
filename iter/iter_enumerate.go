@@ -140,10 +140,10 @@ func (d *deEnumerateIterator[T]) realNthBack(n uint) gust.Option[KV[T]] {
 	return gust.Some(KV[T]{Index: d.count + sizeDeIter.Remaining(), Value: a.Unwrap()})
 }
 
-func (d *deEnumerateIterator[T]) realTryRfold(acc any, fold func(any, KV[T]) gust.AnyCtrlFlow) gust.AnyCtrlFlow {
+func (d *deEnumerateIterator[T]) realTryRfold(init any, fold func(any, KV[T]) gust.AnyCtrlFlow) gust.AnyCtrlFlow {
 	var sizeDeIter = d.iter.(DeIterator[T])
 	var count = d.count + sizeDeIter.Remaining()
-	return sizeDeIter.TryRfold(acc, func(acc any, item T) gust.AnyCtrlFlow {
+	return sizeDeIter.TryRfold(init, func(acc any, item T) gust.AnyCtrlFlow {
 		count -= 1
 		return fold(acc, KV[T]{Index: count, Value: item})
 	})

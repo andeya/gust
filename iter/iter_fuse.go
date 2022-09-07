@@ -100,40 +100,40 @@ func (f *fuseIterator[T]) realFind(predicate func(T) bool) gust.Option[T] {
 }
 
 var (
-	_ DeIterator[any]    = (*fuseDeIterator[any])(nil)
-	_ iRealNext[any]     = (*fuseDeIterator[any])(nil)
-	_ iRealNth[any]      = (*fuseDeIterator[any])(nil)
-	_ iRealLast[any]     = (*fuseDeIterator[any])(nil)
-	_ iRealCount         = (*fuseDeIterator[any])(nil)
-	_ iRealSizeHint      = (*fuseDeIterator[any])(nil)
-	_ iRealTryFold[any]  = (*fuseDeIterator[any])(nil)
-	_ iRealFold[any]     = (*fuseDeIterator[any])(nil)
-	_ iRealFind[any]     = (*fuseDeIterator[any])(nil)
-	_ iRealRemaining     = (*fuseDeIterator[any])(nil)
-	_ iRealNextBack[any] = (*fuseDeIterator[any])(nil)
-	_ iRealNthBack[any]  = (*fuseDeIterator[any])(nil)
-	_ iRealTryRfold[any] = (*fuseDeIterator[any])(nil)
-	_ iRealRfold[any]    = (*fuseDeIterator[any])(nil)
-	_ iRealRfind[any]    = (*fuseDeIterator[any])(nil)
+	_ DeIterator[any]    = (*deFuseIterator[any])(nil)
+	_ iRealNext[any]     = (*deFuseIterator[any])(nil)
+	_ iRealNth[any]      = (*deFuseIterator[any])(nil)
+	_ iRealLast[any]     = (*deFuseIterator[any])(nil)
+	_ iRealCount         = (*deFuseIterator[any])(nil)
+	_ iRealSizeHint      = (*deFuseIterator[any])(nil)
+	_ iRealTryFold[any]  = (*deFuseIterator[any])(nil)
+	_ iRealFold[any]     = (*deFuseIterator[any])(nil)
+	_ iRealFind[any]     = (*deFuseIterator[any])(nil)
+	_ iRealRemaining     = (*deFuseIterator[any])(nil)
+	_ iRealNextBack[any] = (*deFuseIterator[any])(nil)
+	_ iRealNthBack[any]  = (*deFuseIterator[any])(nil)
+	_ iRealTryRfold[any] = (*deFuseIterator[any])(nil)
+	_ iRealRfold[any]    = (*deFuseIterator[any])(nil)
+	_ iRealRfind[any]    = (*deFuseIterator[any])(nil)
 )
 
-func newFuseDeIterator[T any](iter DeIterator[T]) DeIterator[T] {
-	p := &fuseDeIterator[T]{}
+func newDeFuseIterator[T any](iter DeIterator[T]) DeIterator[T] {
+	p := &deFuseIterator[T]{}
 	p.iter = iter
 	p.setFacade(p)
 	return p
 }
 
-// fuseDeIterator double ended fuse iterator
-type fuseDeIterator[T any] struct {
+// deFuseIterator double ended fuse iterator
+type deFuseIterator[T any] struct {
 	fuseIterator[T]
 }
 
-func (d *fuseDeIterator[T]) realRemaining() uint {
+func (d *deFuseIterator[T]) realRemaining() uint {
 	return d.iter.(DeIterator[T]).Remaining()
 }
 
-func (d *fuseDeIterator[T]) realNextBack() gust.Option[T] {
+func (d *deFuseIterator[T]) realNextBack() gust.Option[T] {
 	if d.isNone {
 		return gust.None[T]()
 	}
@@ -143,7 +143,7 @@ func (d *fuseDeIterator[T]) realNextBack() gust.Option[T] {
 	})
 }
 
-func (d *fuseDeIterator[T]) realNthBack(n uint) gust.Option[T] {
+func (d *deFuseIterator[T]) realNthBack(n uint) gust.Option[T] {
 	if d.isNone {
 		return gust.None[T]()
 	}
@@ -153,7 +153,7 @@ func (d *fuseDeIterator[T]) realNthBack(n uint) gust.Option[T] {
 	})
 }
 
-func (d *fuseDeIterator[T]) realTryRfold(acc any, fold func(any, T) gust.AnyCtrlFlow) gust.AnyCtrlFlow {
+func (d *deFuseIterator[T]) realTryRfold(acc any, fold func(any, T) gust.AnyCtrlFlow) gust.AnyCtrlFlow {
 	if d.isNone {
 		return gust.AnyBreak("fuse iterator is empty")
 	}
@@ -163,7 +163,7 @@ func (d *fuseDeIterator[T]) realTryRfold(acc any, fold func(any, T) gust.AnyCtrl
 	return r
 }
 
-func (d *fuseDeIterator[T]) realRfold(acc any, fold func(any, T) any) any {
+func (d *deFuseIterator[T]) realRfold(acc any, fold func(any, T) any) any {
 	if d.isNone {
 		return acc
 	}
@@ -173,7 +173,7 @@ func (d *fuseDeIterator[T]) realRfold(acc any, fold func(any, T) any) any {
 	return r
 }
 
-func (d *fuseDeIterator[T]) realRfind(predicate func(T) bool) gust.Option[T] {
+func (d *deFuseIterator[T]) realRfind(predicate func(T) bool) gust.Option[T] {
 	if d.isNone {
 		return gust.None[T]()
 	}

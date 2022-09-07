@@ -19,36 +19,82 @@ func newInspectIterator[T any](iter Iterator[T], f func(T)) Iterator[T] {
 }
 
 type inspectIterator[T any] struct {
-	iterBackground[T]
+	deIterBackground[T]
 	iter Iterator[T]
 	f    func(T)
 }
 
-func (s inspectIterator[T]) doInspect(elt gust.Option[T]) gust.Option[T] {
+func (s *inspectIterator[T]) doInspect(elt gust.Option[T]) gust.Option[T] {
 	if elt.IsSome() {
 		s.f(elt.Unwrap())
 	}
 	return elt
 }
 
-func (s inspectIterator[T]) realNext() gust.Option[T] {
+func (*inspectIterator[T]) realNextBack() gust.Option[T] {
+	panic("unreachable")
+}
+
+func (s *inspectIterator[T]) realNext() gust.Option[T] {
 	return s.doInspect(s.iter.Next())
 }
 
-func (s inspectIterator[T]) realSizeHint() (uint, gust.Option[uint]) {
+func (s *inspectIterator[T]) realSizeHint() (uint, gust.Option[uint]) {
 	return s.iter.SizeHint()
 }
 
-func (s inspectIterator[T]) realTryFold(init any, g func(any, T) gust.AnyCtrlFlow) gust.AnyCtrlFlow {
+func (s *inspectIterator[T]) realTryFold(init any, g func(any, T) gust.AnyCtrlFlow) gust.AnyCtrlFlow {
 	return TryFold[T, any](s.iter, init, func(acc any, elt T) gust.AnyCtrlFlow {
 		s.f(elt)
 		return g(acc, elt)
 	})
 }
 
-func (s inspectIterator[T]) realFold(init any, g func(any, T) any) any {
+func (s *inspectIterator[T]) realFold(init any, g func(any, T) any) any {
 	return Fold[T, any](s.iter, init, func(acc any, elt T) any {
 		s.f(elt)
+		return g(acc, elt)
+	})
+}
+
+var (
+	_ DeIterator[any]    = (*deInspectIterator[any])(nil)
+	_ iRealRemaining     = (*deInspectIterator[any])(nil)
+	_ iRealNextBack[any] = (*deInspectIterator[any])(nil)
+	_ iRealTryRfold[any] = (*deInspectIterator[any])(nil)
+	_ iRealRfold[any]    = (*deInspectIterator[any])(nil)
+)
+
+func newDeInspectIterator[T any](iter DeIterator[T], f func(T)) DeIterator[T] {
+	p := &deInspectIterator[T]{}
+	p.iter = iter
+	p.f = f
+	p.setFacade(p)
+	return p
+}
+
+type deInspectIterator[T any] struct {
+	inspectIterator[T]
+}
+
+func (d *deInspectIterator[T]) realRemaining() uint {
+	return d.iter.(DeIterator[T]).Remaining()
+}
+
+func (d *deInspectIterator[T]) realNextBack() gust.Option[T] {
+	return d.doInspect(d.iter.(DeIterator[T]).NextBack())
+}
+
+func (d *deInspectIterator[T]) realTryRfold(init any, g func(any, T) gust.AnyCtrlFlow) gust.AnyCtrlFlow {
+	return TryRfold[T, any](d.iter.(DeIterator[T]), init, func(acc any, elt T) gust.AnyCtrlFlow {
+		d.f(elt)
+		return g(acc, elt)
+	})
+}
+
+func (d *deInspectIterator[T]) realRfold(init any, g func(any, T) any) any {
+	return Rfold[T, any](d.iter.(DeIterator[T]), init, func(acc any, elt T) any {
+		d.f(elt)
 		return g(acc, elt)
 	})
 }
