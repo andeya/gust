@@ -57,7 +57,7 @@ func TestResultFlatten(t *testing.T) {
 	var results []gust.Result[uint64]
 	var errs []error
 	var nums = iter.
-		Flatten[uint64, gust.Result[uint64]](
+		Flatten[gust.Result[uint64], uint64](
 		iter.Map[string, gust.Result[uint64]](
 			iter.FromElements("17", "not a number", "99", "-27", "768"),
 			func(s string) gust.Result[uint64] { return gust.Ret(strconv.ParseUint(s, 10, 64)) },

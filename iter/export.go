@@ -406,13 +406,13 @@ func Scan[T any, St any, B any](iter Iterator[T], initialState St, f func(state 
 }
 
 // Flatten creates an iterator that flattens nested structure.
-func Flatten[T any, D gust.Iterable[T]](iter Iterator[D]) Iterator[T] {
-	return newFlattenIterator[T, D](iter)
+func Flatten[I gust.Iterable[T], T any](iter Iterator[I]) Iterator[T] {
+	return newFlattenIterator[I, T](iter)
 }
 
 // DeFlatten creates a double ended iterator that flattens nested structure.
-func DeFlatten[T any, D gust.DeIterable[T]](iter DeIterator[D]) DeIterator[T] {
-	return newDeFlattenIterator[T, D](iter)
+func DeFlatten[I gust.DeIterable[T], T any](iter DeIterator[I]) DeIterator[T] {
+	return newDeFlattenIterator[I, T](iter)
 }
 
 // FlatMap creates an iterator that works like map, but flattens nested structure.
