@@ -430,3 +430,7 @@ func (iter deIterBackground[T]) DeFuse() DeIterator[T] {
 func (iter deIterBackground[T]) DePeekable() DePeekableIterator[T] {
 	return newDePeekableIterator[T](iter)
 }
+
+func (iter deIterBackground[T]) DeSkip(n uint) DeIterator[T] {
+	return newDeSkipIterator[T](iter, n)
+}

@@ -159,9 +159,10 @@ var (
 	_ iRealRemaining          = (*deSkipIterator[any])(nil)
 )
 
-func newDeSkipIterator[T any](iter DeIterator[T]) DeIterator[T] {
+func newDeSkipIterator[T any](iter DeIterator[T], n uint) DeIterator[T] {
 	p := &deSkipIterator[T]{}
 	p.iter = iter
+	p.n = n
 	p.setFacade(p)
 	return p
 }

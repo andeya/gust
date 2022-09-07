@@ -698,7 +698,7 @@ type Iterator[T any] interface {
 	// elements are yielded. In particular, if the original iterator is too short,
 	// then the returned iterator is empty.
 	//
-	// Rather than overriding this method directly, instead override the `nth` method.
+	// Rather than overriding this method directly, instead override the `Nth` method.
 	Skip(n uint) Iterator[T]
 }
 
@@ -815,6 +815,15 @@ type (
 		// DePeekable creates a double ended iterator which can peek at the next element.
 		DePeekable() DePeekableIterator[T]
 		iRemaining[T]
+		// DeSkip creates a double ended iterator that skips the first `n` elements.
+		//
+		// `DeSkip(n)` skips elements until `n` elements are skipped or the end of the
+		// iterator is reached (whichever happens first). After that, all the remaining
+		// elements are yielded. In particular, if the original iterator is too short,
+		// then the returned iterator is empty.
+		//
+		// Rather than overriding this method directly, instead override the `Nth` method.
+		DeSkip(n uint) DeIterator[T]
 	}
 
 	iNextBack[T any] interface {
