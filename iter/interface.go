@@ -700,6 +700,15 @@ type Iterator[T any] interface {
 	//
 	// Rather than overriding this method directly, instead override the `Nth` method.
 	Skip(n uint) Iterator[T]
+	// Take creates an iterator that yields the first `n` elements, or fewer
+	// if the underlying iterator ends sooner.
+	//
+	// `Take(n)` yields elements until `n` elements are yielded or the end of
+	// the iterator is reached (whichever happens first).
+	// The returned iterator is a prefix of length `n` if the original iterator
+	// contains at least `n` elements, otherwise it contains all of the
+	// (fewer than `n`) elements of the original iterator.
+	Take(n uint) Iterator[T]
 }
 
 type (
@@ -824,6 +833,15 @@ type (
 		//
 		// Rather than overriding this method directly, instead override the `Nth` method.
 		DeSkip(n uint) DeIterator[T]
+		// DeTake creates an iterator that yields the first `n` elements, or fewer
+		// if the underlying iterator ends sooner.
+		//
+		// `DeTake(n)` yields elements until `n` elements are yielded or the end of
+		// the iterator is reached (whichever happens first).
+		// The returned iterator is a prefix of length `n` if the original iterator
+		// contains at least `n` elements, otherwise it contains all of the
+		// (fewer than `n`) elements of the original iterator.
+		DeTake(n uint) DeIterator[T]
 	}
 
 	iNextBack[T any] interface {

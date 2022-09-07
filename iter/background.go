@@ -335,6 +335,10 @@ func (iter iterBackground[T]) Skip(n uint) Iterator[T] {
 	return newSkipIterator[T](iter, n)
 }
 
+func (iter iterBackground[T]) Take(n uint) Iterator[T] {
+	return newTakeIterator[T](iter, n)
+}
+
 var _ DeIterator[any] = deIterBackground[any]{}
 
 type deIterBackground[T any] struct {
@@ -433,4 +437,8 @@ func (iter deIterBackground[T]) DePeekable() DePeekableIterator[T] {
 
 func (iter deIterBackground[T]) DeSkip(n uint) DeIterator[T] {
 	return newDeSkipIterator[T](iter, n)
+}
+
+func (iter deIterBackground[T]) DeTake(n uint) DeIterator[T] {
+	return newDeTakeIterator[T](iter, n)
 }
