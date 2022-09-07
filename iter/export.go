@@ -259,16 +259,36 @@ func Map[T any, B any](iter Iterator[T], f func(T) B) Iterator[B] {
 	return newMapIterator(iter, f)
 }
 
+// DeMap takes a closure and creates a double ended iterator which calls that closure on each
+// element.
+//
+// If you are good at thinking in types, you can think of `DeMap()` like this:
+// If you have an iterator that gives you elements of some type `A`, and
+// you want an iterator of some other type `B`, you can use `DeMap()`,
+// passing a closure that takes an `A` and returns a `B`.
+//
+// `DeMap()` is conceptually similar to a [`for`] loop. However, as `DeMap()` is
+// lazy, it is best used when you're already working with other iterators.
+// If you're doing some sort of looping for a side effect, it's considered
+// more idiomatic to use [`for`] than `DeMap()`.
+func DeMap[T any, B any](iter DeIterator[T], f func(T) B) DeIterator[B] {
+	return newDeMapIterator(iter, f)
+}
+
 // FilterMap creates an iterator that both filters and maps.
 //
 // The returned iterator yields only the `value`s for which the supplied
 // closure returns `gust.Some(value)`.
-//
-// `FilterMap` can be used to make chains of [`Filter`] and [`Map`] more
-// concise. The example below shows how a `Map().Filter().Map()` can be
-// shortened to a single call to `FilterMap`.
 func FilterMap[T any, B any](iter Iterator[T], f func(T) gust.Option[B]) Iterator[B] {
 	return newFilterMapIterator[T, B](iter, f)
+}
+
+// DeFilterMap creates a double ended iterator that both filters and maps.
+//
+// The returned iterator yields only the `value`s for which the supplied
+// closure returns `gust.Some(value)`.
+func DeFilterMap[T any, B any](iter DeIterator[T], f func(T) gust.Option[B]) DeIterator[B] {
+	return newDeFilterMapIterator[T, B](iter, f)
 }
 
 // FindMap applies function to the elements of data and returns
@@ -310,13 +330,13 @@ func FindMap[T any, B any](iter Iterator[T], f func(T) gust.Option[B]) gust.Opti
 // If the zipped iterator has no more elements to return then each further attempt to advance
 // it will first try to advance the first iterator at most one time and if it still yielded an item
 // try to advance the second iterator at most one time.
-func Zip[A any, B any](a Iterator[A], b Iterator[B]) *ZipIterator[A, B] {
+func Zip[A any, B any](a Iterator[A], b Iterator[B]) Iterator[gust.Pair[A, B]] {
 	return newZipIterator[A, B](a, b)
 }
 
 // DeZip is similar to `Zip`, but it supports take elements starting from the back of the iterator.
-func DeZip[A any, B any](a DeIterator[A], b DeIterator[B]) *ZipDeIterator[A, B] {
-	return newZipDeIterator[A, B](a, b)
+func DeZip[A any, B any](a DeIterator[A], b DeIterator[B]) DeIterator[gust.Pair[A, B]] {
+	return newDeZipIterator[A, B](a, b)
 }
 
 // TryRfold is the reverse version of [`Iterator[T].TryFold()`]: it takes
@@ -346,16 +366,6 @@ func Rfold[T any, B any](iter DeIterator[T], init B, f func(B, T) B) B {
 		}
 		accum = f(accum, x.Unwrap())
 	}
-}
-
-// Flatten creates an iterator that flattens nested structure.
-func Flatten[T any, D gust.Iterable[T]](iter Iterator[D]) *FlattenIterator[T, D] {
-	return newFlattenIterator[T, D](iter)
-}
-
-// DeFlatten creates a double ended iterator that flattens nested structure.
-func DeFlatten[T any, D gust.DeIterable[T]](iter DeIterator[D]) *FlattenDeIterator[T, D] {
-	return newFlattenDeIterator[T, D](iter)
 }
 
 // Enumerate creates an iterator that yields pairs of the index and the value.
@@ -393,4 +403,48 @@ func MapWhile[T any, B any](iter Iterator[T], predicate func(T) gust.Option[B]) 
 // yielded by the iterator.
 func Scan[T any, St any, B any](iter Iterator[T], initialState St, f func(state *St, item T) gust.Option[B]) Iterator[B] {
 	return newScanIterator[T, St, B](iter, initialState, f)
+}
+
+// Flatten creates an iterator that flattens nested structure.
+func Flatten[T any, D gust.Iterable[T]](iter Iterator[D]) Iterator[T] {
+	return newFlattenIterator[T, D](iter)
+}
+
+// DeFlatten creates a double ended iterator that flattens nested structure.
+func DeFlatten[T any, D gust.DeIterable[T]](iter DeIterator[D]) DeIterator[T] {
+	return newDeFlattenIterator[T, D](iter)
+}
+
+// FlatMap creates an iterator that works like map, but flattens nested structure.
+//
+// The [`Map`] adapter is very useful, but only when the closure
+// argument produces values. If it produces an iterator instead, there's
+// an extra layer of indirection. `FlatMap()` will remove this extra layer
+// on its own.
+//
+// You can think of `FlatMap(f)` as the semantic equivalent
+// of [`Map`]ping, and then [`Flatten`]ing as in `Map(f).Flatten()`.
+//
+// Another way of thinking about `FlatMap()`: [`Map`]'s closure returns
+// one item for each element, and `FlatMap()`'s closure returns an
+// iterator for each element.
+func FlatMap[T any, B any](iter Iterator[T], f func(T) Iterator[B]) Iterator[B] {
+	return newFlatMapIterator[T, B](iter, f)
+}
+
+// DeFlatMap creates a double ended iterator that works like map, but flattens nested structure.
+//
+// The [`DeMap`] adapter is very useful, but only when the closure
+// argument produces values. If it produces an iterator instead, there's
+// an extra layer of indirection. `DeFlatMap()` will remove this extra layer
+// on its own.
+//
+// You can think of `DeFlatMap(f)` as the semantic equivalent
+// of [`DeMap`]ping, and then [`DeFlatten`]ing as in `DeFlatten(DeMap(f))`.
+//
+// Another way of thinking about `DeFlatMap()`: [`DeMap`]'s closure returns
+// one item for each element, and `DeFlatMap()`'s closure returns an
+// iterator for each element.
+func DeFlatMap[T any, B any](iter DeIterator[T], f func(T) DeIterator[B]) DeIterator[B] {
+	return newDeFlatMapIterator[T, B](iter, f)
 }
