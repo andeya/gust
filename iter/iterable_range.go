@@ -66,7 +66,7 @@ func (r *IterableRange[T]) NextBack() gust.Option[T] {
 	if r.backNextValue == r.nextValue {
 		r.ended = true
 	} else {
-		r.backNextValue++
+		r.backNextValue--
 	}
 	return gust.Some(value)
 }
