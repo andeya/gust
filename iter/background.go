@@ -109,10 +109,6 @@ func (iter iterBackground[T]) Nth(n uint) gust.Option[T] {
 }
 
 func (iter iterBackground[T]) ForEach(f func(T)) {
-	if cover, ok := iter.facade.(iRealForEach[T]); ok {
-		cover.realForEach(f)
-		return
-	}
 	var call = func(f func(T)) func(any, T) any {
 		return func(_ any, item T) any {
 			f(item)
@@ -129,9 +125,6 @@ func (iter iterBackground[T]) TryForEach(f func(T) gust.AnyCtrlFlow) gust.AnyCtr
 }
 
 func (iter iterBackground[T]) Reduce(f func(accum T, item T) T) gust.Option[T] {
-	if cover, ok := iter.facade.(iRealReduce[T]); ok {
-		return cover.realReduce(f)
-	}
 	var first = iter.Next()
 	if first.IsNone() {
 		return first
@@ -142,9 +135,6 @@ func (iter iterBackground[T]) Reduce(f func(accum T, item T) T) gust.Option[T] {
 }
 
 func (iter iterBackground[T]) All(predicate func(T) bool) bool {
-	if cover, ok := iter.facade.(iRealAll[T]); ok {
-		return cover.realAll(predicate)
-	}
 	var check = func(f func(T) bool) func(any, T) gust.AnyCtrlFlow {
 		return func(_ any, x T) gust.AnyCtrlFlow {
 			if f(x) {
@@ -158,9 +148,6 @@ func (iter iterBackground[T]) All(predicate func(T) bool) bool {
 }
 
 func (iter iterBackground[T]) Any(predicate func(T) bool) bool {
-	if cover, ok := iter.facade.(iRealAny[T]); ok {
-		return cover.realAny(predicate)
-	}
 	var check = func(f func(T) bool) func(any, T) gust.AnyCtrlFlow {
 		return func(_ any, x T) gust.AnyCtrlFlow {
 			if f(x) {
@@ -194,16 +181,10 @@ func (iter iterBackground[T]) Find(predicate func(T) bool) gust.Option[T] {
 }
 
 func (iter iterBackground[T]) FindMap(f func(T) gust.Option[T]) gust.Option[T] {
-	if cover, ok := iter.facade.(iRealFindMap[T]); ok {
-		return cover.realFindMap(f)
-	}
 	return FindMap[T, T](iter, f)
 }
 
 func (iter iterBackground[T]) XFindMap(f func(T) gust.Option[any]) gust.Option[any] {
-	if cover, ok := iter.facade.(iRealFindMap[T]); ok {
-		return cover.realXFindMap(f)
-	}
 	return FindMap[T, any](iter, f)
 }
 
@@ -228,9 +209,6 @@ func (iter iterBackground[T]) IsPartitioned(predicate func(T) bool) bool {
 }
 
 func (iter iterBackground[T]) TryFind(predicate func(T) gust.Result[bool]) gust.Result[gust.Option[T]] {
-	if cover, ok := iter.facade.(iRealTryFind[T]); ok {
-		return cover.realTryFind(predicate)
-	}
 	var check = func(f func(T) gust.Result[bool]) func(any, T) gust.AnyCtrlFlow {
 		return func(_ any, x T) gust.AnyCtrlFlow {
 			r := f(x)
@@ -253,9 +231,6 @@ func (iter iterBackground[T]) TryFind(predicate func(T) gust.Result[bool]) gust.
 }
 
 func (iter iterBackground[T]) Position(predicate func(T) bool) gust.Option[int] {
-	if cover, ok := iter.facade.(iRealPosition[T]); ok {
-		return cover.realPosition(predicate)
-	}
 	var check = func(f func(T) bool) func(int, T) gust.SigCtrlFlow[int] {
 		return func(i int, x T) gust.SigCtrlFlow[int] {
 			if f(x) {

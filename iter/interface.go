@@ -931,37 +931,8 @@ type (
 		realNth(n uint) gust.Option[T]
 	}
 
-	iRealForEach[T any] interface {
-		realForEach(f func(T))
-	}
-
-	iRealReduce[T any] interface {
-		realReduce(f func(accum T, item T) T) gust.Option[T]
-	}
-
-	iRealAll[T any] interface {
-		realAll(predicate func(T) bool) bool
-	}
-
-	iRealAny[T any] interface {
-		realAny(predicate func(T) bool) bool
-	}
-
 	iRealFind[T any] interface {
 		realFind(predicate func(T) bool) gust.Option[T]
-	}
-
-	iRealTryFind[T any] interface {
-		realTryFind(predicate func(T) gust.Result[bool]) gust.Result[gust.Option[T]]
-	}
-
-	iRealPosition[T any] interface {
-		realPosition(predicate func(T) bool) gust.Option[int]
-	}
-
-	iRealFindMap[T any] interface {
-		realFindMap(f func(T) gust.Option[T]) gust.Option[T]
-		realXFindMap(f func(T) gust.Option[any]) gust.Option[any]
 	}
 )
 
