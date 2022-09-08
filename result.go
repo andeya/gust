@@ -72,6 +72,11 @@ func (r Result[T]) Ok() Option[T] {
 	return r.inner.Ok()
 }
 
+// XOk converts from `Result[T]` to `Option[any]`.
+func (r Result[T]) XOk() Option[any] {
+	return r.inner.XOk()
+}
+
 // Err returns error.
 func (r Result[T]) Err() error {
 	if r.IsErr() {
