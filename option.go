@@ -233,6 +233,15 @@ func (o Option[T]) OkOr(err any) Result[T] {
 	return Err[T](err)
 }
 
+// XOkOr transforms the `Option[T]` into a [`Result[any]`], mapping [`Some(v)`] to
+// [`Ok(v)`] and [`None`] to [`Err(err)`].
+func (o Option[T]) XOkOr(err any) Result[any] {
+	if o.IsSome() {
+		return Ok[any](o.UnwrapUnchecked())
+	}
+	return Err[any](err)
+}
+
 // OkOrElse transforms the `Option[T]` into a [`Result[T]`], mapping [`Some(v)`] to
 // [`Ok(v)`] and [`None`] to [`Err(errFn())`].
 func (o Option[T]) OkOrElse(errFn func() any) Result[T] {
@@ -240,6 +249,15 @@ func (o Option[T]) OkOrElse(errFn func() any) Result[T] {
 		return Ok(o.UnwrapUnchecked())
 	}
 	return Err[T](errFn())
+}
+
+// XOkOrElse transforms the `Option[T]` into a [`Result[any]`], mapping [`Some(v)`] to
+// [`Ok(v)`] and [`None`] to [`Err(errFn())`].
+func (o Option[T]) XOkOrElse(errFn func() any) Result[any] {
+	if o.IsSome() {
+		return Ok[any](o.UnwrapUnchecked())
+	}
+	return Err[any](errFn())
 }
 
 // EnumOkOr transforms the `Option[T]` into a [`EnumResult[T,any]`], mapping [`Some(v)`] to
@@ -251,6 +269,15 @@ func (o Option[T]) EnumOkOr(err any) EnumResult[T, any] {
 	return EnumErr[T, any](err)
 }
 
+// XEnumOkOr transforms the `Option[T]` into a [`EnumResult[any,any]`], mapping [`Some(v)`] to
+// [`EnumOk(v)`] and [`None`] to [`EnumErr(err)`].
+func (o Option[T]) XEnumOkOr(err any) EnumResult[any, any] {
+	if o.IsSome() {
+		return EnumOk[any, any](o.UnwrapUnchecked())
+	}
+	return EnumErr[any, any](err)
+}
+
 // EnumOkOrElse transforms the `Option[T]` into a [`EnumResult[T,any]`], mapping [`Some(v)`] to
 // [`EnumOk(v)`] and [`None`] to [`EnumErr(errFn())`].
 func (o Option[T]) EnumOkOrElse(errFn func() any) EnumResult[T, any] {
@@ -258,6 +285,15 @@ func (o Option[T]) EnumOkOrElse(errFn func() any) EnumResult[T, any] {
 		return EnumOk[T, any](o.UnwrapUnchecked())
 	}
 	return EnumErr[T, any](errFn())
+}
+
+// XEnumOkOrElse transforms the `Option[T]` into a [`EnumResult[any,any]`], mapping [`Some(v)`] to
+// [`EnumOk(v)`] and [`None`] to [`EnumErr(errFn())`].
+func (o Option[T]) XEnumOkOrElse(errFn func() any) EnumResult[any, any] {
+	if o.IsSome() {
+		return EnumOk[any, any](o.UnwrapUnchecked())
+	}
+	return EnumErr[any, any](errFn())
 }
 
 // And returns [`None`] if the option is [`None`], otherwise returns `optb`.
