@@ -41,9 +41,9 @@ func ExampleOption() {
 	fmt.Println(x)
 
 	var c *A
-	fmt.Println(gust.Ptr(c).IsNone())
+	fmt.Println(gust.PtrOpt(c).IsNone())
 	c = new(A)
-	fmt.Println(gust.Ptr(c).IsNone())
+	fmt.Println(gust.PtrOpt(c).IsNone())
 
 	type B struct {
 		Y string

@@ -5,12 +5,25 @@ import (
 	"fmt"
 )
 
-// Ptr wraps a pointer value.
+// BoolOpt wraps a value as an Option.
 // NOTE:
 //
-//	non-nil pointer is wrapped as Some,
-//	and nil pointer is wrapped as None.
-func Ptr[U any, T *U](ptr T) Option[T] {
+//	`ok=true` is wrapped as Some,
+//	and `ok=false` is wrapped as None.
+func BoolOpt[T any](val T, ok bool) Option[T] {
+	if !ok {
+		return Option[T]{value: nil}
+	}
+	v := &val
+	return Option[T]{value: &v}
+}
+
+// PtrOpt wraps a pointer value.
+// NOTE:
+//
+//	`non-nil pointer` is wrapped as Some,
+//	and `nil pointer` is wrapped as None.
+func PtrOpt[U any, T *U](ptr T) Option[T] {
 	if ptr == nil {
 		return Option[T]{value: nil}
 	}
@@ -18,12 +31,12 @@ func Ptr[U any, T *U](ptr T) Option[T] {
 	return Option[T]{value: &v}
 }
 
-// Opt wraps a value as an Option.
+// ZeroOpt wraps a value as an Option.
 // NOTE:
 //
-//	non-zero T is wrapped as Some,
-//	and zero T is wrapped as None.
-func Opt[T comparable](val T) Option[T] {
+//	`non-zero T` is wrapped as Some,
+//	and `zero T` is wrapped as None.
+func ZeroOpt[T comparable](val T) Option[T] {
 	var zero T
 	if zero == val {
 		return Option[T]{value: nil}
