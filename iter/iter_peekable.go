@@ -2,6 +2,7 @@ package iter
 
 import (
 	"github.com/andeya/gust"
+	"github.com/andeya/gust/digit"
 )
 
 var (
@@ -166,9 +167,9 @@ func (s *implPeekable[T]) realSizeHint() (uint, gust.Option[uint]) {
 		peekLen = 1
 	}
 	lo, hi := s.iter.SizeHint()
-	lo = saturatingAdd(lo, peekLen)
+	lo = digit.SaturatingAdd(lo, peekLen)
 	if hi.IsSome() {
-		hi = checkedAdd(hi.Unwrap(), peekLen)
+		hi = digit.CheckedAdd(hi.Unwrap(), peekLen)
 	}
 	return lo, hi
 }

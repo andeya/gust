@@ -2,6 +2,7 @@ package iter
 
 import (
 	"github.com/andeya/gust"
+	"github.com/andeya/gust/digit"
 )
 
 var (
@@ -155,10 +156,10 @@ func (s *chainIterator[T]) realSizeHint() (uint, gust.Option[uint]) {
 	if s.a != nil && s.b != nil {
 		var aLower, aUpper = s.a.SizeHint()
 		var bLower, bUpper = s.b.SizeHint()
-		var lower = saturatingAdd(aLower, bLower)
+		var lower = digit.SaturatingAdd(aLower, bLower)
 		var upper gust.Option[uint]
 		if aUpper.IsSome() && bUpper.IsSome() {
-			upper = checkedAdd(aUpper.Unwrap(), bUpper.Unwrap())
+			upper = digit.CheckedAdd(aUpper.Unwrap(), bUpper.Unwrap())
 		}
 		return lower, upper
 	}

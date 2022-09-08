@@ -2,6 +2,7 @@ package iter
 
 import (
 	"github.com/andeya/gust"
+	"github.com/andeya/gust/digit"
 )
 
 var (
@@ -142,14 +143,14 @@ func (d *deTakeIterator[T]) realNextBack() gust.Option[T] {
 	var n = d.n
 	d.n -= 1
 	var sizeDeIter = d.iter.(DeIterator[T])
-	return sizeDeIter.NthBack(saturatingSub(sizeDeIter.Remaining(), n))
+	return sizeDeIter.NthBack(digit.SaturatingSub(sizeDeIter.Remaining(), n))
 }
 
 func (d *deTakeIterator[T]) realNthBack(n uint) gust.Option[T] {
 	var sizeDeIter = d.iter.(DeIterator[T])
 	var remaining = sizeDeIter.Remaining()
 	if d.n > n {
-		var m = saturatingSub(remaining, d.n) + n
+		var m = digit.SaturatingSub(remaining, d.n) + n
 		d.n -= n + 1
 		return sizeDeIter.NthBack(m)
 	}
@@ -187,11 +188,11 @@ func (d *deTakeIterator[T]) realAdvanceBackBy(n uint) gust.Errable[uint] {
 	var sizeDeIter = d.iter.(DeIterator[T])
 	// The amount by which the inner iterator needs to be shortened for it to be
 	// at most as long as the take() amount.
-	var trimInner = saturatingSub(sizeDeIter.Remaining(), d.n)
+	var trimInner = digit.SaturatingSub(sizeDeIter.Remaining(), d.n)
 	// The amount we need to advance inner to fulfill the caller's request.
 	// take(), advance_by() and len() all can be at most usize, so we don't have to worry
 	// about having to advance more than usize::MAX here.
-	var advanceBy = saturatingAdd(trimInner, n)
+	var advanceBy = digit.SaturatingAdd(trimInner, n)
 	var r = sizeDeIter.AdvanceBackBy(advanceBy)
 	var advanced uint
 	if r.IsErr() {

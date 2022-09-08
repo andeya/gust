@@ -2,6 +2,7 @@ package iter
 
 import (
 	"github.com/andeya/gust"
+	"github.com/andeya/gust/digit"
 	"github.com/andeya/gust/opt"
 )
 
@@ -81,11 +82,11 @@ func (f *flattenIterator[I, T]) realSizeHint() (uint, gust.Option[uint]) {
 		x.A, x.B = i.SizeHint()
 		return x
 	})
-	var lo = saturatingAdd(fl.A, bl.A)
+	var lo = digit.SaturatingAdd(fl.A, bl.A)
 	// TODO: check fixed size
 	var a, b = f.iter.SizeHint()
 	if a == 0 && b.IsSome() && b.Unwrap() == 0 && fl.B.IsSome() && bl.B.IsSome() {
-		return lo, checkedAdd(fl.B.Unwrap(), bl.B.Unwrap())
+		return lo, digit.CheckedAdd(fl.B.Unwrap(), bl.B.Unwrap())
 	}
 	return lo, gust.None[uint]()
 }
@@ -262,11 +263,11 @@ func (f *deFlattenIterator[I, T]) realSizeHint() (uint, gust.Option[uint]) {
 		x.A, x.B = i.SizeHint()
 		return x
 	})
-	var lo = saturatingAdd(fl.A, bl.A)
+	var lo = digit.SaturatingAdd(fl.A, bl.A)
 	// TODO: check fixed size
 	var a, b = f.iter.SizeHint()
 	if a == 0 && b.IsSome() && b.Unwrap() == 0 && fl.B.IsSome() && bl.B.IsSome() {
-		return lo, checkedAdd(fl.B.Unwrap(), bl.B.Unwrap())
+		return lo, digit.CheckedAdd(fl.B.Unwrap(), bl.B.Unwrap())
 	}
 	return lo, gust.None[uint]()
 }

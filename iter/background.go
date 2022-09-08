@@ -215,6 +215,12 @@ func (iter iterBackground[T]) Partition(f func(T) bool) (truePart []T, falsePart
 	return left, right
 }
 
+func (iter iterBackground[T]) IsPartitioned(predicate func(T) bool) bool {
+	// Either all items test `true`, or the first clause stops at `false`
+	// and we check that there are no more `true` items after that.
+	return iter.All(predicate) || !iter.Any(predicate)
+}
+
 func (iter iterBackground[T]) TryFind(predicate func(T) gust.Result[bool]) gust.Result[gust.Option[T]] {
 	if cover, ok := iter.facade.(iRealTryFind[T]); ok {
 		return cover.realTryFind(predicate)

@@ -2,6 +2,7 @@ package iter
 
 import (
 	"github.com/andeya/gust"
+	"github.com/andeya/gust/digit"
 )
 
 var (
@@ -51,7 +52,7 @@ func (f *skipIterator[T]) realNth(n uint) gust.Option[T] {
 	var skip uint = f.n
 	f.n = 0
 	// Checked add to handle overflow case.
-	n2 := checkedAdd(skip, n).UnwrapOrElse(func() uint {
+	n2 := digit.CheckedAdd(skip, n).UnwrapOrElse(func() uint {
 		// In case of overflow, load skip value, before loading `n`.
 		// Because the amount of elements to iterate is beyond `usize::MAX`, this
 		// is split into two `nth` calls where the `skip` `nth` call is discarded.
@@ -85,9 +86,9 @@ func (f *skipIterator[T]) realLast() gust.Option[T] {
 
 func (f *skipIterator[T]) realSizeHint() (uint, gust.Option[uint]) {
 	var lower, upper = f.iter.SizeHint()
-	lower = saturatingSub(lower, f.n)
+	lower = digit.SaturatingSub(lower, f.n)
 	if upper.IsSome() {
-		upper = gust.Some(saturatingSub(upper.Unwrap(), f.n))
+		upper = gust.Some(digit.SaturatingSub(upper.Unwrap(), f.n))
 	}
 	return lower, upper
 }
@@ -116,11 +117,11 @@ func (f *skipIterator[T]) realFold(init any, fold func(any, T) any) any {
 
 func (f *skipIterator[T]) realAdvanceBy(n uint) gust.Errable[uint] {
 	var rem = n
-	var stepOne = saturatingAdd(f.n, rem)
+	var stepOne = digit.SaturatingAdd(f.n, rem)
 	var advanced = f.iter.AdvanceBy(stepOne)
 	if advanced.IsErr() {
-		var advancedWithoutSkip = saturatingSub(advanced.UnwrapErr(), f.n)
-		f.n = saturatingSub(f.n, advanced.UnwrapErr())
+		var advancedWithoutSkip = digit.SaturatingSub(advanced.UnwrapErr(), f.n)
+		f.n = digit.SaturatingSub(f.n, advanced.UnwrapErr())
 		if n == 0 {
 			return gust.NonErrable[uint]()
 		} else {

@@ -2,6 +2,7 @@ package iter
 
 import (
 	"github.com/andeya/gust"
+	"github.com/andeya/gust/digit"
 )
 
 func newIntersperseIterator[T any](iter PeekableIterator[T], separator T) Iterator[T] {
@@ -53,8 +54,8 @@ func (f *intersperseIterator[T]) realSizeHint() (uint, gust.Option[uint]) {
 	if !f.needsSep {
 		nextIsElem = 1
 	}
-	return saturatingAdd(saturatingSub(lo, nextIsElem), lo), hi.AndThen(func(hi uint) gust.Option[uint] {
-		return checkedAdd(saturatingSub(hi, nextIsElem), hi)
+	return digit.SaturatingAdd(digit.SaturatingSub(lo, nextIsElem), lo), hi.AndThen(func(hi uint) gust.Option[uint] {
+		return digit.CheckedAdd(digit.SaturatingSub(hi, nextIsElem), hi)
 	})
 }
 

@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/andeya/gust"
+	"github.com/andeya/gust/digit"
 	"github.com/andeya/gust/opt"
 )
 
@@ -91,7 +92,7 @@ func (s *stepByIterator[T]) realNth(n uint) gust.Option[T] {
 
 	// overflow handling
 	for {
-		var mul = uintCheckedMul(n, step)
+		var mul = digit.UintCheckedMul(n, step)
 		if mul.IsSome() {
 			return s.iter.Nth(mul.Unwrap() - 1)
 		}

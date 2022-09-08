@@ -138,6 +138,9 @@ type (
 		// `partition()` returns a pair, all of the elements for which it returned
 		// `true`, and all of the elements for which it returned `false`.
 		Partition(f func(T) bool) (truePart []T, falsePart []T)
+		// IsPartitioned checks if the elements of this iterator are partitioned according to the given predicate,
+		// such that all those that return `true` precede all those that return `false`.
+		IsPartitioned(predicate func(T) bool) bool
 		// Fold folds every element into an accumulator by applying an operation,
 		// returning the final
 		//
