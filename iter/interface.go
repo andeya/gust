@@ -50,7 +50,7 @@ type (
 		// Specifically, `SizeHint()` returns a tuple where the first element
 		// is the lower bound, and the second element is the upper bound.
 		//
-		// The second half of the tuple that is returned is an <code>Option[A]</code>.
+		// The second half of the tuple that is returned is an `Option[A]`.
 		// A [`gust.None[T]()`] here means that either there is no known upper bound, or the
 		// upper bound is larger than [`int`].
 		//
@@ -69,7 +69,7 @@ type (
 		// That said, the implementation should provide a correct estimation,
 		// because otherwise it would be a violation of the interface's protocol.
 		//
-		// The default implementation returns <code>(0, [None[int]()])</code> which is correct for any
+		// The default implementation returns `(0, [None[int]()])` which is correct for any
 		// data.
 		//
 		// # Examples
@@ -135,8 +135,8 @@ type (
 		// Partition consumes an iterator, creating two collections from it.
 		//
 		// The predicate passed to `partition()` can return `true`, or `false`.
-		// `partition()` returns a pair, all of the elements for which it returned
-		// `true`, and all of the elements for which it returned `false`.
+		// `partition()` returns a pair, all the elements for which it returned
+		// `true`, and all the elements for which it returned `false`.
 		Partition(f func(T) bool) (truePart []T, falsePart []T)
 		// IsPartitioned checks if the elements of this iterator are partitioned according to the given predicate,
 		// such that all those that return `true` precede all those that return `false`.
@@ -994,7 +994,7 @@ type (
 	}
 
 	iRfold[T any] interface {
-		// Rfold is an iterator method that reduces the iterator's elements to a single,
+		// Rfold is an iterator method that reduces the iterator elements to a single,
 		// final value, starting from the back.
 		Rfold(init any, fold func(any, T) any) any
 	}
