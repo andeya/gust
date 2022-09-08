@@ -18,7 +18,7 @@ func TestZip(t *testing.T) {
 		{iter.FromElements(1, 2, 3), iter.FromElements(4, 5, 6)},
 		{iter.FromRange(1, 4), iter.FromChan(c)},
 	} {
-		var i = iter.Zip(x[0], x[1])
+		var i = iter.ToZip(x[0], x[1])
 		assert.Equal(t, gust.Some(gust.Pair[int, int]{A: 1, B: 4}), i.Next())
 		assert.Equal(t, gust.Some(gust.Pair[int, int]{A: 2, B: 5}), i.Next())
 		assert.Equal(t, gust.Some(gust.Pair[int, int]{A: 3, B: 6}), i.Next())

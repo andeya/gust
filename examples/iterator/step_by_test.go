@@ -22,7 +22,7 @@ func TestStepBy(t *testing.T) {
 		iter.FromRange(0, 5, true),
 		iter.FromChan(c),
 	} {
-		var stepBy = i.StepBy(2)
+		var stepBy = i.ToStepBy(2)
 		assert.Equal(t, gust.Some(0), stepBy.Next())
 		assert.Equal(t, gust.Some(2), stepBy.Next())
 		assert.Equal(t, gust.Some(4), stepBy.Next())

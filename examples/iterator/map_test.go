@@ -20,7 +20,7 @@ func TestMap_1(t *testing.T) {
 		iter.FromRange(1, 4),
 		iter.FromChan(c),
 	} {
-		i := i.Map(func(v int) int { return v * 2 })
+		i := i.ToMap(func(v int) int { return v * 2 })
 		assert.Equal(t, gust.Some(2), i.Next())
 		assert.Equal(t, gust.Some(4), i.Next())
 		assert.Equal(t, gust.Some(6), i.Next())
@@ -39,7 +39,7 @@ func TestMap_2(t *testing.T) {
 		iter.FromRange(1, 4),
 		iter.FromChan(c),
 	} {
-		i := i.XMap(func(v int) any { return fmt.Sprintf("%d", v*2) })
+		i := i.ToXMap(func(v int) any { return fmt.Sprintf("%d", v*2) })
 		assert.Equal(t, gust.Some[any]("2"), i.Next())
 		assert.Equal(t, gust.Some[any]("4"), i.Next())
 		assert.Equal(t, gust.Some[any]("6"), i.Next())
@@ -58,7 +58,7 @@ func TestMap_3(t *testing.T) {
 		iter.FromRange(1, 4),
 		iter.FromChan(c),
 	} {
-		i := iter.Map(i, func(v int) string { return fmt.Sprintf("%d", v*2) })
+		i := iter.ToMap(i, func(v int) string { return fmt.Sprintf("%d", v*2) })
 		assert.Equal(t, gust.Some[string]("2"), i.Next())
 		assert.Equal(t, gust.Some[string]("4"), i.Next())
 		assert.Equal(t, gust.Some[string]("6"), i.Next())

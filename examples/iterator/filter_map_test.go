@@ -15,7 +15,7 @@ func TestFilterMap_1(t *testing.T) {
 		iter.FromElements("1", "two", "NaN", "four", "5"),
 		iter.FromChan(c),
 	} {
-		var i = iter.FilterMap[string, int](i.Inspect(func(v string) {
+		var i = iter.ToFilterMap[string, int](i.ToInspect(func(v string) {
 			if idx == 0 {
 				c <- v
 			}
@@ -32,11 +32,11 @@ func TestFilterMap_2(t *testing.T) {
 		iter.FromElements("1", "two", "NaN", "four", "5"),
 		iter.FromChan(c),
 	} {
-		var i = i.Inspect(func(v string) {
+		var i = i.ToInspect(func(v string) {
 			if idx == 0 {
 				c <- v
 			}
-		}).XFilterMap(func(v string) gust.Option[any] { return gust.Ret(strconv.Atoi(v)).Ok().ToX() })
+		}).ToXFilterMap(func(v string) gust.Option[any] { return gust.Ret(strconv.Atoi(v)).Ok().ToX() })
 		assert.Equal(t, gust.Some[any](1), i.Next())
 		assert.Equal(t, gust.Some[any](5), i.Next())
 		assert.Equal(t, gust.None[any](), i.Next())

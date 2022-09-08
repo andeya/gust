@@ -9,7 +9,7 @@ import (
 )
 
 func TestPeekable(t *testing.T) {
-	var i = iter.FromElements(1, 2, 3).Peekable()
+	var i = iter.FromElements(1, 2, 3).ToPeekable()
 	assert.Equal(t, gust.Some(1), i.Peek())
 	assert.Equal(t, gust.Some(1), i.Peek())
 	assert.Equal(t, gust.Some(1), i.Next())

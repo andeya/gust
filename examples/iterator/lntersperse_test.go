@@ -19,7 +19,7 @@ func TestIntersperse_1(t *testing.T) {
 		iter.FromRange(0, 3),
 		iter.FromChan(c),
 	} {
-		i := i.Intersperse(100)
+		i := i.ToIntersperse(100)
 		assert.Equal(t, gust.Some(0), i.Next())     // The first element from `a`.
 		assert.Equal(t, gust.Some(100), i.Next())   // The separator.
 		assert.Equal(t, gust.Some(1), i.Next())     // The next element from `a`.
@@ -41,7 +41,7 @@ func TestIntersperse_2(t *testing.T) {
 		iter.FromRange(0, 3),
 		iter.FromChan(c),
 	} {
-		i := i.Peekable().Intersperse(100)
+		i := i.ToPeekable().ToIntersperse(100)
 		assert.Equal(t, gust.Some(0), i.Next())     // The first element from `a`.
 		assert.Equal(t, gust.Some(100), i.Next())   // The separator.
 		assert.Equal(t, gust.Some(1), i.Next())     // The next element from `a`.
@@ -62,7 +62,7 @@ func TestIntersperse_3(t *testing.T) {
 		iter.FromRange(0, 3),
 		iter.FromChan(c),
 	} {
-		i := i.IntersperseWith(func() int { return 100 })
+		i := i.ToIntersperseWith(func() int { return 100 })
 		assert.Equal(t, gust.Some(0), i.Next())     // The first element from `a`.
 		assert.Equal(t, gust.Some(100), i.Next())   // The separator.
 		assert.Equal(t, gust.Some(1), i.Next())     // The next element from `a`.

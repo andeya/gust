@@ -26,7 +26,7 @@ func TestNextChunk(t *testing.T) {
 func TestZip(t *testing.T) {
 	var a = FromVec([]string{"x", "y", "z"})
 	var b = FromVec([]int{1, 2})
-	var iter = Zip[string, int](a, b)
+	var iter = ToZip[string, int](a, b)
 	var pairs = Fold[gust.Pair[string, int]](iter, nil, func(acc []gust.Pair[string, int], t gust.Pair[string, int]) []gust.Pair[string, int] {
 		return append(acc, t)
 	})

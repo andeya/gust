@@ -11,13 +11,13 @@ import (
 func TestTakeWhile(t *testing.T) {
 	var c = make(chan int, 10)
 	for _, i := range []iter.Iterator[int]{
-		iter.FromElements(-1, 0, 1).Inspect(func(v int) {
+		iter.FromElements(-1, 0, 1).ToInspect(func(v int) {
 			c <- v
 		}),
 		iter.FromRange(-1, 2),
 		iter.FromChan(c),
 	} {
-		var iter = i.TakeWhile(func(v int) bool {
+		var iter = i.ToTakeWhile(func(v int) bool {
 			return v < 0
 		})
 		assert.Equal(t, gust.Some(-1), iter.Next())

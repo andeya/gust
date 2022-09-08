@@ -19,7 +19,7 @@ func TestFilter(t *testing.T) {
 		iter.FromRange(0, 3),
 		iter.FromChan(c),
 	} {
-		var i = i.Filter(func(v int) bool { return v > 0 })
+		var i = i.ToFilter(func(v int) bool { return v > 0 })
 		assert.Equal(t, gust.Some(1), i.Next())
 		assert.Equal(t, gust.Some(2), i.Next())
 		assert.Equal(t, gust.None[int](), i.Next())

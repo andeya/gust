@@ -52,17 +52,17 @@ func ExampleVersion() {
 // operation that can fail, but would like to ignore failures while
 // continuing to process the successful results. In this example, we take
 // advantage of the iterable nature of [`gust.Result`] to select only the
-// [`gust.Ok`] values using [`iter.Flatten`].
+// [`gust.Ok`] values using [`iter.ToFlatten`].
 func TestResultFlatten(t *testing.T) {
 	var results []gust.Result[uint64]
 	var errs []error
 	var nums = iter.
-		Flatten[gust.Result[uint64], uint64](
-		iter.Map[string, gust.Result[uint64]](
+		ToFlatten[gust.Result[uint64], uint64](
+		iter.ToMap[string, gust.Result[uint64]](
 			iter.FromElements("17", "not a number", "99", "-27", "768"),
 			func(s string) gust.Result[uint64] { return gust.Ret(strconv.ParseUint(s, 10, 64)) },
 		).
-			Inspect(func(x gust.Result[uint64]) {
+			ToInspect(func(x gust.Result[uint64]) {
 				// Save clones of the raw `Result` values to inspect
 				results = append(results,
 					x.InspectErr(func(err error) {

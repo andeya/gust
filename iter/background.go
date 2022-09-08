@@ -246,79 +246,79 @@ func (iter iterBackground[T]) Position(predicate func(T) bool) gust.Option[int] 
 	return gust.None[int]()
 }
 
-func (iter iterBackground[T]) StepBy(step uint) Iterator[T] {
+func (iter iterBackground[T]) ToStepBy(step uint) Iterator[T] {
 	return newStepByIterator[T](iter, step)
 }
 
-func (iter iterBackground[T]) Filter(f func(T) bool) Iterator[T] {
+func (iter iterBackground[T]) ToFilter(f func(T) bool) Iterator[T] {
 	return newFilterIterator[T](iter, f)
 }
 
-func (iter iterBackground[T]) FilterMap(f func(T) gust.Option[T]) Iterator[T] {
+func (iter iterBackground[T]) ToFilterMap(f func(T) gust.Option[T]) Iterator[T] {
 	return newFilterMapIterator[T, T](iter, f)
 }
 
-func (iter iterBackground[T]) XFilterMap(f func(T) gust.Option[any]) Iterator[any] {
+func (iter iterBackground[T]) ToXFilterMap(f func(T) gust.Option[any]) Iterator[any] {
 	return newFilterMapIterator[T, any](iter, f)
 }
 
-func (iter iterBackground[T]) Chain(other Iterator[T]) Iterator[T] {
+func (iter iterBackground[T]) ToChain(other Iterator[T]) Iterator[T] {
 	return newChainIterator[T](iter, other)
 }
 
-func (iter iterBackground[T]) Map(f func(T) T) Iterator[T] {
+func (iter iterBackground[T]) ToMap(f func(T) T) Iterator[T] {
 	return newMapIterator[T, T](iter, f)
 }
 
-func (iter iterBackground[T]) XMap(f func(T) any) Iterator[any] {
+func (iter iterBackground[T]) ToXMap(f func(T) any) Iterator[any] {
 	return newMapIterator[T, any](iter, f)
 }
 
-func (iter iterBackground[T]) Inspect(f func(T)) Iterator[T] {
+func (iter iterBackground[T]) ToInspect(f func(T)) Iterator[T] {
 	return newInspectIterator[T](iter, f)
 }
 
-func (iter iterBackground[T]) Fuse() Iterator[T] {
+func (iter iterBackground[T]) ToFuse() Iterator[T] {
 	return newFuseIterator[T](iter)
 }
 
-func (iter iterBackground[T]) Peekable() PeekableIterator[T] {
+func (iter iterBackground[T]) ToPeekable() PeekableIterator[T] {
 	return newPeekableIterator[T](iter)
 }
 
-func (iter iterBackground[T]) Intersperse(separator T) Iterator[T] {
-	return newIntersperseIterator[T](iter.Peekable(), separator)
+func (iter iterBackground[T]) ToIntersperse(separator T) Iterator[T] {
+	return newIntersperseIterator[T](iter.ToPeekable(), separator)
 }
 
-func (iter iterBackground[T]) IntersperseWith(separator func() T) Iterator[T] {
-	return newIntersperseWithIterator[T](iter.Peekable(), separator)
+func (iter iterBackground[T]) ToIntersperseWith(separator func() T) Iterator[T] {
+	return newIntersperseWithIterator[T](iter.ToPeekable(), separator)
 }
 
-func (iter iterBackground[T]) SkipWhile(predicate func(T) bool) Iterator[T] {
+func (iter iterBackground[T]) ToSkipWhile(predicate func(T) bool) Iterator[T] {
 	return newSkipWhileIterator[T](iter, predicate)
 }
 
-func (iter iterBackground[T]) TakeWhile(predicate func(T) bool) Iterator[T] {
+func (iter iterBackground[T]) ToTakeWhile(predicate func(T) bool) Iterator[T] {
 	return newTakeWhileIterator[T](iter, predicate)
 }
 
-func (iter iterBackground[T]) MapWhile(predicate func(T) gust.Option[T]) Iterator[T] {
+func (iter iterBackground[T]) ToMapWhile(predicate func(T) gust.Option[T]) Iterator[T] {
 	return newMapWhileIterator[T, T](iter, predicate)
 }
 
-func (iter iterBackground[T]) XMapWhile(predicate func(T) gust.Option[any]) Iterator[any] {
+func (iter iterBackground[T]) ToXMapWhile(predicate func(T) gust.Option[any]) Iterator[any] {
 	return newMapWhileIterator[T, any](iter, predicate)
 }
 
-func (iter iterBackground[T]) Skip(n uint) Iterator[T] {
+func (iter iterBackground[T]) ToSkip(n uint) Iterator[T] {
 	return newSkipIterator[T](iter, n)
 }
 
-func (iter iterBackground[T]) Take(n uint) Iterator[T] {
+func (iter iterBackground[T]) ToTake(n uint) Iterator[T] {
 	return newTakeIterator[T](iter, n)
 }
 
-func (iter iterBackground[T]) Scan(initialState any, f func(state *any, item T) gust.Option[any]) Iterator[any] {
+func (iter iterBackground[T]) ToScan(initialState any, f func(state *any, item T) gust.Option[any]) Iterator[any] {
 	return newScanIterator[T, any, any](iter, initialState, f)
 }
 
@@ -410,45 +410,45 @@ func (iter deIterBackground[T]) Rfind(predicate func(T) bool) gust.Option[T] {
 	return gust.None[T]()
 }
 
-func (iter deIterBackground[T]) DeFuse() DeIterator[T] {
+func (iter deIterBackground[T]) ToDeFuse() DeIterator[T] {
 	return newDeFuseIterator[T](iter)
 }
 
-func (iter deIterBackground[T]) DePeekable() DePeekableIterator[T] {
+func (iter deIterBackground[T]) ToDePeekable() DePeekableIterator[T] {
 	return newDePeekableIterator[T](iter)
 }
 
-func (iter deIterBackground[T]) DeSkip(n uint) DeIterator[T] {
+func (iter deIterBackground[T]) ToDeSkip(n uint) DeIterator[T] {
 	return newDeSkipIterator[T](iter, n)
 }
 
-func (iter deIterBackground[T]) DeTake(n uint) DeIterator[T] {
+func (iter deIterBackground[T]) ToDeTake(n uint) DeIterator[T] {
 	return newDeTakeIterator[T](iter, n)
 }
 
-func (iter deIterBackground[T]) DeChain(other DeIterator[T]) DeIterator[T] {
+func (iter deIterBackground[T]) ToDeChain(other DeIterator[T]) DeIterator[T] {
 	return newDeChainIterator[T](iter, other)
 }
 
-func (iter deIterBackground[T]) DeFilter(f func(T) bool) DeIterator[T] {
+func (iter deIterBackground[T]) ToDeFilter(f func(T) bool) DeIterator[T] {
 	return newDeFilterIterator[T](iter, f)
 }
 
-func (iter deIterBackground[T]) DeFilterMap(f func(T) gust.Option[T]) DeIterator[T] {
+func (iter deIterBackground[T]) ToDeFilterMap(f func(T) gust.Option[T]) DeIterator[T] {
 	return newDeFilterMapIterator[T, T](iter, f)
 }
 
-func (iter deIterBackground[T]) XDeFilterMap(f func(T) gust.Option[any]) DeIterator[any] {
+func (iter deIterBackground[T]) ToXDeFilterMap(f func(T) gust.Option[any]) DeIterator[any] {
 	return newDeFilterMapIterator[T, any](iter, f)
 }
-func (iter deIterBackground[T]) DeInspect(f func(T)) DeIterator[T] {
+func (iter deIterBackground[T]) ToDeInspect(f func(T)) DeIterator[T] {
 	return newDeInspectIterator[T](iter, f)
 }
 
-func (iter deIterBackground[T]) DeMap(f func(T) T) DeIterator[T] {
+func (iter deIterBackground[T]) ToDeMap(f func(T) T) DeIterator[T] {
 	return newDeMapIterator[T, T](iter, f)
 }
 
-func (iter deIterBackground[T]) XDeMap(f func(T) any) DeIterator[any] {
+func (iter deIterBackground[T]) ToXDeMap(f func(T) any) DeIterator[any] {
 	return newDeMapIterator[T, any](iter, f)
 }

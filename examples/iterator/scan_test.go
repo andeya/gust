@@ -11,13 +11,13 @@ import (
 func TestScan(t *testing.T) {
 	var c = make(chan int, 10)
 	for _, i := range []iter.Iterator[int]{
-		iter.FromElements(1, 2, 3).Inspect(func(v int) {
+		iter.FromElements(1, 2, 3).ToInspect(func(v int) {
 			c <- v
 		}),
 		iter.FromRange(1, 4),
 		iter.FromChan(c),
 	} {
-		j := i.Scan(1, func(state *any, x int) gust.Option[any] {
+		j := i.ToScan(1, func(state *any, x int) gust.Option[any] {
 			// each iteration, we'll multiply the state by the element
 			*state = (*state).(int) * x
 			// then, we'll yield the negation of the state

@@ -6,13 +6,13 @@ import (
 )
 
 func newFlattenIterator[I gust.Iterable[T], T any](iter Iterator[I]) Iterator[T] {
-	p := &flattenIterator[I, T]{iter: iter.Fuse()}
+	p := &flattenIterator[I, T]{iter: iter.ToFuse()}
 	p.setFacade(p)
 	return p
 }
 
 func newDeFlattenIterator[I gust.DeIterable[T], T any](iter DeIterator[I]) DeIterator[T] {
-	p := &deFlattenIterator[I, T]{iter: iter.DeFuse()}
+	p := &deFlattenIterator[I, T]{iter: iter.ToDeFuse()}
 	p.setFacade(p)
 	return p
 }

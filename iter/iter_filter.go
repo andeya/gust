@@ -34,7 +34,7 @@ func (f *filterIterator[T]) realNext() gust.Option[T] {
 }
 
 func (f *filterIterator[T]) realCount() uint {
-	return Fold[uint, uint](Map[T, uint](f.iter, func(x T) uint {
+	return Fold[uint, uint](ToMap[T, uint](f.iter, func(x T) uint {
 		if f.predicate(x) {
 			return 1
 		}

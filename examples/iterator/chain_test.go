@@ -18,7 +18,7 @@ func TestChain(t *testing.T) {
 		{iter.FromElements(1, 2, 3), iter.FromElements(4, 5, 6)},
 		{iter.FromRange(1, 4), iter.FromChan(c)},
 	} {
-		var i = x[0].Chain(x[1])
+		var i = x[0].ToChain(x[1])
 		assert.Equal(t, gust.Some(1), i.Next())
 		assert.Equal(t, gust.Some(2), i.Next())
 		assert.Equal(t, gust.Some(3), i.Next())
