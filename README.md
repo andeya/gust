@@ -1,6 +1,8 @@
 # gust [![Docs](https://img.shields.io/badge/Docs-pkg.go.dev-blue.svg?style=flat-square)](https://pkg.go.dev/github.com/andeya/gust)
 
-A Rust-inspired declarative programming module for Golang that helps reduce bugs and improve development efficiency. For example results, options, iterators, etc.
+A Rust-inspired **declarative programming** module for Golang that helps reduce bugs and improve development efficiency. For example results, options, iterators, etc.
+
+![declarative_vs_imperative.jpg](doc/declarative_vs_imperative.jpg)
 
 After using this package, your code style will be like this:
 
