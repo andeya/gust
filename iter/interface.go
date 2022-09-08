@@ -132,6 +132,12 @@ type (
 		// var a = []int{1, 2, 3, 4, 5};
 		// assert.Equal(t, FromVec(a).Count(), 5);
 		Count() uint
+		// Partition consumes an iterator, creating two collections from it.
+		//
+		// The predicate passed to `partition()` can return `true`, or `false`.
+		// `partition()` returns a pair, all of the elements for which it returned
+		// `true`, and all of the elements for which it returned `false`.
+		Partition(f func(T) bool) (truePart []T, falsePart []T)
 		// Fold folds every element into an accumulator by applying an operation,
 		// returning the final
 		//

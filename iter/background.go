@@ -201,6 +201,20 @@ func (iter iterBackground[T]) XFindMap(f func(T) gust.Option[any]) gust.Option[a
 	return FindMap[T, any](iter, f)
 }
 
+func (iter iterBackground[T]) Partition(f func(T) bool) (truePart []T, falsePart []T) {
+	var left []T
+	var right []T
+	iter.Fold(nil, func(_ any, x T) any {
+		if f(x) {
+			left = append(left, x)
+		} else {
+			right = append(right, x)
+		}
+		return nil
+	})
+	return left, right
+}
+
 func (iter iterBackground[T]) TryFind(predicate func(T) gust.Result[bool]) gust.Result[gust.Option[T]] {
 	if cover, ok := iter.facade.(iRealTryFind[T]); ok {
 		return cover.realTryFind(predicate)
