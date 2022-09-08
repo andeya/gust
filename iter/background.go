@@ -411,6 +411,17 @@ func (iter deIterBackground[T]) Rfind(predicate func(T) bool) gust.Option[T] {
 	return gust.None[T]()
 }
 
+func (iter deIterBackground[T]) Rposition(predicate func(T) bool) gust.Option[int] {
+	return TryRfold[T, int](iter, int(iter.Remaining()), func(i int, x T) gust.SigCtrlFlow[int] {
+		j := i - 1
+		if predicate(x) {
+			return gust.SigBreak(j)
+		} else {
+			return gust.SigContinue(j)
+		}
+	}).BreakValue()
+}
+
 func (iter deIterBackground[T]) ToDeFuse() DeIterator[T] {
 	return newDeFuseIterator[T](iter)
 }

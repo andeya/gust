@@ -747,6 +747,19 @@ type (
 		iTryRfold[T]
 		iRfold[T]
 		iRfind[T]
+
+		// Rposition searches for an element in an iterator from the right, returning its
+		// index.
+		//
+		// `Rposition()` takes a closure that returns `true` or `false`. It applies
+		// this closure to each element of the iterator, starting from the end,
+		// and if one of them returns `true`, then `Rposition()` returns
+		// [`Some(index)`]. If all of them return `false`, it returns [`None`].
+		//
+		// `Rposition()` is short-circuiting; in other words, it will stop
+		// processing as soon as it finds a `true`.
+		Rposition(predicate func(T) bool) gust.Option[int]
+
 		// ToDeFuse creates a double ended iterator which ends after the first [`gust.None[T]()`].
 		//
 		// After an iterator returns [`gust.None[T]()`], future calls may or may not yield
