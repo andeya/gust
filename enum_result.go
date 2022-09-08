@@ -91,7 +91,7 @@ func (r EnumResult[T, E]) IsErrAnd(f func(E) bool) bool {
 	return false
 }
 
-// Ok converts from `Result[T,E]` to `Option[T,E]`.
+// Ok converts from `Result[T,E]` to `Option[T]`.
 func (r EnumResult[T, E]) Ok() Option[T] {
 	if r.IsOk() {
 		return Some(r.safeGetT())
@@ -99,12 +99,28 @@ func (r EnumResult[T, E]) Ok() Option[T] {
 	return None[T]()
 }
 
-// Err returns E value.
+// XOk converts from `Result[T,E]` to `Option[any]`.
+func (r EnumResult[T, E]) XOk() Option[any] {
+	if r.IsOk() {
+		return Some[any](r.safeGetT())
+	}
+	return None[any]()
+}
+
+// Err returns E value `Option[E]`.
 func (r EnumResult[T, E]) Err() Option[E] {
 	if r.IsErr() {
 		return Some(r.safeGetE())
 	}
 	return None[E]()
+}
+
+// XErr returns E value `Option[any]`.
+func (r EnumResult[T, E]) XErr() Option[any] {
+	if r.IsErr() {
+		return Some[any](r.safeGetE())
+	}
+	return None[any]()
 }
 
 // ToXOk converts from `EnumResult[T,E]` to EnumResult[any,E].
