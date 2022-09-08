@@ -154,7 +154,7 @@ type (
 		// After applying this closure to every element of the data, `Fold()`
 		// returns the accumulator.
 		//
-		// This operation is sometimes called 'iReduce' or 'inject'.
+		// This operation is sometimes called 'Reduce' or 'inject'.
 		//
 		// Folding is useful whenever you have a collection of something, and want
 		// to produce a single value from it.
@@ -338,6 +338,15 @@ type (
 		// assert.Equal(t, findMax(FromVec(a)), gust.Some(20));
 		// assert.Equal(t, findMax(FromVec(b)), gust.None[int]());
 		Reduce(f func(accum T, item T) T) gust.Option[T]
+		// TryReduce reduces the elements to a single one by repeatedly applying a reducing operation.
+		// If the closure returns a failure, the failure is propagated back to the caller immediately.
+		//
+		// When called on an empty iterator, this function will return `Ok(None)` depending on the type
+		// of the provided closure.
+		//
+		// For iterators with at least one element, this is essentially the same as calling
+		// [`TryFold()`] with the first element of the iterator as the initial accumulator value.
+		TryReduce(f func(accum T, item T) gust.Result[T]) gust.Result[gust.Option[T]]
 		// All tests if every element of the data matches a predicate.
 		//
 		// `All()` takes a closure that returns `true` or `false`. It applies
@@ -747,7 +756,6 @@ type (
 		iTryRfold[T]
 		iRfold[T]
 		iRfind[T]
-
 		// Rposition searches for an element in an iterator from the right, returning its
 		// index.
 		//
@@ -759,7 +767,6 @@ type (
 		// `Rposition()` is short-circuiting; in other words, it will stop
 		// processing as soon as it finds a `true`.
 		Rposition(predicate func(T) bool) gust.Option[int]
-
 		// ToDeFuse creates a double ended iterator which ends after the first [`gust.None[T]()`].
 		//
 		// After an iterator returns [`gust.None[T]()`], future calls may or may not yield

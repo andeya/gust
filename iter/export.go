@@ -323,21 +323,28 @@ func FindMap[T any, B any](iter Iterator[T], f func(T) gust.Option[B]) gust.Opti
 	return gust.None[B]()
 }
 
-// TryFold a data method that applies a function as long as it returns
+// SigTryFold a data method that applies a function as long as it returns
 // successfully, producing a single, final value.
 //
-// # Examples
-//
-// Basic usage:
-//
-// var a = []int{1, 2, 3};
-//
-// the checked sum of iAll the elements of the array
-// var sum = FromVec(a).TryFold(0, func(acc int, x int) { return Ok(acc+x) });
-//
 // assert.Equal(t, sum, Ok(6));
-func TryFold[T any, CB any](iter Iterator[T], init CB, f func(CB, T) gust.SigCtrlFlow[CB]) gust.SigCtrlFlow[CB] {
+func SigTryFold[T any, CB any](iter Iterator[T], init CB, f func(CB, T) gust.SigCtrlFlow[CB]) gust.SigCtrlFlow[CB] {
 	var accum = gust.SigContinue[CB](init)
+	for {
+		x := iter.Next()
+		if x.IsNone() {
+			return accum
+		}
+		accum = f(accum.UnwrapContinue(), x.Unwrap())
+		if accum.IsBreak() {
+			return accum
+		}
+	}
+}
+
+// TryFold a data method that applies a function as long as it returns
+// successfully, producing a single, final value.
+func TryFold[T any, B any, C any](iter Iterator[T], init C, f func(C, T) gust.CtrlFlow[B, C]) gust.CtrlFlow[B, C] {
+	var accum = gust.Continue[B, C](init)
 	for {
 		x := iter.Next()
 		if x.IsNone() {
@@ -363,7 +370,7 @@ func TryFold[T any, CB any](iter Iterator[T], init CB, f func(CB, T) gust.SigCtr
 // After applying this closure to every element of the data, `Fold()`
 // returns the accumulator.
 //
-// This operation is sometimes called 'iReduce' or 'inject'.
+// This operation is sometimes called 'Reduce' or 'inject'.
 //
 // Folding is useful whenever you have a collection of something, and want
 // to produce a single value from it.

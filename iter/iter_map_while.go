@@ -38,7 +38,7 @@ func (s *mapWhileIterator[T, B]) realSizeHint() (uint, gust.Option[uint]) {
 }
 
 func (s *mapWhileIterator[T, B]) realTryFold(init any, fold func(any, B) gust.AnyCtrlFlow) gust.AnyCtrlFlow {
-	ret := TryFold[T, any](s.iter, init, func(acc any, x T) gust.AnyCtrlFlow {
+	ret := SigTryFold[T, any](s.iter, init, func(acc any, x T) gust.AnyCtrlFlow {
 		r := s.f(x)
 		if r.IsSome() {
 			y := fold(acc, r.Unwrap())

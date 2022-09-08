@@ -188,7 +188,7 @@ func (s *implPeekable[T]) realTryFold(init any, f func(any, T) gust.AnyCtrlFlow)
 		}
 		acc = x.UnwrapContinue()
 	}
-	return TryFold[T, any](s.iter, acc, f)
+	return SigTryFold[T, any](s.iter, acc, f)
 }
 
 func (s *implPeekable[T]) realTryRfold(init any, fold func(any, T) gust.AnyCtrlFlow) gust.AnyCtrlFlow {

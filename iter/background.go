@@ -70,7 +70,7 @@ func (iter iterBackground[T]) TryFold(init any, f func(any, T) gust.AnyCtrlFlow)
 	if cover, ok := iter.facade.(iRealTryFold[T]); ok {
 		return cover.realTryFold(init, f)
 	}
-	return TryFold[T, any](iter, init, f)
+	return SigTryFold[T, any](iter, init, f)
 }
 
 func (iter iterBackground[T]) Last() gust.Option[T] {
@@ -134,6 +134,20 @@ func (iter iterBackground[T]) Reduce(f func(accum T, item T) T) gust.Option[T] {
 	}))
 }
 
+func (iter iterBackground[T]) TryReduce(f func(accum T, item T) gust.Result[T]) gust.Result[gust.Option[T]] {
+	var first = iter.Next()
+	if first.IsNone() {
+		return gust.Ok(first)
+	}
+	var r = TryFold[T, error, T](iter, first.Unwrap(), func(accum T, item T) gust.CtrlFlow[error, T] {
+		return f(accum, item).CtrlFlow()
+	})
+	if r.IsBreak() {
+		return gust.Err[gust.Option[T]](r.UnwrapBreak())
+	}
+	return gust.Ok[gust.Option[T]](r.ContinueValue())
+}
+
 func (iter iterBackground[T]) All(predicate func(T) bool) bool {
 	var check = func(f func(T) bool) func(any, T) gust.AnyCtrlFlow {
 		return func(_ any, x T) gust.AnyCtrlFlow {
@@ -180,6 +194,28 @@ func (iter iterBackground[T]) Find(predicate func(T) bool) gust.Option[T] {
 	return gust.None[T]()
 }
 
+func (iter iterBackground[T]) TryFind(predicate func(T) gust.Result[bool]) gust.Result[gust.Option[T]] {
+	var check = func(f func(T) gust.Result[bool]) func(any, T) gust.AnyCtrlFlow {
+		return func(_ any, x T) gust.AnyCtrlFlow {
+			r := f(x)
+			if r.IsOk() {
+				if r.Unwrap() {
+					return gust.AnyBreak(gust.Ok[gust.Option[T]](gust.Some(x)))
+				} else {
+					return gust.AnyContinue(nil)
+				}
+			} else {
+				return gust.AnyBreak(gust.Err[gust.Option[T]](r.Err()))
+			}
+		}
+	}
+	r := iter.TryFold(nil, check(predicate))
+	if r.IsBreak() {
+		return r.UnwrapBreak().(gust.Result[gust.Option[T]])
+	}
+	return gust.Ok[gust.Option[T]](gust.None[T]())
+}
+
 func (iter iterBackground[T]) FindMap(f func(T) gust.Option[T]) gust.Option[T] {
 	return FindMap[T, T](iter, f)
 }
@@ -208,28 +244,6 @@ func (iter iterBackground[T]) IsPartitioned(predicate func(T) bool) bool {
 	return iter.All(predicate) || !iter.Any(predicate)
 }
 
-func (iter iterBackground[T]) TryFind(predicate func(T) gust.Result[bool]) gust.Result[gust.Option[T]] {
-	var check = func(f func(T) gust.Result[bool]) func(any, T) gust.AnyCtrlFlow {
-		return func(_ any, x T) gust.AnyCtrlFlow {
-			r := f(x)
-			if r.IsOk() {
-				if r.Unwrap() {
-					return gust.AnyBreak(gust.Ok[gust.Option[T]](gust.Some(x)))
-				} else {
-					return gust.AnyContinue(nil)
-				}
-			} else {
-				return gust.AnyBreak(gust.Err[gust.Option[T]](r.Err()))
-			}
-		}
-	}
-	r := iter.TryFold(nil, check(predicate))
-	if r.IsBreak() {
-		return r.UnwrapBreak().(gust.Result[gust.Option[T]])
-	}
-	return gust.Ok[gust.Option[T]](gust.None[T]())
-}
-
 func (iter iterBackground[T]) Position(predicate func(T) bool) gust.Option[int] {
 	var check = func(f func(T) bool) func(int, T) gust.SigCtrlFlow[int] {
 		return func(i int, x T) gust.SigCtrlFlow[int] {
@@ -240,7 +254,7 @@ func (iter iterBackground[T]) Position(predicate func(T) bool) gust.Option[int] 
 			}
 		}
 	}
-	r := TryFold[T, int](iter, 0, check(predicate))
+	r := SigTryFold[T, int](iter, 0, check(predicate))
 	if r.IsBreak() {
 		return gust.Some[int](r.UnwrapBreak())
 	}
