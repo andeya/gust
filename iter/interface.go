@@ -902,6 +902,11 @@ type (
 		// ToXDeMap takes a closure and creates an iterator which calls that closure on each
 		// element.
 		ToXDeMap(f func(T) any) DeIterator[any]
+		// ToRev reverses an iterator's direction.
+		//
+		// Usually, iterators iterate from left to right. After using `ToRev()`,
+		// an iterator will instead iterate from right to left.
+		ToRev() DeIterator[T]
 	}
 	PeekableIterator[T any] interface {
 		Iterator[T]

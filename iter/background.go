@@ -478,3 +478,7 @@ func (iter deIterBackground[T]) ToDeMap(f func(T) T) DeIterator[T] {
 func (iter deIterBackground[T]) ToXDeMap(f func(T) any) DeIterator[any] {
 	return newDeMapIterator[T, any](iter, f)
 }
+
+func (iter deIterBackground[T]) ToRev() DeIterator[T] {
+	return newDeRevIterator[T](iter)
+}
