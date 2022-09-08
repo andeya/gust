@@ -1,5 +1,7 @@
 package gust
 
+import "fmt"
+
 // AnyCtrlFlow is a placeholder for wildcard control flow statements.
 type AnyCtrlFlow = SigCtrlFlow[any]
 
@@ -49,6 +51,14 @@ func Continue[B any, C any](c C) CtrlFlow[B, C] {
 // Break returns a CtrlFlow that tells the operation to break.
 func Break[B any, C any](b B) CtrlFlow[B, C] {
 	return CtrlFlow[B, C]{_break: Some(b)}
+}
+
+// String returns the string representation.
+func (c CtrlFlow[B, C]) String() string {
+	if c.IsBreak() {
+		return fmt.Sprintf("Break(%v)", c.UnwrapBreak())
+	}
+	return fmt.Sprintf("Continue(%v)", c.UnwrapContinue())
 }
 
 // IsBreak returns `true` if this is a `Break` variant.
