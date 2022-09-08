@@ -122,6 +122,12 @@ func (iter iterBackground[T]) ForEach(f func(T)) {
 	_ = iter.Fold(nil, call(f))
 }
 
+func (iter iterBackground[T]) TryForEach(f func(T) gust.AnyCtrlFlow) gust.AnyCtrlFlow {
+	return iter.TryFold(nil, func(_ any, x T) gust.AnyCtrlFlow {
+		return f(x)
+	})
+}
+
 func (iter iterBackground[T]) Reduce(f func(accum T, item T) T) gust.Option[T] {
 	if cover, ok := iter.facade.(iRealReduce[T]); ok {
 		return cover.realReduce(f)

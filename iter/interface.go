@@ -308,6 +308,9 @@ type (
 		// var v = FromChan(c).Collect();
 		// assert.Equal(t, v, []int{1, 3, 5, 7, 9});
 		ForEach(f func(T))
+		// TryForEach is an iterator method that applies a fallible function to each item in the
+		// iterator, stopping at the first error and returning that error.
+		TryForEach(f func(T) gust.AnyCtrlFlow) gust.AnyCtrlFlow
 		// Reduce reduces the elements to a single one, by repeatedly applying a reducing
 		// operation.
 		//
