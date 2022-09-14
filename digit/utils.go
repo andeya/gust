@@ -78,7 +78,7 @@ func CheckedAdd[T Integer](a, b T) gust.Option[T] {
 	return gust.None[T]()
 }
 
-func UintCheckedMul[T Integer](a, b T) gust.Option[T] {
+func CheckedMul[T Integer](a, b T) gust.Option[T] {
 	if a <= Max[T]()/b {
 		return gust.Some(a * b)
 	}

@@ -92,7 +92,7 @@ func (s *stepByIterator[T]) realNth(n uint) gust.Option[T] {
 
 	// overflow handling
 	for {
-		var mul = digit.UintCheckedMul(n, step)
+		var mul = digit.CheckedMul(n, step)
 		if mul.IsSome() {
 			return s.iter.Nth(mul.Unwrap() - 1)
 		}
