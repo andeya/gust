@@ -2,8 +2,14 @@ package digit
 
 import (
 	"math"
+	"strconv"
 
 	"github.com/andeya/gust"
+)
+
+const (
+	Host64bit = strconv.IntSize == 64
+	Host32bit = ^uint(0)>>32 == 0
 )
 
 func Abs[T Digit](d T) T {
