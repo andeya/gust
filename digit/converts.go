@@ -71,13 +71,13 @@ func TryFromStrings[T ~string, D Digit](a []T, base int, bitSize int) (b []D, er
 }
 
 // ToBool converts D to bool.
-func ToBool[T ~string | Digit](v T) bool {
+func ToBool[T Digit](v T) bool {
 	zero := new(T)
 	return v != *zero
 }
 
 // ToBools converts []D to []bool.
-func ToBools[T ~string | Digit](a []T) []bool {
+func ToBools[T Digit](a []T) []bool {
 	b := make([]bool, len(a))
 	for i, t := range a {
 		b[i] = ToBool(t)
