@@ -1,9 +1,7 @@
-package ord
-
-import "github.com/andeya/gust/digit"
+package gust
 
 type Ord interface {
-	digit.Digit | ~string | ~uintptr
+	Digit | ~string | ~uintptr
 }
 
 type Ordering struct {

@@ -4,12 +4,11 @@ import (
 	"testing"
 
 	"github.com/andeya/gust"
-	"github.com/andeya/gust/digit"
 	"github.com/andeya/gust/iter"
 	"github.com/stretchr/testify/assert"
 )
 
-func findMax[T digit.Integer](i iter.Iterator[T]) gust.Option[T] {
+func findMax[T gust.Integer](i iter.Iterator[T]) gust.Option[T] {
 	return i.Reduce(func(acc T, v T) T {
 		if acc >= v {
 			return acc

@@ -2,7 +2,6 @@ package iter
 
 import (
 	"github.com/andeya/gust"
-	"github.com/andeya/gust/digit"
 )
 
 var (
@@ -12,13 +11,13 @@ var (
 	_ gust.DeIterable[uint] = (*IterableRange[uint])(nil)
 )
 
-type IterableRange[T digit.Integer] struct {
+type IterableRange[T gust.Integer] struct {
 	nextValue     T
 	backNextValue T
 	ended         bool
 }
 
-func NewIterableRange[T digit.Integer](start T, end T, rightClosed ...bool) *IterableRange[T] {
+func NewIterableRange[T gust.Integer](start T, end T, rightClosed ...bool) *IterableRange[T] {
 	max := end
 	if len(rightClosed) == 0 || !rightClosed[0] {
 		if end <= start {

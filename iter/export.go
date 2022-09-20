@@ -5,7 +5,6 @@ import (
 	"unsafe"
 
 	"github.com/andeya/gust"
-	"github.com/andeya/gust/digit"
 )
 
 // FromIterable creates an iterator from an Iterable.
@@ -57,12 +56,12 @@ func EnumElements[T any](elems ...T) DeIterator[KV[T]] {
 }
 
 // FromRange creates a double ended iterator from a range.
-func FromRange[T digit.Integer](start T, end T, rightClosed ...bool) DeIterator[T] {
+func FromRange[T gust.Integer](start T, end T, rightClosed ...bool) DeIterator[T] {
 	return NewIterableRange[T](start, end, rightClosed...).ToDeIterator()
 }
 
 // EnumRange creates a double ended iterator with index from a range.
-func EnumRange[T digit.Integer](start T, end T, rightClosed ...bool) DeIterator[KV[T]] {
+func EnumRange[T gust.Integer](start T, end T, rightClosed ...bool) DeIterator[KV[T]] {
 	return ToDeEnumerate[T](FromRange[T](start, end, rightClosed...))
 }
 

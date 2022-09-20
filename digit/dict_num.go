@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"math"
+
+	"github.com/andeya/gust"
 )
 
 // FormatByDict convert num into corresponding string according to dict.
@@ -28,9 +30,9 @@ func FormatByDict(dict []byte, num uint64) string {
 }
 
 // ParseByDict convert numStr into corresponding digit according to dict.
-func ParseByDict[D Digit](dict []byte, numStr string) (D, error) {
+func ParseByDict[D gust.Digit](dict []byte, numStr string) gust.Result[D] {
 	if len(dict) == 0 {
-		return 0, errors.New("dict is empty")
+		return gust.Err[D](errors.New("dict is empty"))
 	}
 	base := float64(len(dict))
 	len := len(numStr)
@@ -39,9 +41,9 @@ func ParseByDict[D Digit](dict []byte, numStr string) (D, error) {
 		char := numStr[i : i+1]
 		pos := bytes.IndexAny(dict, char)
 		if pos == -1 {
-			return 0, fmt.Errorf("found a char not included in the dict: %q", char)
+			return gust.Err[D](fmt.Errorf("found a char not included in the dict: %q", char))
 		}
 		number = math.Pow(base, float64(len-i-1))*float64(pos) + number
 	}
-	return D(number), nil
+	return gust.Ok(D(number))
 }

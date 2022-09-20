@@ -12,7 +12,7 @@ const (
 	Host32bit = ^uint(0)>>32 == 0
 )
 
-func Abs[T Digit](d T) T {
+func Abs[T gust.Digit](d T) T {
 	var zero T
 	if d < zero {
 		return -d
@@ -20,7 +20,7 @@ func Abs[T Digit](d T) T {
 	return d
 }
 
-func Max[T Integer]() T {
+func Max[T gust.Integer]() T {
 	var t T
 	switch any(t).(type) {
 	case int:
@@ -57,28 +57,28 @@ func Max[T Integer]() T {
 	}
 }
 
-func SaturatingAdd[T Integer](a, b T) T {
+func SaturatingAdd[T gust.Integer](a, b T) T {
 	if a < Max[T]()-b {
 		return a + b
 	}
 	return Max[T]()
 }
 
-func SaturatingSub[T Digit](a, b T) T {
+func SaturatingSub[T gust.Digit](a, b T) T {
 	if a > b {
 		return a - b
 	}
 	return 0
 }
 
-func CheckedAdd[T Integer](a, b T) gust.Option[T] {
+func CheckedAdd[T gust.Integer](a, b T) gust.Option[T] {
 	if a <= Max[T]()-b {
 		return gust.Some(a + b)
 	}
 	return gust.None[T]()
 }
 
-func CheckedMul[T Integer](a, b T) gust.Option[T] {
+func CheckedMul[T gust.Integer](a, b T) gust.Option[T] {
 	if a <= Max[T]()/b {
 		return gust.Some(a * b)
 	}

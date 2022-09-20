@@ -4,13 +4,19 @@ import (
 	"errors"
 	"math"
 	"strconv"
+
+	"github.com/andeya/gust"
 )
 
 // ParseUint is like ParseInt but for unsigned numbers.
 // NOTE:
 //
 //	Compatible with standard package strconv.
-func ParseUint(s string, base int, bitSize int) (uint64, error) {
+func ParseUint(s string, base int, bitSize int) gust.Result[uint64] {
+	return gust.Ret(parseUint(s, base, bitSize))
+}
+
+func parseUint(s string, base int, bitSize int) (uint64, error) {
 	// Ignore letter case
 	if base <= 36 {
 		return strconv.ParseUint(s, base, bitSize)
@@ -99,7 +105,11 @@ func ParseUint(s string, base int, bitSize int) (uint64, error) {
 // NOTE:
 //
 //	Compatible with standard package strconv.
-func ParseInt(s string, base int, bitSize int) (i int64, err error) {
+func ParseInt(s string, base int, bitSize int) gust.Result[int64] {
+	return gust.Ret(parseInt(s, base, bitSize))
+}
+
+func parseInt(s string, base int, bitSize int) (i int64, err error) {
 	// Ignore letter case
 	if base <= 36 {
 		return strconv.ParseInt(s, base, bitSize)
@@ -123,7 +133,7 @@ func ParseInt(s string, base int, bitSize int) (i int64, err error) {
 
 	// Convert unsigned and check range.
 	var un uint64
-	un, err = ParseUint(s, base, bitSize)
+	un, err = parseUint(s, base, bitSize)
 	if err != nil && err.(*strconv.NumError).Err != strconv.ErrRange {
 		err.(*strconv.NumError).Func = fnParseInt
 		err.(*strconv.NumError).Num = s0
@@ -223,7 +233,7 @@ func Atoi(s string) (int, error) {
 	}
 
 	// Slow path for invalid, big, or underscored integers.
-	i64, err := ParseInt(s, 10, 0)
+	i64, err := parseInt(s, 10, 0)
 	if nerr, ok := err.(*strconv.NumError); ok {
 		nerr.Func = fnAtoi
 	}

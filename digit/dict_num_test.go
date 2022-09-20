@@ -11,18 +11,18 @@ func TestFormatByDict(t *testing.T) {
 	for i := uint64(0); i < 100; i++ {
 		numStr := FormatByDict(dict, i)
 		t.Logf("i=%d, s=%s", i, numStr)
-		i2, err := ParseByDict[uint64](dict, numStr)
-		assert.NoError(t, err)
-		assert.Equal(t, i, i2)
+		r := ParseByDict[uint64](dict, numStr)
+		assert.False(t, r.IsErr())
+		assert.Equal(t, i, r.Unwrap())
 	}
 }
 
 func TestParseByDict(t *testing.T) {
 	dict := []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	numStr := "DDEZQ"
-	num, err := ParseByDict[uint64](dict, numStr)
-	assert.NoError(t, err)
-	t.Logf("DDEZQ=%d", num) // DDEZQ=1427026
-	numStr2 := FormatByDict(dict, num)
+	r := ParseByDict[uint64](dict, numStr)
+	assert.False(t, r.IsErr())
+	t.Logf("DDEZQ=%d", r.Unwrap()) // DDEZQ=1427026
+	numStr2 := FormatByDict(dict, r.Unwrap())
 	assert.Equal(t, numStr2, numStr)
 }
