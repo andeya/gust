@@ -1,6 +1,7 @@
 package gust_test
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
@@ -17,6 +18,10 @@ func TestErrable(t *testing.T) {
 
 	assert.False(t, gust.ToErrable[*int](nil).IsErr())
 	assert.False(t, gust.NonErrable[*int]().IsErr())
+
+	assert.True(t, gust.ToErrable[any](1).IsErr())
+	assert.True(t, gust.ToErrable[error](fmt.Errorf("")).IsErr())
+	assert.PanicsWithError(t, "test TryPanic", gust.ToErrable[error](errors.New("test TryPanic")).TryPanic)
 }
 
 func ExampleErrable() {

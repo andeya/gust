@@ -28,6 +28,11 @@ func ToErrable[E any](errVal E) Errable[E] {
 	return Errable[E]{errVal: &errVal}
 }
 
+// TryPanic panics if the errVal is not nil.
+func TryPanic[E any](errVal E) {
+	ToErrable(errVal).TryPanic()
+}
+
 func (e Errable[E]) IsErr() bool {
 	return e.errVal != nil
 }
@@ -81,6 +86,13 @@ func (e Errable[E]) CtrlFlow() CtrlFlow[E, Void] {
 		return Break[E, Void](e.UnwrapErr())
 	}
 	return Continue[E, Void](nil)
+}
+
+// TryPanic panics if the errVal is not nil.
+func (e Errable[E]) TryPanic() {
+	if e.IsErr() {
+		panic(e.UnwrapErr())
+	}
 }
 
 type errorWithVal struct {
