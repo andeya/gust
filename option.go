@@ -296,22 +296,6 @@ func (o Option[T]) XEnumOkOrElse(errFn func() any) EnumResult[any, any] {
 	return EnumErr[any, any](errFn())
 }
 
-// And returns [`None`] if the option is [`None`], otherwise returns `optb`.
-func (o Option[T]) And(optb Option[T]) Option[T] {
-	if o.IsSome() {
-		return optb
-	}
-	return o
-}
-
-// XAnd returns [`None`] if the option is [`None`], otherwise returns `optb`.
-func (o Option[T]) XAnd(optb Option[any]) Option[any] {
-	if o.IsSome() {
-		return optb
-	}
-	return None[any]()
-}
-
 // AndThen returns [`None`] if the option is [`None`], otherwise calls `f` with the
 func (o Option[T]) AndThen(f func(T) Option[T]) Option[T] {
 	if o.IsNone() {
@@ -328,6 +312,14 @@ func (o Option[T]) XAndThen(f func(T) Option[any]) Option[any] {
 	return f(o.UnwrapUnchecked())
 }
 
+// OrElse returns the option if it contains a value, otherwise calls `f` and returns the result.
+func (o Option[T]) OrElse(f func() Option[T]) Option[T] {
+	if o.IsNone() {
+		return f()
+	}
+	return o
+}
+
 // Filter returns [`None`] if the option is [`None`], otherwise calls `predicate`
 // with the wrapped value and returns.
 func (o Option[T]) Filter(predicate func(T) bool) Option[T] {
@@ -339,18 +331,26 @@ func (o Option[T]) Filter(predicate func(T) bool) Option[T] {
 	return None[T]()
 }
 
-// Or returns the option if it contains a value, otherwise returns `optb`.
-func (o Option[T]) Or(optb Option[T]) Option[T] {
-	if o.IsNone() {
+// And returns [`None`] if the option is [`None`], otherwise returns `optb`.
+func (o Option[T]) And(optb Option[T]) Option[T] {
+	if o.IsSome() {
 		return optb
 	}
 	return o
 }
 
-// OrElse returns [`None`] if the option is [`None`], otherwise calls `f` with the returns the result.
-func (o Option[T]) OrElse(f func() Option[T]) Option[T] {
+// XAnd returns [`None`] if the option is [`None`], otherwise returns `optb`.
+func (o Option[T]) XAnd(optb Option[any]) Option[any] {
+	if o.IsSome() {
+		return optb
+	}
+	return None[any]()
+}
+
+// Or returns the option if it contains a value, otherwise returns `optb`.
+func (o Option[T]) Or(optb Option[T]) Option[T] {
 	if o.IsNone() {
-		return f()
+		return optb
 	}
 	return o
 }
