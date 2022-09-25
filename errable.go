@@ -24,6 +24,71 @@ func ToErrable[E any](errVal E) Errable[E] {
 		}
 	case nil:
 		return Errable[E]{}
+	case int, int64, int32, int16, int8, uint, uint64, uint32, uint16, uint8, float32, float64, complex64, complex128, string, bool:
+	case *int:
+		if t == (*int)(nil) {
+			return Errable[E]{}
+		}
+	case *int64:
+		if t == (*int64)(nil) {
+			return Errable[E]{}
+		}
+	case *int32:
+		if t == (*int32)(nil) {
+			return Errable[E]{}
+		}
+	case *int16:
+		if t == (*int16)(nil) {
+			return Errable[E]{}
+		}
+	case *int8:
+		if t == (*int8)(nil) {
+			return Errable[E]{}
+		}
+	case *uint:
+		if t == (*uint)(nil) {
+			return Errable[E]{}
+		}
+	case *uint64:
+		if t == (*uint64)(nil) {
+			return Errable[E]{}
+		}
+	case *uint32:
+		if t == (*uint32)(nil) {
+			return Errable[E]{}
+		}
+	case *uint16:
+		if t == (*uint16)(nil) {
+			return Errable[E]{}
+		}
+	case *uint8:
+		if t == (*uint8)(nil) {
+			return Errable[E]{}
+		}
+	case *float32:
+		if t == (*float32)(nil) {
+			return Errable[E]{}
+		}
+	case *float64:
+		if t == (*float64)(nil) {
+			return Errable[E]{}
+		}
+	case *complex64:
+		if t == (*complex64)(nil) {
+			return Errable[E]{}
+		}
+	case *complex128:
+		if t == (*complex128)(nil) {
+			return Errable[E]{}
+		}
+	case *string:
+		if t == (*string)(nil) {
+			return Errable[E]{}
+		}
+	case *bool:
+		if t == (*bool)(nil) {
+			return Errable[E]{}
+		}
 	default:
 		v := reflect.ValueOf(errVal)
 		if v.Kind() == reflect.Ptr && v.IsNil() {
