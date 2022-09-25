@@ -17,9 +17,14 @@ func NonErrable[E any]() Errable[E] {
 
 // ToErrable converts an error value (E) to `Errable[T]`.
 func ToErrable[E any](errVal E) Errable[E] {
-	if any(errVal) == nil {
+	switch t := any(errVal).(type) {
+	case error:
+		if t == nil {
+			return Errable[E]{}
+		}
+	case nil:
 		return Errable[E]{}
-	} else {
+	default:
 		v := reflect.ValueOf(errVal)
 		if v.Kind() == reflect.Ptr && v.IsNil() {
 			return Errable[E]{}
@@ -100,7 +105,7 @@ type errorWithVal struct {
 }
 
 func newAnyError(val any) error {
-	if err, _ := val.(error); err != nil {
+	if err, ok := val.(error); ok {
 		return err
 	}
 	return &errorWithVal{val: val}
