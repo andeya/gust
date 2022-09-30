@@ -314,7 +314,7 @@ func (r Result[T]) Remaining() uint {
 // CtrlFlow returns the `CtrlFlow[error, T]`.
 func (r Result[T]) CtrlFlow() CtrlFlow[error, T] {
 	if r.IsErr() {
-		return Break[error, T](r.UnwrapErr())
+		return Break[error, T](r.inner.safeGetE())
 	}
-	return Continue[error, T](r.Unwrap())
+	return Continue[error, T](r.inner.safeGetT())
 }

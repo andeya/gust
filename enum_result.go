@@ -420,7 +420,7 @@ func (r EnumResult[T, E]) Remaining() uint {
 // CtrlFlow returns the `CtrlFlow[E, T]`.
 func (r EnumResult[T, E]) CtrlFlow() CtrlFlow[E, T] {
 	if r.IsErr() {
-		return Break[E, T](r.UnwrapErr())
+		return Break[E, T](r.safeGetE())
 	}
-	return Continue[E, T](r.Unwrap())
+	return Continue[E, T](r.safeGetT())
 }

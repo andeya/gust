@@ -112,7 +112,7 @@ func (e Errable[E]) IsOk() bool {
 }
 
 func (e Errable[E]) ToError() error {
-	if !e.IsErr() {
+	if e.IsOk() {
 		return nil
 	}
 	return newAnyError(e.UnwrapErr())
