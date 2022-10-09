@@ -96,7 +96,7 @@ func small(i int) string {
 // as the second result value.
 func formatBits(dst []byte, u uint64, base int, neg, append_ bool) (d []byte, s string) {
 	if base < 2 || base > len(digits) {
-		panic("ameda(strconv): illegal AppendInt/FormatInt base")
+		panic("gust(formatBits): illegal FormatUint/FormatInt/AppendUint/AppendInt base")
 	}
 	// 2 <= base && base <= len(digits)
 

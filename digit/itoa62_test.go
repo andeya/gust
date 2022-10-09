@@ -8,13 +8,13 @@ import (
 	"testing"
 )
 
-type itob64Test struct {
+type itoa64Test struct {
 	in   int64
 	base int
 	out  string
 }
 
-var itob64tests = []itob64Test{
+var itoa64tests = []itoa64Test{
 	{0, 10, "0"},
 	{1, 10, "1"},
 	{-1, 10, "-1"},
@@ -59,7 +59,7 @@ var itob64tests = []itob64Test{
 }
 
 func TestItoa(t *testing.T) {
-	for _, test := range itob64tests {
+	for _, test := range itoa64tests {
 		s := FormatInt(test.in, test.base)
 		if s != test.out {
 			t.Errorf("FormatInt(%v, %v) = %v want %v",
@@ -94,13 +94,13 @@ func TestItoa(t *testing.T) {
 	}
 }
 
-type uitob64Test struct {
+type uitoa64Test struct {
 	in   uint64
 	base int
 	out  string
 }
 
-var uitob64tests = []uitob64Test{
+var uitoa64tests = []uitoa64Test{
 	{1<<63 - 1, 10, "9223372036854775807"},
 	{1 << 63, 10, "9223372036854775808"},
 	{1<<63 + 1, 10, "9223372036854775809"},
@@ -110,7 +110,7 @@ var uitob64tests = []uitob64Test{
 }
 
 func TestUitoa(t *testing.T) {
-	for _, test := range uitob64tests {
+	for _, test := range uitoa64tests {
 		s := FormatUint(test.in, test.base)
 		if s != test.out {
 			t.Errorf("FormatUint(%v, %v) = %v want %v",
@@ -162,7 +162,7 @@ func TestFormatUintVarlen(t *testing.T) {
 
 func BenchmarkFormatInt(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		for _, test := range itob64tests {
+		for _, test := range itoa64tests {
 			s := FormatInt(test.in, test.base)
 			BenchSink += len(s)
 		}
@@ -172,7 +172,7 @@ func BenchmarkFormatInt(b *testing.B) {
 func BenchmarkAppendInt(b *testing.B) {
 	dst := make([]byte, 0, 30)
 	for i := 0; i < b.N; i++ {
-		for _, test := range itob64tests {
+		for _, test := range itoa64tests {
 			dst = AppendInt(dst[:0], test.in, test.base)
 			BenchSink += len(dst)
 		}
@@ -181,7 +181,7 @@ func BenchmarkAppendInt(b *testing.B) {
 
 func BenchmarkFormatUint(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		for _, test := range uitob64tests {
+		for _, test := range uitoa64tests {
 			s := FormatUint(test.in, test.base)
 			BenchSink += len(s)
 		}
@@ -191,7 +191,7 @@ func BenchmarkFormatUint(b *testing.B) {
 func BenchmarkAppendUint(b *testing.B) {
 	dst := make([]byte, 0, 30)
 	for i := 0; i < b.N; i++ {
-		for _, test := range uitob64tests {
+		for _, test := range uitoa64tests {
 			dst = AppendUint(dst[:0], test.in, test.base)
 			BenchSink += len(dst)
 		}
