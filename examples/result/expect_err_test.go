@@ -9,7 +9,7 @@ import (
 
 func TestExpectErr(t *testing.T) {
 	defer func() {
-		assert.Equal(t, "Testing expect_err: 10", recover())
+		assert.Equal(t, gust.ToErrBox("Testing expect_err: 10"), recover())
 	}()
 	err := gust.Ok(10).ExpectErr("Testing expect_err")
 	assert.NoError(t, err)

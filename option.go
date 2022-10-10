@@ -110,7 +110,7 @@ func (o Option[T]) IsNone() bool {
 // Panics if the value is none with a custom panic message provided by `msg`.
 func (o Option[T]) Expect(msg string) T {
 	if o.IsNone() {
-		panic(msg)
+		panic(ToErrBox(msg))
 	}
 	return o.UnwrapUnchecked()
 }
@@ -122,7 +122,7 @@ func (o Option[T]) Unwrap() T {
 		return o.UnwrapUnchecked()
 	}
 	var t T
-	panic(fmt.Sprintf("call Option[%T].UnwrapErr() on none", t))
+	panic(ToErrBox(fmt.Sprintf("call Option[%T].UnwrapErr() on none", t)))
 }
 
 // UnwrapOr returns the contained value or a provided default.

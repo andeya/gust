@@ -1,7 +1,6 @@
 package result_test
 
 import (
-	"fmt"
 	"strconv"
 	"testing"
 
@@ -11,6 +10,6 @@ import (
 func TestInspectErr(t *testing.T) {
 	gust.Ret(strconv.Atoi("4x")).
 		InspectErr(func(err error) {
-			fmt.Printf("failed to convert: %v", err)
+			t.Logf("failed to convert: %v", err)
 		})
 }

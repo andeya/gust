@@ -13,9 +13,9 @@ func TestOption_Expect(t *testing.T) {
 		assert.Equal(t, "value", x.Expect("fruits are healthy"))
 	}
 	defer func() {
-		assert.Equal(t, "fruits are healthy 1", recover())
+		assert.Equal(t, gust.ToErrBox("fruits are healthy 1"), recover())
 		defer func() {
-			assert.Equal(t, "fruits are healthy 2", recover())
+			assert.Equal(t, gust.ToErrBox("fruits are healthy 2"), recover())
 		}()
 		var x gust.Option[string]
 		x.Expect("fruits are healthy 2") // panics with `fruits are healthy 2`

@@ -240,9 +240,17 @@ func (r EnumResult[T, E]) InspectErr(f func(E)) EnumResult[T, E] {
 // passed message, and the content of the E.
 func (r EnumResult[T, E]) Expect(msg string) T {
 	if r.IsErr() {
-		panic(fmt.Sprintf("%s: %v", msg, r.safeGetE()))
+		panic(r.wrapError(msg))
 	}
 	return r.safeGetT()
+}
+
+func (r EnumResult[T, E]) wrapError(msg string) error {
+	e := any(r.safeGetE())
+	if err, ok := e.(error); ok {
+		return ToErrBox(fmt.Errorf("%s: %w", msg, err))
+	}
+	return ToErrBox(fmt.Errorf("%s: %v", msg, e))
 }
 
 // Unwrap returns the contained T value.
@@ -250,7 +258,7 @@ func (r EnumResult[T, E]) Expect(msg string) T {
 // Instead, prefer to use pattern matching and handle the E case explicitly, or call UnwrapOr or UnwrapOrElse.
 func (r EnumResult[T, E]) Unwrap() T {
 	if r.IsErr() {
-		panic(fmt.Sprintf("called `EnumResult.UnwrapErr()` on an `err` value: %v", r.safeGetE()))
+		panic(ToErrBox(r.safeGetE()))
 	}
 	return r.safeGetT()
 }
@@ -262,7 +270,7 @@ func (r EnumResult[T, E]) ExpectErr(msg string) E {
 	if r.IsErr() {
 		return r.safeGetE()
 	}
-	panic(fmt.Sprintf("%s: %v", msg, r.safeGetT()))
+	panic(ToErrBox(fmt.Sprintf("%s: %v", msg, r.safeGetT())))
 }
 
 // UnwrapErr returns the contained E.
@@ -272,7 +280,7 @@ func (r EnumResult[T, E]) UnwrapErr() E {
 	if r.IsErr() {
 		return r.safeGetE()
 	}
-	panic(fmt.Sprintf("called `EnumResult.UnwrapErr()` on an `ok` value: %v", r.safeGetT()))
+	panic(ToErrBox(fmt.Sprintf("called `EnumResult.UnwrapErr()` on an `ok` value: %v", r.safeGetT())))
 }
 
 // And returns res if the result is T, otherwise returns the E of self.
@@ -364,7 +372,7 @@ func (r EnumResult[T, E]) UnwrapOrElse(defaultFn func(E) T) T {
 
 func (r EnumResult[T, E]) MarshalJSON() ([]byte, error) {
 	if r.IsErr() {
-		return nil, newAnyError(r.safeGetE())
+		return nil, toError(r.safeGetE())
 	}
 	return json.Marshal(r.safeGetT())
 }

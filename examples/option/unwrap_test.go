@@ -13,7 +13,7 @@ func TestOption_Unwrap(t *testing.T) {
 		assert.Equal(t, "air", x.Unwrap())
 	}
 	defer func() {
-		assert.Equal(t, "call Option[string].UnwrapErr() on none", recover())
+		assert.Equal(t, gust.ToErrBox("call Option[string].UnwrapErr() on none"), recover())
 	}()
 	var x = gust.None[string]()
 	x.Unwrap()

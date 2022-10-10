@@ -10,8 +10,7 @@ import (
 
 func TestUnwrap(t *testing.T) {
 	defer func() {
-		assert.Equal(t, "called `Result.UnwrapErr()` on an `err` value: strconv.Atoi: parsing \"4x\": invalid syntax", recover())
+		assert.Equal(t, "strconv.Atoi: parsing \"4x\": invalid syntax", recover().(error).Error())
 	}()
 	gust.Ret(strconv.Atoi("4x")).Unwrap()
-
 }

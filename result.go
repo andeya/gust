@@ -20,7 +20,7 @@ func Ok[T any](ok T) Result[T] {
 
 // Err wraps a failure result.
 func Err[T any](err any) Result[T] {
-	return Result[T]{inner: EnumErr[T, error](newAnyError(err))}
+	return Result[T]{inner: EnumErr[T, error](toError(err))}
 }
 
 // Result can be used to improve `func()(T,error)`,
@@ -91,8 +91,11 @@ func (r Result[T]) ErrVal() any {
 		return nil
 	}
 	e := r.inner.safeGetE()
-	if ev, _ := any(e).(*errorWithVal); ev != nil {
-		return ev.val
+	if ev, ok := any(e).(*ErrBox); ok {
+		if ev != nil {
+			return ev.val
+		}
+		return nil
 	}
 	return e
 }
@@ -193,7 +196,7 @@ func (r Result[T]) Expect(msg string) T {
 // Instead, prefer to use pattern matching and handle the error case explicitly, or call UnwrapOr or UnwrapOrElse.
 func (r Result[T]) Unwrap() T {
 	if r.IsErr() {
-		panic(fmt.Sprintf("called `Result.UnwrapErr()` on an `err` value: %v", r.inner.safeGetE()))
+		panic(ToErrBox(r.inner.safeGetE()))
 	}
 	return r.inner.safeGetT()
 }
@@ -212,7 +215,7 @@ func (r Result[T]) UnwrapErr() error {
 	if r.IsErr() {
 		return r.inner.safeGetE()
 	}
-	panic(fmt.Sprintf("called `Result.UnwrapErr()` on an `ok` value: %v", r.inner.safeGetT()))
+	panic(ToErrBox(fmt.Sprintf("called `Result.UnwrapErr()` on an `ok` value: %v", r.inner.safeGetT())))
 }
 
 // And returns res if the result is Ok, otherwise returns the error of self.
@@ -283,7 +286,7 @@ func (r Result[T]) ContainsErr(err any) bool {
 	if r.IsOk() {
 		return false
 	}
-	return errors.Is(r.inner.safeGetE(), newAnyError(err))
+	return errors.Is(r.inner.safeGetE(), toError(err))
 }
 
 func (r Result[T]) MarshalJSON() ([]byte, error) {

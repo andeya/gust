@@ -1,7 +1,6 @@
 package gust
 
 import (
-	"fmt"
 	"reflect"
 )
 
@@ -18,12 +17,12 @@ func NonErrable[E any]() Errable[E] {
 // ToErrable converts an error value (E) to `Errable[T]`.
 func ToErrable[E any](errVal E) Errable[E] {
 	switch t := any(errVal).(type) {
+	case nil:
+		return Errable[E]{}
 	case error:
 		if t == nil {
 			return Errable[E]{}
 		}
-	case nil:
-		return Errable[E]{}
 	case int, int64, int32, int16, int8, uint, uint64, uint32, uint16, uint8, float32, float64, complex64, complex128, string, bool:
 	case *int:
 		if t == (*int)(nil) {
@@ -115,7 +114,7 @@ func (e Errable[E]) ToError() error {
 	if e.IsOk() {
 		return nil
 	}
-	return newAnyError(e.UnwrapErr())
+	return toError(e.UnwrapErr())
 }
 
 func (e Errable[E]) UnwrapErr() E {
@@ -163,19 +162,4 @@ func (e Errable[E]) TryPanic() {
 	if e.IsErr() {
 		panic(e.UnwrapErr())
 	}
-}
-
-type errorWithVal struct {
-	val any
-}
-
-func newAnyError(val any) error {
-	if err, ok := val.(error); ok {
-		return err
-	}
-	return &errorWithVal{val: val}
-}
-
-func (a *errorWithVal) Error() string {
-	return fmt.Sprintf("%v", a.val)
 }
