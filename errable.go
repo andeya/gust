@@ -163,3 +163,17 @@ func (e Errable[E]) TryPanic() {
 		panic(e.UnwrapErr())
 	}
 }
+
+func (e Errable[E]) InspectErr(f func(err E)) Errable[E] {
+	if e.IsErr() {
+		f(e.UnwrapErr())
+	}
+	return e
+}
+
+func (e Errable[E]) Inspect(f func()) Errable[E] {
+	if e.IsOk() {
+		f()
+	}
+	return e
+}
