@@ -3,6 +3,7 @@ package gust
 import (
 	"encoding/json"
 	"fmt"
+	"unsafe"
 )
 
 // BoolOpt wraps a value as an Option.
@@ -404,14 +405,20 @@ func (o *Option[T]) Replace(some T) (old Option[T]) {
 	return old
 }
 
+const null = "null"
+
 func (o Option[T]) MarshalJSON() ([]byte, error) {
 	if o.IsNone() {
-		return []byte("null"), nil
+		return []byte(null), nil
 	}
 	return json.Marshal(o.value)
 }
 
 func (o *Option[T]) UnmarshalJSON(b []byte) error {
+	o.value = nil
+	if *(*string)(unsafe.Pointer(&b)) == null {
+		return nil
+	}
 	var value = new(T)
 	err := json.Unmarshal(b, value)
 	if err == nil {
