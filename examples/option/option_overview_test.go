@@ -42,8 +42,10 @@ func ExampleOption() {
 
 	var c *A
 	fmt.Println(gust.PtrOpt(c).IsNone())
+	fmt.Println(gust.ElemOpt(c).IsNone())
 	c = new(A)
 	fmt.Println(gust.PtrOpt(c).IsNone())
+	fmt.Println(gust.ElemOpt(c).IsNone())
 
 	type B struct {
 		Y string
@@ -60,6 +62,8 @@ func ExampleOption() {
 	// false true
 	// {2}
 	// true
+	// true
+	// false
 	// false
 	// Some({1})
 }

@@ -32,6 +32,18 @@ func PtrOpt[U any, T *U](ptr T) Option[T] {
 	return Option[T]{value: &v}
 }
 
+// ElemOpt wraps a value from pointer.
+// NOTE:
+//
+//	`non-nil pointer` is wrapped as Some,
+//	and `nil pointer` is wrapped as None.
+func ElemOpt[T any](ptr *T) Option[T] {
+	if ptr == nil {
+		return Option[T]{value: nil}
+	}
+	return Option[T]{value: &ptr}
+}
+
 // ZeroOpt wraps a value as an Option.
 // NOTE:
 //
