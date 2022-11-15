@@ -32,3 +32,17 @@ func TestZip(t *testing.T) {
 	})
 	assert.Equal(t, []gust.Pair[string, int]{{"x", 1}, {"y", 2}}, pairs)
 }
+
+func TestToUnique(t *testing.T) {
+	var data = FromElements(10, 20, 30, 20, 40, 10, 50)
+	assert.Equal(t, []int{10, 20, 30, 40, 50}, ToUnique[int](data).Collect())
+}
+
+func TestToDeUnique(t *testing.T) {
+	var data = FromElements(10, 20, 30, 20, 40, 10, 50)
+	assert.Equal(t, []int{10, 20, 30, 40, 50}, ToDeUnique[int](data).Collect())
+	var data2 = FromElements(10, 20, 30, 20, 40, 10, 50)
+	assert.Equal(t, []int{50, 10, 40, 20, 30}, ToDeUnique[int](data2).ToRev().Collect())
+	var data3 = FromElements(10, 20, 30, 20, 40, 10, 50)
+	assert.Equal(t, []int{50, 10, 40, 20, 30}, ToDeUnique(data3.ToRev()).Collect())
+}

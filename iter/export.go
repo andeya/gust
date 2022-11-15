@@ -130,6 +130,61 @@ func EnumString[T ~byte | ~rune](s string) DeIterator[KV[T]] {
 	return ToDeEnumerate[T](FromString[T](s))
 }
 
+// ToUnique return an iterator adaptor that filters out elements that have
+// already been produced once during the iteration. Duplicates
+// are detected using hash and equality.
+//
+// Clones of visited elements are stored in a hash set in the
+// iterator.
+//
+// The iterator is stable, returning the non-duplicate items in the order
+// in which they occur in the adapted iterator. In a set of duplicate
+// items, the first item encountered is the item retained.
+//
+// ```
+// var data = FromElements(10, 20, 30, 20, 40, 10, 50);
+// ToUnique(data).Collect() // [10, 20, 30, 40, 50]
+// ```
+func ToUnique[T comparable](iter Iterator[T]) Iterator[T] {
+	min, _ := iter.SizeHint()
+	var set = make(map[T]struct{}, min)
+	return iter.ToFilter(func(x T) bool {
+		if _, ok := set[x]; ok {
+			return false
+		} else {
+			set[x] = struct{}{}
+			return true
+		}
+	})
+}
+
+// ToDeUnique return a double ended iterator adaptor that filters out elements that have
+// already been produced once during the iteration. Duplicates
+// are detected using hash and equality.
+//
+// Clones of visited elements are stored in a hash set in the
+// iterator.
+//
+// The iterator is stable, returning the non-duplicate items in the order
+// in which they occur in the adapted iterator. In a set of duplicate
+// items, the first item encountered is the item retained.
+//
+// ```
+// var data = FromElements(10, 20, 30, 20, 40, 10, 50);
+// ToDeUnique(data).Collect() // [10, 20, 30, 40, 50]
+// ```
+func ToDeUnique[T comparable](iter DeIterator[T]) DeIterator[T] {
+	var set = make(map[T]struct{}, iter.Remaining())
+	return iter.ToDeFilter(func(x T) bool {
+		if _, ok := set[x]; ok {
+			return false
+		} else {
+			set[x] = struct{}{}
+			return true
+		}
+	})
+}
+
 // ToMap takes a closure and creates an iterator which calls that closure on each
 // element.
 //
