@@ -46,3 +46,18 @@ func TestToDeUnique(t *testing.T) {
 	var data3 = FromElements(10, 20, 30, 20, 40, 10, 50)
 	assert.Equal(t, []int{50, 10, 40, 20, 30}, ToDeUnique(data3.ToRev()).Collect())
 }
+
+func TestToUniqueBy(t *testing.T) {
+	var data = FromElements("a", "bb", "aa", "c", "ccc")
+	assert.Equal(t, []string{"a", "bb", "ccc"}, ToUniqueBy[string, int](data, func(s string) int { return len(s) }).Collect())
+}
+
+func TestToDeUniqueBy(t *testing.T) {
+	var f = func(s string) int { return len(s) }
+	var data = FromElements("a", "bb", "aa", "c", "ccc")
+	assert.Equal(t, []string{"a", "bb", "ccc"}, ToDeUniqueBy[string, int](data, f).Collect())
+	var data2 = FromElements("a", "bb", "aa", "c", "ccc")
+	assert.Equal(t, []string{"ccc", "c", "aa"}, ToDeUniqueBy[string, int](data2, f).ToRev().Collect())
+	var data3 = FromElements("a", "bb", "aa", "c", "ccc")
+	assert.Equal(t, []string{"ccc", "c", "aa"}, ToDeUniqueBy[string, int](data3.ToRev(), f).Collect())
+}

@@ -185,6 +185,63 @@ func ToDeUnique[T comparable](iter DeIterator[T]) DeIterator[T] {
 	})
 }
 
+// ToUniqueBy return an iterator adaptor that filters out elements that have
+// already been produced once during the iteration.
+//
+// Duplicates are detected by comparing the key they map to
+// with the keying function `f` by hash and equality.
+// The keys are stored in a hash set in the iterator.
+//
+// The iterator is stable, returning the non-duplicate items in the order
+// in which they occur in the adapted iterator. In a set of duplicate
+// items, the first item encountered is the item retained.
+//
+// ```
+// var data = FromElements("a", "bb", "aa", "c", "ccc");
+// ToUniqueBy(data, func(s string)int {return len(s)}).Collect() // "a", "bb", "ccc"
+// ```
+func ToUniqueBy[T any, K comparable](iter Iterator[T], f func(T) K) Iterator[T] {
+	min, _ := iter.SizeHint()
+	var set = make(map[K]struct{}, min)
+	return iter.ToFilter(func(x T) bool {
+		k := f(x)
+		if _, ok := set[k]; ok {
+			return false
+		} else {
+			set[k] = struct{}{}
+			return true
+		}
+	})
+}
+
+// ToDeUniqueBy return an iterator adaptor that filters out elements that have
+// already been produced once during the iteration.
+//
+// Duplicates are detected by comparing the key they map to
+// with the keying function `f` by hash and equality.
+// The keys are stored in a hash set in the iterator.
+//
+// The iterator is stable, returning the non-duplicate items in the order
+// in which they occur in the adapted iterator. In a set of duplicate
+// items, the first item encountered is the item retained.
+//
+// ```
+// var data = FromElements("a", "bb", "aa", "c", "ccc");
+// ToDeUniqueBy(data, func(s string)int {return len(s)}).Collect() // "a", "bb", "ccc"
+// ```
+func ToDeUniqueBy[T any, K comparable](iter DeIterator[T], f func(T) K) DeIterator[T] {
+	var set = make(map[K]struct{}, iter.Remaining())
+	return iter.ToDeFilter(func(x T) bool {
+		k := f(x)
+		if _, ok := set[k]; ok {
+			return false
+		} else {
+			set[k] = struct{}{}
+			return true
+		}
+	})
+}
+
 // ToMap takes a closure and creates an iterator which calls that closure on each
 // element.
 //
