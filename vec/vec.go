@@ -331,14 +331,14 @@ func UnshiftDistinct[T comparable](s *[]T, element ...T) int {
 	if len(element) == 0 {
 		return len(a)
 	}
-	m := make(map[T]bool, len(element))
+	m := make(map[T]struct{}, len(element))
 	r := make([]T, 0, len(a)+len(element))
 L:
 	for _, v := range element {
-		if m[v] {
+		if _, ok := m[v]; ok {
 			continue
 		}
-		m[v] = true
+		m[v] = struct{}{}
 		for _, vv := range a {
 			if vv == v {
 				continue L
