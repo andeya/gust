@@ -530,8 +530,8 @@ func SetsDifference[T comparable](set1, set2 []T, others ...[]T) []T {
 	sets := append([][]T{set2}, others...)
 	for _, v := range sets {
 		inter := SetsIntersect(set1, v)
-		for _, v := range inter {
-			m[v] = struct{}{}
+		for _, vv := range inter {
+			m[vv] = struct{}{}
 		}
 	}
 	for _, v := range set1 {
