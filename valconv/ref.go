@@ -61,7 +61,7 @@ func RefMap[K comparable, V any](a map[K]V) map[K]*V {
 // DerefMap convert map[K]*V to map[K]V.
 // NOTE:
 //
-// If an value is nil, it will be set to the zero V.
+// If a value is nil, it will be set to the zero V.
 func DerefMap[K comparable, V any](a map[K]*V) map[K]V {
 	if a == nil {
 		return nil
