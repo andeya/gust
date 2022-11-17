@@ -136,7 +136,7 @@ func (o Option[T]) Unwrap() T {
 		return o.UnwrapUnchecked()
 	}
 	var t T
-	panic(ToErrBox(fmt.Sprintf("call Option[%T].UnwrapErr() on none", t)))
+	panic(ToErrBox(fmt.Sprintf("call Option[%T].Unwrap() on none", t)))
 }
 
 // UnwrapOr returns the contained value or a provided fallback value.
@@ -436,6 +436,9 @@ func (o *Option[T]) GetOrInsert(some T) *T {
 // then returns the contained value.
 func (o *Option[T]) GetOrInsertWith(f func() T) *T {
 	if o.IsNone() {
+		if f == nil {
+			return nil
+		}
 		var some = f()
 		v := &some
 		o.value = &v
