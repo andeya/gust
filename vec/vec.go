@@ -96,7 +96,7 @@ func Filter[T any](s []T, fn func(k int, v T) bool) []T {
 // Find returns the key-value of the first element in the provided slice that satisfies the provided testing function.
 // NOTE:
 //
-//	If not found, k = -1
+//	If not found, index = -1
 func Find[T any](s []T, fn func(k int, v T) bool) gust.VecEntry[T] {
 	for k, v := range s {
 		if fn(k, v) {
