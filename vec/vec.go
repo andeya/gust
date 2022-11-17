@@ -1,13 +1,16 @@
 package vec
 
-import "github.com/andeya/gust"
+import (
+	"github.com/andeya/gust"
+	"github.com/andeya/gust/valconv"
+)
 
 // One try to return the first element, otherwise return zero value.
 func One[T any](s []T) T {
 	if len(s) > 0 {
 		return s[0]
 	}
-	return zero[T]()
+	return valconv.Zero[T]()
 }
 
 // Copy creates a copy of the slice.
@@ -100,7 +103,7 @@ func Find[T any](s []T, fn func(k int, v T) bool) (k int, v T) {
 			return k, v
 		}
 	}
-	return -1, zero[T]()
+	return -1, valconv.Zero[T]()
 }
 
 // Includes determines whether a slice includes a certain value among its entries.
@@ -197,7 +200,7 @@ L:
 //	If no initialValue is supplied, the first element in the slice will be used and skipped.
 func Reduce[T any](s []T, fn func(k int, v, accumulator T) T, initialValue ...T) T {
 	if len(s) == 0 {
-		return zero[T]()
+		return valconv.Zero[T]()
 	}
 	start := 0
 	acc := s[start]
@@ -226,7 +229,7 @@ func Reduce[T any](s []T, fn func(k int, v, accumulator T) T, initialValue ...T)
 //	If no initialValue is supplied, the first element in the slice will be used and skipped.
 func ReduceRight[T any](s []T, fn func(k int, v, accumulator T) T, initialValue ...T) T {
 	if len(s) == 0 {
-		return zero[T]()
+		return valconv.Zero[T]()
 	}
 	end := len(s) - 1
 	acc := s[end]
