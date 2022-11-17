@@ -1,6 +1,8 @@
 package valconv
 
-import "reflect"
+import (
+	"reflect"
+)
 
 // DerefType dereference, get the underlying non-pointer type.
 func DerefType(t reflect.Type) reflect.Type {

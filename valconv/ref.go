@@ -1,5 +1,11 @@
 package valconv
 
+// Zero returns the zero value of the type.
+func Zero[T any]() T {
+	var t T
+	return t
+}
+
 // Ref returns the address of the value.
 func Ref[T any](t T) *T {
 	return &t
