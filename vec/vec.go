@@ -97,13 +97,13 @@ func Filter[T any](s []T, fn func(k int, v T) bool) []T {
 // NOTE:
 //
 //	If not found, k = -1
-func Find[T any](s []T, fn func(k int, v T) bool) (k int, v T) {
+func Find[T any](s []T, fn func(k int, v T) bool) gust.VecEntry[T] {
 	for k, v := range s {
 		if fn(k, v) {
-			return k, v
+			return gust.VecEntry[T]{Index: k, Elem: v}
 		}
 	}
-	return -1, valconv.Zero[T]()
+	return gust.VecEntry[T]{Index: -1}
 }
 
 // Includes determines whether a slice includes a certain value among its entries.
@@ -220,7 +220,7 @@ func Reduce[T any](s []T, fn func(k int, v, accumulator T) T, initialValue ...T)
 // @accumulator
 //
 //	The accumulator accumulates callback's return values.
-//	It is the accumulated value previously returned in the last invocation of the callback—or initialValue,
+//	It is the accumulated value previously returned to the last invocation of the callback—or initialValue,
 //	if it was supplied (see below).
 //
 // @initialValue
