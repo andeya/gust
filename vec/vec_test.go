@@ -227,6 +227,12 @@ func TestDistinct(t *testing.T) {
 	assert.Equal(t, map[string]int{"-1": 2, "0": 2, "1": 2}, distinctCount)
 }
 
+func TestDistinctBy(t *testing.T) {
+	slice := []string{"-1", "0", "-12", "0", "1", "1234"}
+	DistinctBy(&slice, func(k int, v string) int { return len(v) })
+	assert.Equal(t, []string{"-1", "0", "-12", "1234"}, slice)
+}
+
 func TestDistinctMap(t *testing.T) {
 	slice := []string{"-1", "0", "-1", "0", "1", "1"}
 	newSlice := DistinctMap(slice, func(k int, v string) string { return v + "0" })

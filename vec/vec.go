@@ -144,13 +144,13 @@ func LastIndexOf[T comparable](s []T, searchElement T, fromIndex ...int) int {
 
 // Map creates a new slice populated with the results of calling a provided function
 // on every element in the calling slice.
-func Map[T any, U any](s []T, fn func(k int, v T) U) []U {
+func Map[T any, U any](s []T, mapping func(k int, v T) U) []U {
 	if s == nil {
 		return nil
 	}
 	ret := make([]U, len(s))
 	for k, v := range s {
-		ret[k] = fn(k, v)
+		ret[k] = mapping(k, v)
 	}
 	return ret
 }
@@ -486,16 +486,46 @@ func vecDistinct[T comparable](src []T, dst *[]T) map[T]int {
 	return m
 }
 
-// DistinctMap calculates the count of each different element,
-// and only saves these different elements in place if changeSlice is true.
-func DistinctMap[T any, U comparable](s []T, f func(k int, v T) U) []U {
+// DistinctBy deduplication in place according to the mapping function
+func DistinctBy[T comparable, U comparable](s *[]T, mapping func(k int, v T) U) {
+	a := (*s)[:0]
+	distinctCount := vecDistinctBy(*s, &a, mapping)
+	n := len(distinctCount)
+	*s = a[:n:n]
+}
+
+func vecDistinctBy[T comparable, U comparable](src []T, dst *[]T, mapping func(k int, v T) U) map[U]int {
+	m := make(map[U]int, len(src))
+	if dst == nil {
+		for k, v := range src {
+			x := mapping(k, v)
+			n := m[x]
+			m[x] = n + 1
+		}
+	} else {
+		a := *dst
+		for k, v := range src {
+			x := mapping(k, v)
+			n := m[x]
+			m[x] = n + 1
+			if n == 0 {
+				a = append(a, v)
+			}
+		}
+		*dst = a
+	}
+	return m
+}
+
+// DistinctMap returns the unique elements after mapping.
+func DistinctMap[T any, U comparable](s []T, mapping func(k int, v T) U) []U {
 	if s == nil {
 		return nil
 	}
 	m := make(map[U]struct{}, len(s))
 	a := make([]U, 0, len(m))
 	for k, v := range s {
-		x := f(k, v)
+		x := mapping(k, v)
 		if _, ok := m[x]; ok {
 			continue
 		}
