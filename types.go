@@ -27,3 +27,9 @@ type Pair[A any, B any] struct {
 	A A
 	B B
 }
+
+// KV is an index-value pair.
+type KV[T any] struct {
+	Index uint
+	Value T
+}
