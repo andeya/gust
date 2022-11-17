@@ -195,10 +195,12 @@ func (r Result[T]) Expect(msg string) T {
 // Because this function may panic, its use is generally discouraged.
 // Instead, prefer to use pattern matching and handle the error case explicitly, or call UnwrapOr or UnwrapOrElse.
 func (r Result[T]) Unwrap() T {
-	if r.IsErr() {
-		panic(ToErrBox(r.inner.safeGetE()))
-	}
-	return r.inner.safeGetT()
+	return r.inner.Unwrap()
+}
+
+// UnwrapOrDefault returns the contained T or a non-nil-pointer zero T.
+func (r Result[T]) UnwrapOrDefault() T {
+	return r.inner.UnwrapOrDefault()
 }
 
 // ExpectErr returns the contained error.

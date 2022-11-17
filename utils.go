@@ -1,0 +1,28 @@
+package gust
+
+import "reflect"
+
+// initNilPtr initializes nil pointer with zero value.
+func initNilPtr(v reflect.Value) (done bool) {
+	for {
+		kind := v.Kind()
+		if kind == reflect.Interface {
+			v = v.Elem()
+			continue
+		}
+		if kind != reflect.Ptr {
+			return true
+		}
+		u := v.Elem()
+		if u.IsValid() {
+			v = u
+			continue
+		}
+		if !v.CanSet() {
+			return false
+		}
+		v2 := reflect.New(v.Type().Elem())
+		v.Set(v2)
+		v = v.Elem()
+	}
+}

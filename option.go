@@ -165,31 +165,6 @@ func (o Option[T]) UnwrapOrDefault() T {
 	return zero
 }
 
-// initNilPtr initializes nil pointer with zero value.
-func initNilPtr(v reflect.Value) (done bool) {
-	for {
-		kind := v.Kind()
-		if kind == reflect.Interface {
-			v = v.Elem()
-			continue
-		}
-		if kind != reflect.Ptr {
-			return true
-		}
-		u := v.Elem()
-		if u.IsValid() {
-			v = u
-			continue
-		}
-		if !v.CanSet() {
-			return false
-		}
-		v2 := reflect.New(v.Type().Elem())
-		v.Set(v2)
-		v = v.Elem()
-	}
-}
-
 // Take takes the value out of the option, leaving a [`None`] in its place.
 func (o Option[T]) Take() Option[T] {
 	if o.IsNone() {
@@ -436,11 +411,14 @@ func (o *Option[T]) GetOrInsert(some T) *T {
 // then returns the contained value.
 func (o *Option[T]) GetOrInsertWith(f func() T) *T {
 	if o.IsNone() {
+		var v *T
 		if f == nil {
-			return nil
+			v = new(T)
+			_ = initNilPtr(reflect.ValueOf(v))
+		} else {
+			var some = f()
+			v = &some
 		}
-		var some = f()
-		v := &some
 		o.value = &v
 	}
 	return *o.value
