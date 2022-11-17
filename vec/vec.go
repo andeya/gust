@@ -15,6 +15,9 @@ func One[T any](s []T) T {
 
 // Copy creates a copy of the slice.
 func Copy[T any](s []T) []T {
+	if s == nil {
+		return nil
+	}
 	r := make([]T, len(s))
 	copy(r, s)
 	return r
@@ -141,8 +144,11 @@ func LastIndexOf[T comparable](s []T, searchElement T, fromIndex ...int) int {
 
 // Map creates a new slice populated with the results of calling a provided function
 // on every element in the calling slice.
-func Map[T any](s []T, fn func(k int, v T) T) []T {
-	ret := make([]T, len(s))
+func Map[T any, U any](s []T, fn func(k int, v T) U) []U {
+	if s == nil {
+		return nil
+	}
+	ret := make([]U, len(s))
 	for k, v := range s {
 		ret[k] = fn(k, v)
 	}
@@ -478,6 +484,25 @@ func vecDistinct[T comparable](src []T, dst *[]T) map[T]int {
 		*dst = a
 	}
 	return m
+}
+
+// DistinctMap calculates the count of each different element,
+// and only saves these different elements in place if changeSlice is true.
+func DistinctMap[T any, U comparable](s []T, f func(k int, v T) U) []U {
+	if s == nil {
+		return nil
+	}
+	m := make(map[U]struct{}, len(s))
+	a := make([]U, 0, len(m))
+	for k, v := range s {
+		x := f(k, v)
+		if _, ok := m[x]; ok {
+			continue
+		}
+		a = append(a, x)
+		m[x] = struct{}{}
+	}
+	return a
 }
 
 // SetsUnion calculates between multiple collections: set1 ∪ set2 ∪ others...
