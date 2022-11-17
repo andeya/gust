@@ -28,8 +28,8 @@ type Pair[A any, B any] struct {
 	B B
 }
 
-// KV is an index-value pair.
-type KV[T any] struct {
-	Index uint
-	Value T
+// VecEntry is an index-element entry of slice or array.
+type VecEntry[T any] struct {
+	Index int
+	Elem  T
 }

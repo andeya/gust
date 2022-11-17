@@ -17,7 +17,7 @@ func FromIterable[T any](data gust.Iterable[T]) Iterator[T] {
 }
 
 // EnumIterable creates an iterator with index from an Iterable.
-func EnumIterable[T any](data gust.Iterable[T]) Iterator[gust.KV[T]] {
+func EnumIterable[T any](data gust.Iterable[T]) Iterator[gust.VecEntry[T]] {
 	return ToEnumerate[T](FromIterable[T](data))
 }
 
@@ -31,7 +31,7 @@ func FromDeIterable[T any](data gust.DeIterable[T]) DeIterator[T] {
 }
 
 // EnumDeIterable creates a double ended iterator with index from an Iterable.
-func EnumDeIterable[T any](data gust.DeIterable[T]) DeIterator[gust.KV[T]] {
+func EnumDeIterable[T any](data gust.DeIterable[T]) DeIterator[gust.VecEntry[T]] {
 	return ToDeEnumerate[T](FromDeIterable[T](data))
 }
 
@@ -41,7 +41,7 @@ func FromVec[T any](slice []T) DeIterator[T] {
 }
 
 // EnumVec creates a double ended iterator with index from a slice.
-func EnumVec[T any](slice []T) DeIterator[gust.KV[T]] {
+func EnumVec[T any](slice []T) DeIterator[gust.VecEntry[T]] {
 	return ToDeEnumerate[T](FromVec[T](slice))
 }
 
@@ -51,7 +51,7 @@ func FromElements[T any](elems ...T) DeIterator[T] {
 }
 
 // EnumElements creates a double ended iterator with index from a set of elements.
-func EnumElements[T any](elems ...T) DeIterator[gust.KV[T]] {
+func EnumElements[T any](elems ...T) DeIterator[gust.VecEntry[T]] {
 	return ToDeEnumerate[T](FromVec[T](elems))
 }
 
@@ -61,7 +61,7 @@ func FromRange[T gust.Integer](start T, end T, rightClosed ...bool) DeIterator[T
 }
 
 // EnumRange creates a double ended iterator with index from a range.
-func EnumRange[T gust.Integer](start T, end T, rightClosed ...bool) DeIterator[gust.KV[T]] {
+func EnumRange[T gust.Integer](start T, end T, rightClosed ...bool) DeIterator[gust.VecEntry[T]] {
 	return ToDeEnumerate[T](FromRange[T](start, end, rightClosed...))
 }
 
@@ -71,7 +71,7 @@ func FromChan[T any](c chan T) Iterator[T] {
 }
 
 // EnumChan creates an iterator with index from a channel.
-func EnumChan[T any](c chan T) Iterator[gust.KV[T]] {
+func EnumChan[T any](c chan T) Iterator[gust.VecEntry[T]] {
 	return ToEnumerate[T](FromChan(c))
 }
 
@@ -81,7 +81,7 @@ func FromResult[T any](ret gust.Result[T]) DeIterator[T] {
 }
 
 // EnumResult creates a double ended iterator with index from a result.
-func EnumResult[T any](ret gust.Result[T]) DeIterator[gust.KV[T]] {
+func EnumResult[T any](ret gust.Result[T]) DeIterator[gust.VecEntry[T]] {
 	return EnumDeIterable[T](ret)
 }
 
@@ -91,7 +91,7 @@ func FromOption[T any](opt gust.Option[T]) DeIterator[T] {
 }
 
 // EnumOption creates a double ended iterator with index from an option.
-func EnumOption[T any](opt gust.Option[T]) DeIterator[gust.KV[T]] {
+func EnumOption[T any](opt gust.Option[T]) DeIterator[gust.VecEntry[T]] {
 	return EnumDeIterable[T](opt)
 }
 
@@ -126,7 +126,7 @@ func FromString[T ~byte | ~rune](s string) DeIterator[T] {
 }
 
 // EnumString creates a double ended iterator with index from a string.
-func EnumString[T ~byte | ~rune](s string) DeIterator[gust.KV[T]] {
+func EnumString[T ~byte | ~rune](s string) DeIterator[gust.VecEntry[T]] {
 	return ToDeEnumerate[T](FromString[T](s))
 }
 
@@ -328,12 +328,12 @@ func ToDeZip[A any, B any](a DeIterator[A], b DeIterator[B]) DeIterator[gust.Pai
 }
 
 // ToEnumerate creates an iterator that yields pairs of the index and the value.
-func ToEnumerate[T any](iter Iterator[T]) Iterator[gust.KV[T]] {
+func ToEnumerate[T any](iter Iterator[T]) Iterator[gust.VecEntry[T]] {
 	return newEnumerateIterator(iter)
 }
 
 // ToDeEnumerate creates a double ended iterator that yields pairs of the index and the value.
-func ToDeEnumerate[T any](iter DeIterator[T]) DeIterator[gust.KV[T]] {
+func ToDeEnumerate[T any](iter DeIterator[T]) DeIterator[gust.VecEntry[T]] {
 	return newDeEnumerateIterator(iter)
 }
 

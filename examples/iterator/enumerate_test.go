@@ -10,14 +10,14 @@ import (
 
 func TestEnumerate(t *testing.T) {
 	var i = iter.EnumElements[rune]('a', 'b', 'c')
-	assert.Equal(t, gust.Some(gust.KV[rune]{
-		Index: 0, Value: 'a',
+	assert.Equal(t, gust.Some(gust.VecEntry[rune]{
+		Index: 0, Elem: 'a',
 	}), i.Next())
-	assert.Equal(t, gust.Some(gust.KV[rune]{
-		Index: 1, Value: 'b',
+	assert.Equal(t, gust.Some(gust.VecEntry[rune]{
+		Index: 1, Elem: 'b',
 	}), i.Next())
-	assert.Equal(t, gust.Some(gust.KV[rune]{
-		Index: 2, Value: 'c',
+	assert.Equal(t, gust.Some(gust.VecEntry[rune]{
+		Index: 2, Elem: 'c',
 	}), i.Next())
-	assert.Equal(t, gust.None[gust.KV[rune]](), i.Next())
+	assert.Equal(t, gust.None[gust.VecEntry[rune]](), i.Next())
 }
