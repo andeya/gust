@@ -59,11 +59,10 @@ func TestFilter(t *testing.T) {
 
 func TestFind(t *testing.T) {
 	slice := []string{"spray", "limit", "elite", "exuberant", "destruction", "present"}
-	k, v := Find(slice, func(k int, v string) bool {
+	entry := Find(slice, func(k int, v string) bool {
 		return len(v) > 6
 	})
-	assert.Equal(t, 3, k)
-	assert.Equal(t, "exuberant", v)
+	assert.Equal(t, gust.Some(gust.VecEntry[string]{Index: 3, Elem: "exuberant"}), entry)
 }
 
 func TestIncludes(t *testing.T) {

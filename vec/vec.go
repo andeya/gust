@@ -94,16 +94,13 @@ func Filter[T any](s []T, fn func(k int, v T) bool) []T {
 }
 
 // Find returns the key-value of the first element in the provided slice that satisfies the provided testing function.
-// NOTE:
-//
-//	If not found, index = -1
-func Find[T any](s []T, fn func(k int, v T) bool) gust.VecEntry[T] {
+func Find[T any](s []T, fn func(k int, v T) bool) gust.Option[gust.VecEntry[T]] {
 	for k, v := range s {
 		if fn(k, v) {
-			return gust.VecEntry[T]{Index: k, Elem: v}
+			return gust.Some(gust.VecEntry[T]{Index: k, Elem: v})
 		}
 	}
-	return gust.VecEntry[T]{Index: -1}
+	return gust.None[gust.VecEntry[T]]()
 }
 
 // Includes determines whether a slice includes a certain value among its entries.
