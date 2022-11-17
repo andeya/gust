@@ -1,5 +1,7 @@
 package vec
 
+import "github.com/andeya/gust"
+
 // One try to return the first element, otherwise return zero value.
 func One[T any](s []T) T {
 	if len(s) > 0 {
@@ -44,9 +46,9 @@ func CopyWithin[T any](s []T, target, start int, end ...int) {
 // NOTE:
 //
 //	Calling this method on an empty slice will return true for any condition!
-func Every[T any](s []T, fn func(s []T, k int, v T) bool) bool {
+func Every[T any](s []T, fn func(k int, v T) bool) bool {
 	for k, v := range s {
-		if !fn(s, k, v) {
+		if !fn(k, v) {
 			return false
 		}
 	}
@@ -78,10 +80,10 @@ func Fill[T any](s []T, value T, start int, end ...int) {
 }
 
 // Filter creates a new slice with all elements that pass the test implemented by the provided function.
-func Filter[T any](s []T, fn func(s []T, k int, v T) bool) []T {
+func Filter[T any](s []T, fn func(k int, v T) bool) []T {
 	ret := make([]T, 0)
 	for k, v := range s {
-		if fn(s, k, v) {
+		if fn(k, v) {
 			ret = append(ret, v)
 		}
 	}
@@ -92,9 +94,9 @@ func Filter[T any](s []T, fn func(s []T, k int, v T) bool) []T {
 // NOTE:
 //
 //	If not found, k = -1
-func Find[T any](s []T, fn func(s []T, k int, v T) bool) (k int, v T) {
+func Find[T any](s []T, fn func(k int, v T) bool) (k int, v T) {
 	for k, v := range s {
-		if fn(s, k, v) {
+		if fn(k, v) {
 			return k, v
 		}
 	}
@@ -139,26 +141,26 @@ func LastIndexOf[T comparable](s []T, searchElement T, fromIndex ...int) int {
 
 // Map creates a new slice populated with the results of calling a provided function
 // on every element in the calling slice.
-func Map[T any](s []T, fn func(s []T, k int, v T) T) []T {
+func Map[T any](s []T, fn func(k int, v T) T) []T {
 	ret := make([]T, len(s))
 	for k, v := range s {
-		ret[k] = fn(s, k, v)
+		ret[k] = fn(k, v)
 	}
 	return ret
 }
 
 // Pop removes the last element from a slice and returns that element.
 // This method changes the length of the slice.
-func Pop[T any](s *[]T) (T, bool) {
+func Pop[T any](s *[]T) gust.Option[T] {
 	a := *s
 	if len(a) == 0 {
-		return zero[T](), false
+		return gust.None[T]()
 	}
 	lastIndex := len(a) - 1
 	last := a[lastIndex]
 	a = a[:lastIndex]
 	*s = a[:len(a):len(a)]
-	return last, true
+	return gust.Some(last)
 }
 
 // Push adds one or more elements to the end of a slice and returns the new length of the slice.
@@ -186,14 +188,14 @@ L:
 // @accumulator
 //
 //	The accumulator accumulates callback's return values.
-//	It is the accumulated value previously returned in the last invocation of the callback—or initialValue,
+//	It is the accumulated value previously returned to the last invocation of the callback—or initialValue,
 //	if it was supplied (see below).
 //
 // @initialValue
 //
 //	A value to use as the first argument to the first call of the callback.
 //	If no initialValue is supplied, the first element in the slice will be used and skipped.
-func Reduce[T any](s []T, fn func(s []T, k int, v, accumulator T) T, initialValue ...T) T {
+func Reduce[T any](s []T, fn func(k int, v, accumulator T) T, initialValue ...T) T {
 	if len(s) == 0 {
 		return zero[T]()
 	}
@@ -205,7 +207,7 @@ func Reduce[T any](s []T, fn func(s []T, k int, v, accumulator T) T, initialValu
 		start += 1
 	}
 	for i := start; i < len(s); i++ {
-		acc = fn(s, i, s[i], acc)
+		acc = fn(i, s[i], acc)
 	}
 	return acc
 }
@@ -222,7 +224,7 @@ func Reduce[T any](s []T, fn func(s []T, k int, v, accumulator T) T, initialValu
 //
 //	A value to use as the first argument to the first call of the callback.
 //	If no initialValue is supplied, the first element in the slice will be used and skipped.
-func ReduceRight[T any](s []T, fn func(s []T, k int, v, accumulator T) T, initialValue ...T) T {
+func ReduceRight[T any](s []T, fn func(k int, v, accumulator T) T, initialValue ...T) T {
 	if len(s) == 0 {
 		return zero[T]()
 	}
@@ -234,7 +236,7 @@ func ReduceRight[T any](s []T, fn func(s []T, k int, v, accumulator T) T, initia
 		end -= 1
 	}
 	for i := end; i >= 0; i-- {
-		acc = fn(s, i, s[i], acc)
+		acc = fn(i, s[i], acc)
 	}
 	return acc
 }
@@ -252,15 +254,15 @@ func Reverse[T any](s []T) {
 
 // Shift removes the first element from a slice and returns that removed element.
 // This method changes the length of the slice.
-func Shift[T any](s *[]T) (T, bool) {
+func Shift[T any](s *[]T) gust.Option[T] {
 	a := *s
 	if len(a) == 0 {
-		return zero[T](), false
+		return gust.None[T]()
 	}
 	first := a[0]
 	a = a[1:]
 	*s = a[:len(a):len(a)]
-	return first, true
+	return gust.Some(first)
 }
 
 // Slice returns a copy of a portion of a slice into a new slice object selected
@@ -278,9 +280,9 @@ func Slice[T any](s []T, begin int, end ...int) []T {
 // NOTE:
 //
 //	Calling this method on an empty slice returns false for any condition!
-func Some[T any](s []T, fn func(s []T, k int, v T) bool) bool {
+func Some[T any](s []T, fn func(k int, v T) bool) bool {
 	for k, v := range s {
-		if fn(s, k, v) {
+		if fn(k, v) {
 			return true
 		}
 	}

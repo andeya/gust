@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/andeya/gust"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,7 +34,7 @@ func TestCopyWithin(t *testing.T) {
 
 func TestEvery(t *testing.T) {
 	slice := []string{"1", "30", "39", "29", "10", "13"}
-	isBelowThreshold := Every(slice, func(s []string, k int, v string) bool {
+	isBelowThreshold := Every(slice, func(k int, v string) bool {
 		i, _ := strconv.Atoi(v)
 		return i < 40
 	})
@@ -50,7 +51,7 @@ func TestFill(t *testing.T) {
 
 func TestFilter(t *testing.T) {
 	slice := []string{"spray", "limit", "elite", "exuberant", "destruction", "present"}
-	result := Filter(slice, func(s []string, k int, v string) bool {
+	result := Filter(slice, func(k int, v string) bool {
 		return len(v) > 6
 	})
 	assert.Equal(t, []string{"exuberant", "destruction", "present"}, result)
@@ -58,7 +59,7 @@ func TestFilter(t *testing.T) {
 
 func TestFind(t *testing.T) {
 	slice := []string{"spray", "limit", "elite", "exuberant", "destruction", "present"}
-	k, v := Find(slice, func(s []string, k int, v string) bool {
+	k, v := Find(slice, func(k int, v string) bool {
 		return len(v) > 6
 	})
 	assert.Equal(t, 3, k)
@@ -99,7 +100,7 @@ func TestLastIndexOf(t *testing.T) {
 
 func TestMap(t *testing.T) {
 	slice := []string{"Dodo", "Tiger", "Penguin", "Dodo"}
-	ret := Map(slice, func(s []string, k int, v string) string {
+	ret := Map(slice, func(k int, v string) string {
 		return strconv.Itoa(k+1) + ":" + v
 	})
 	assert.Equal(t, []string{"1:Dodo", "2:Tiger", "3:Penguin", "4:Dodo"}, ret)
@@ -107,15 +108,12 @@ func TestMap(t *testing.T) {
 
 func TestPop(t *testing.T) {
 	slice := []string{"kale", "tomato"}
-	last, ok := Pop(&slice)
-	assert.True(t, ok)
-	assert.Equal(t, "tomato", last)
-	last, ok = Pop(&slice)
-	assert.True(t, ok)
-	assert.Equal(t, "kale", last)
-	last, ok = Pop(&slice)
-	assert.False(t, ok)
-	assert.Equal(t, "", last)
+	last := Pop(&slice)
+	assert.Equal(t, gust.Some("tomato"), last)
+	last = Pop(&slice)
+	assert.Equal(t, gust.Some("kale"), last)
+	last = Pop(&slice)
+	assert.Equal(t, gust.None[string](), last)
 }
 
 func TestPushDistinct(t *testing.T) {
@@ -126,11 +124,11 @@ func TestPushDistinct(t *testing.T) {
 
 func TestReduce(t *testing.T) {
 	slice := []string{"1", "2", "3", "4"}
-	reducer := Reduce(slice, func(s []string, k int, v string, accumulator string) string {
+	reducer := Reduce(slice, func(k int, v string, accumulator string) string {
 		return accumulator + "+" + v
 	})
 	assert.Equal(t, "1+2+3+4", reducer)
-	reducer = Reduce(slice, func(s []string, k int, v string, accumulator string) string {
+	reducer = Reduce(slice, func(k int, v string, accumulator string) string {
 		return accumulator + "+" + v
 	}, "100")
 	assert.Equal(t, "100+1+2+3+4", reducer)
@@ -138,11 +136,11 @@ func TestReduce(t *testing.T) {
 
 func TestReduceRight(t *testing.T) {
 	slice := []string{"1", "2", "3", "4"}
-	reducer := ReduceRight(slice, func(s []string, k int, v string, accumulator string) string {
+	reducer := ReduceRight(slice, func(k int, v string, accumulator string) string {
 		return accumulator + "+" + v
 	})
 	assert.Equal(t, "4+3+2+1", reducer)
-	reducer = ReduceRight(slice, func(s []string, k int, v string, accumulator string) string {
+	reducer = ReduceRight(slice, func(k int, v string, accumulator string) string {
 		return accumulator + "+" + v
 	}, "100")
 	assert.Equal(t, "100+4+3+2+1", reducer)
@@ -156,15 +154,12 @@ func TestReverse(t *testing.T) {
 
 func TestShift(t *testing.T) {
 	slice := []string{"kale", "tomato"}
-	first, ok := Shift(&slice)
-	assert.True(t, ok)
-	assert.Equal(t, "kale", first)
-	first, ok = Pop(&slice)
-	assert.True(t, ok)
-	assert.Equal(t, "tomato", first)
-	first, ok = Pop(&slice)
-	assert.False(t, ok)
-	assert.Equal(t, "", first)
+	first := Shift(&slice)
+	assert.Equal(t, gust.Some("kale"), first)
+	first = Pop(&slice)
+	assert.Equal(t, gust.Some("tomato"), first)
+	first = Pop(&slice)
+	assert.Equal(t, gust.None[string](), first)
 }
 
 func TestSlice(t *testing.T) {
@@ -182,7 +177,7 @@ func TestSlice(t *testing.T) {
 
 func TestSome(t *testing.T) {
 	slice := []string{"1", "30", "39", "29", "10", "13"}
-	even := Some(slice, func(s []string, k int, v string) bool {
+	even := Some(slice, func(k int, v string) bool {
 		i, _ := strconv.Atoi(v)
 		return i%2 == 0
 	})
