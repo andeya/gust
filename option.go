@@ -3,6 +3,7 @@ package gust
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"unsafe"
 )
 
@@ -138,12 +139,12 @@ func (o Option[T]) Unwrap() T {
 	panic(ToErrBox(fmt.Sprintf("call Option[%T].UnwrapErr() on none", t)))
 }
 
-// UnwrapOr returns the contained value or a provided default.
-func (o Option[T]) UnwrapOr(defaultSome T) T {
+// UnwrapOr returns the contained value or a provided fallback value.
+func (o Option[T]) UnwrapOr(fallbackValue T) T {
 	if o.IsSome() {
 		return o.UnwrapUnchecked()
 	}
-	return defaultSome
+	return fallbackValue
 }
 
 // UnwrapOrElse returns the contained value or computes it from a closure.
@@ -152,6 +153,41 @@ func (o Option[T]) UnwrapOrElse(defaultSome func() T) T {
 		return o.UnwrapUnchecked()
 	}
 	return defaultSome()
+}
+
+// UnwrapOrDefault returns the contained value or a non-nil-pointer zero value.
+func (o Option[T]) UnwrapOrDefault() T {
+	if o.IsSome() {
+		return o.UnwrapUnchecked()
+	}
+	var zero T
+	_ = initNilPtr(reflect.ValueOf(&zero))
+	return zero
+}
+
+// initNilPtr initializes nil pointer with zero value.
+func initNilPtr(v reflect.Value) (done bool) {
+	for {
+		kind := v.Kind()
+		if kind == reflect.Interface {
+			v = v.Elem()
+			continue
+		}
+		if kind != reflect.Ptr {
+			return true
+		}
+		u := v.Elem()
+		if u.IsValid() {
+			v = u
+			continue
+		}
+		if !v.CanSet() {
+			return false
+		}
+		v2 := reflect.New(v.Type().Elem())
+		v.Set(v2)
+		v = v.Elem()
+	}
 }
 
 // Take takes the value out of the option, leaving a [`None`] in its place.
