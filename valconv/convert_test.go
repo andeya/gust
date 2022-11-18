@@ -3,7 +3,6 @@ package valconv
 import (
 	"testing"
 
-	"github.com/andeya/gust"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -40,11 +39,6 @@ func TestToAnyMap(t *testing.T) {
 func TestSafeAssert(t *testing.T) {
 	var s any = "abc"
 	assert.Equal(t, s, SafeAssert[string](s))
-}
-
-func TestOptAssert(t *testing.T) {
-	var s any = "abc"
-	assert.Equal(t, gust.Some("abc"), OptAssert[string](s))
 }
 
 func TestUnsafeAssertSlice(t *testing.T) {
