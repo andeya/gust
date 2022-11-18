@@ -20,6 +20,27 @@ func BoolOpt[T any](val T, ok bool) Option[T] {
 	return Option[T]{value: &v}
 }
 
+// AssertOpt wraps a value as an Option.
+func AssertOpt[T any](i any) Option[T] {
+	val, ok := i.(T)
+	if !ok {
+		return Option[T]{value: nil}
+	}
+	v := &val
+	return Option[T]{value: &v}
+}
+
+// BoolAssertOpt wraps a value as an Option.
+func BoolAssertOpt[T any](i any, ok bool) Option[T] {
+	if ok {
+		if val, ok2 := i.(T); ok2 {
+			v := &val
+			return Option[T]{value: &v}
+		}
+	}
+	return Option[T]{value: nil}
+}
+
 // PtrOpt wraps a pointer value.
 // NOTE:
 //
