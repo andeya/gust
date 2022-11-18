@@ -25,3 +25,14 @@ func TestMap(t *testing.T) {
 	m.Delete("a")
 	assert.Equal(t, gust.None[int](), m.Load("a"))
 }
+
+func TestValue(t *testing.T) {
+	var m gust.Value[int]
+	assert.Equal(t, gust.None[int](), m.Load())
+	m.Store(1)
+	assert.Equal(t, gust.Some(1), m.Load())
+	assert.Equal(t, gust.Some(1), m.Swap(2))
+	assert.Equal(t, gust.Some(2), m.Load())
+	assert.False(t, m.CompareAndSwap(1, 3))
+	assert.True(t, m.CompareAndSwap(2, 3))
+}
