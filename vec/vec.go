@@ -96,6 +96,17 @@ func Filter[T any](s []T, fn func(k int, v T) bool) []T {
 	return ret
 }
 
+// FilterMap returns a filtered and mapped slice of new elements.
+func FilterMap[T any, U any](s []T, fn func(k int, v T) gust.Option[U]) []U {
+	ret := make([]U, 0)
+	for k, v := range s {
+		fn(k, v).Inspect(func(u U) {
+			ret = append(ret, u)
+		})
+	}
+	return ret
+}
+
 // Find returns the key-value of the first element in the provided slice that satisfies the provided testing function.
 func Find[T any](s []T, fn func(k int, v T) bool) gust.Option[gust.VecEntry[T]] {
 	for k, v := range s {

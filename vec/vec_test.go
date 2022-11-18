@@ -57,6 +57,17 @@ func TestFilter(t *testing.T) {
 	assert.Equal(t, []string{"exuberant", "destruction", "present"}, result)
 }
 
+func TestFilterMap(t *testing.T) {
+	slice := []int8{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	result := FilterMap[int8, uint](slice, func(k int, v int8) gust.Option[uint] {
+		if v > 6 {
+			return gust.Some(uint(v))
+		}
+		return gust.None[uint]()
+	})
+	assert.Equal(t, []uint{7, 8, 9, 10}, result)
+}
+
 func TestFind(t *testing.T) {
 	slice := []string{"spray", "limit", "elite", "exuberant", "destruction", "present"}
 	entry := Find(slice, func(k int, v string) bool {
