@@ -244,43 +244,43 @@ func (m *Map[K, V]) Range(f func(key K, value V) bool) {
 	})
 }
 
-// Value is a wrapper of `atomic.Value` that holds a value.
-// A Value provides an atomic load and store of a consistently typed value.
-// The zero value for a Value returns nil from Load.
-// Once Store has been called, a Value must not be copied.
+// AtomicValue is a wrapper of `atomic.Value` that holds a value.
+// A AtomicValue provides an atomic load and store of a consistently typed value.
+// The zero value for a AtomicValue returns nil from Load.
+// Once Store has been called, a AtomicValue must not be copied.
 //
-// A Value must not be copied after first use.
-type Value[T any] struct {
+// A AtomicValue must not be copied after first use.
+type AtomicValue[T any] struct {
 	inner atomic.Value
 }
 
 // Load returns the value set by the most recent Store.
-// It returns None if there has been no call to Store for this Value.
-func (v *Value[T]) Load() (val Option[T]) {
+// It returns None if there has been no call to Store for this AtomicValue.
+func (v *AtomicValue[T]) Load() (val Option[T]) {
 	return AssertOpt[T](v.inner.Load())
 }
 
-// Store sets the value of the Value to x.
-// All calls to Store for a given Value must use values of the same concrete type.
+// Store sets the value of the AtomicValue to x.
+// All calls to Store for a given AtomicValue must use values of the same concrete type.
 // Store of an inconsistent type panics, as does Store(nil).
-func (v *Value[T]) Store(val T) {
+func (v *AtomicValue[T]) Store(val T) {
 	v.inner.Store(val)
 }
 
-// Swap stores new into Value and returns the previous value. It returns None if
-// the Value is empty.
+// Swap stores new into AtomicValue and returns the previous value. It returns None if
+// the AtomicValue is empty.
 //
-// All calls to Swap for a given Value must use values of the same concrete
+// All calls to Swap for a given AtomicValue must use values of the same concrete
 // type. Swap of an inconsistent type panics, as does Swap(nil).
-func (v *Value[T]) Swap(new T) (old Option[T]) {
+func (v *AtomicValue[T]) Swap(new T) (old Option[T]) {
 	return AssertOpt[T](v.inner.Swap(new))
 }
 
-// CompareAndSwap executes the compare-and-swap operation for the Value.
+// CompareAndSwap executes the compare-and-swap operation for the AtomicValue.
 //
-// All calls to CompareAndSwap for a given Value must use values of the same
+// All calls to CompareAndSwap for a given AtomicValue must use values of the same
 // concrete type. CompareAndSwap of an inconsistent type panics, as does
 // CompareAndSwap(old, nil).
-func (v *Value[T]) CompareAndSwap(old T, new T) (swapped bool) {
+func (v *AtomicValue[T]) CompareAndSwap(old T, new T) (swapped bool) {
 	return v.inner.CompareAndSwap(old, new)
 }

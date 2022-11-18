@@ -27,7 +27,7 @@ func TestMap(t *testing.T) {
 }
 
 func TestValue(t *testing.T) {
-	var m gust.Value[int]
+	var m gust.AtomicValue[int]
 	assert.Equal(t, gust.None[int](), m.Load())
 	m.Store(1)
 	assert.Equal(t, gust.Some(1), m.Load())
