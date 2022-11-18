@@ -2,6 +2,8 @@ package valconv
 
 import (
 	"unsafe"
+
+	"github.com/andeya/gust"
 )
 
 // BytesToString convert []byte type to ~string type.
@@ -51,6 +53,21 @@ func ToAnyMap[K comparable, V any](a map[K]V) map[K]any {
 		r[k] = v
 	}
 	return r
+}
+
+// SafeAssert asserts any value up to (zero)T.
+func SafeAssert[T any](v any) T {
+	t, _ := v.(T)
+	return t
+}
+
+// OptAssert asserts any value up to gust.Option[T].
+func OptAssert[T any](v any) gust.Option[T] {
+	t, ok := v.(T)
+	if ok {
+		return gust.Some(t)
+	}
+	return gust.None[T]()
 }
 
 // UnsafeAssertSlice convert []any to []T.
