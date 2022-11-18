@@ -13,6 +13,17 @@ func NewRWMutex[T any](data T) *RWMutex[T] {
 }
 
 // Mutex is a wrapper of `sync.Mutex` that holds a value.
+// A Mutex is a mutual exclusion lock.
+// The zero value for a Mutex is an unlocked mutex.
+//
+// A Mutex must not be copied after first use.
+//
+// In the terminology of the Go memory model,
+// the n'th call to Unlock “synchronizes before” the m'th call to Lock
+// for any n < m.
+// A successful call to TryLock is equivalent to a call to Lock.
+// A failed call to TryLock does not establish any “synchronizes before”
+// relation at all.
 type Mutex[T any] struct {
 	inner sync.Mutex
 	data  T
@@ -52,6 +63,26 @@ func (m *Mutex[T]) Unlock(newData ...T) {
 }
 
 // RWMutex is a wrapper of `sync.RWMutex` that holds a value.
+// A RWMutex is a reader/writer mutual exclusion lock.
+// The lock can be held by an arbitrary number of readers or a single writer.
+// The zero value for a RWMutex is an unlocked mutex.
+//
+// A RWMutex must not be copied after first use.
+//
+// If a goroutine holds a RWMutex for reading and another goroutine might
+// call Lock, no goroutine should expect to be able to acquire a read lock
+// until the initial read lock is released. In particular, this prohibits
+// recursive read locking. This is to ensure that the lock eventually becomes
+// available; a blocked Lock call excludes new readers from acquiring the
+// lock.
+//
+// In the terminology of the Go memory model,
+// the n'th call to Unlock “synchronizes before” the m'th call to Lock
+// for any n < m, just as for Mutex.
+// For any call to RLock, there exists an n such that
+// the n'th call to Unlock “synchronizes before” that call to RLock,
+// and the corresponding call to RUnlock “synchronizes before”
+// the n+1'th call to Lock.
 type RWMutex[T any] struct {
 	inner sync.RWMutex
 	data  T
@@ -132,7 +163,8 @@ func (m *RWMutex[T]) RUnlock() {
 	m.inner.RUnlock()
 }
 
-// Map is like a Go map[interface{}]interface{} but is safe for concurrent use
+// Map is a wrapper of `sync.Map` that holds a value.
+// A Map is like a Go map[interface{}]interface{} but is safe for concurrent use
 // by multiple goroutines without additional locking or coordination.
 // Loads, stores, and deletes run in amortized constant time.
 //
@@ -158,9 +190,14 @@ type Map[K any, V any] struct {
 	inner sync.Map
 }
 
-// Load returns the value stored in the map for a key, or nil if no
-// value is present.
-// The ok result indicates whether value was found in the map.
+// NewMap returns a new *Map.
+func NewMap[K any, V any]() *Map[K, V] {
+	return &Map[K, V]{
+		inner: sync.Map{},
+	}
+}
+
+// Load returns the value stored in the map for a key.
 func (m *Map[K, V]) Load(key K) Option[V] {
 	return BoolAssertOpt[V](m.inner.Load(key))
 }
