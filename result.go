@@ -29,6 +29,11 @@ type Result[T any] struct {
 	inner EnumResult[T, error]
 }
 
+// IsValid returns true if the object is initialized.
+func (r *Result[T]) IsValid() bool {
+	return r != nil && r.inner.IsValid()
+}
+
 // IsErr returns true if the result is error.
 func (r Result[T]) IsErr() bool {
 	return r.inner.IsErr()

@@ -24,6 +24,11 @@ type EnumResult[T any, E any] struct {
 	isErr bool
 }
 
+// IsValid returns true if the object is initialized.
+func (r *EnumResult[T, E]) IsValid() bool {
+	return r != nil && r.value != nil
+}
+
 func (r EnumResult[T, E]) safeGetT() T {
 	if r.isErr || r.value == nil {
 		var t T
