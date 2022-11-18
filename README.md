@@ -1,6 +1,6 @@
 # gust [![Docs](https://img.shields.io/badge/Docs-pkg.go.dev-blue.svg?style=flat-square)](https://pkg.go.dev/github.com/andeya/gust)
 
-A Rust-inspired **declarative generic programming module** for Golang that helps reduce bugs and improve development efficiency. 
+A Rust-inspired **declarative-programming and generic-type module** for Golang that helps avoid bugs and improve development efficiency. 
 
 ![declarative_vs_imperative.jpg](doc/declarative_vs_imperative.jpg)
 
