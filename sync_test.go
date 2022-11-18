@@ -17,8 +17,8 @@ func TestMutex(t *testing.T) {
 	m.Unlock()
 }
 
-func TestMap(t *testing.T) {
-	var m gust.Map[string, int]
+func TestSyncMap(t *testing.T) {
+	var m gust.SyncMap[string, int]
 	assert.Equal(t, gust.None[int](), m.Load("a"))
 	m.Store("a", 1)
 	assert.Equal(t, gust.Some(1), m.Load("a"))
