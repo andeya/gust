@@ -15,7 +15,7 @@ func NewRWMutex[T any](data T) *RWMutex[T] {
 	return &RWMutex[T]{data: data}
 }
 
-// Mutex is a wrapper of `sync.Mutex` that holds a value.
+// Mutex is a better generic-type wrapper for `sync.Mutex` that holds a value.
 // A Mutex is a mutual exclusion lock.
 // The zero value for a Mutex is an unlocked mutex.
 //
@@ -65,7 +65,7 @@ func (m *Mutex[T]) Unlock(newData ...T) {
 	m.inner.Unlock()
 }
 
-// RWMutex is a wrapper of `sync.RWMutex` that holds a value.
+// RWMutex is a better generic-type wrapper for `sync.RWMutex` that holds a value.
 // A RWMutex is a reader/writer mutual exclusion lock.
 // The lock can be held by an arbitrary number of readers or a single writer.
 // The zero value for a RWMutex is an unlocked mutex.
@@ -166,7 +166,7 @@ func (m *RWMutex[T]) RUnlock() {
 	m.inner.RUnlock()
 }
 
-// SyncMap is a wrapper of `sync.Map` that holds a value.
+// SyncMap is a better generic-type wrapper for `sync.Map`.
 // A SyncMap is like a Go map[interface{}]interface{} but is safe for concurrent use
 // by multiple goroutines without additional locking or coordination.
 // Loads, stores, and deletes run in amortized constant time.
@@ -244,7 +244,7 @@ func (m *SyncMap[K, V]) Range(f func(key K, value V) bool) {
 	})
 }
 
-// AtomicValue is a wrapper of `atomic.Value` that holds a value.
+// AtomicValue is a better generic-type wrapper for `atomic.Value`.
 // A AtomicValue provides an atomic load and store of a consistently typed value.
 // The zero value for a AtomicValue returns nil from Load.
 // Once Store has been called, a AtomicValue must not be copied.

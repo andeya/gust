@@ -1,3 +1,4 @@
+// Package valconv is a package that provides a generic-type value converter.
 package valconv
 
 import (

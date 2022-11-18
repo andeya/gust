@@ -1,3 +1,4 @@
+// Package digit is a package that provides generic-type digit operations.
 package digit
 
 import (

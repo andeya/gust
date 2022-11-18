@@ -1,3 +1,4 @@
+// Package vec is a toolkit for efficient handling of generic-type slices.
 package vec
 
 import (

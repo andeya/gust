@@ -1,6 +1,6 @@
 # gust [![Docs](https://img.shields.io/badge/Docs-pkg.go.dev-blue.svg?style=flat-square)](https://pkg.go.dev/github.com/andeya/gust)
 
-A Rust-inspired **declarative programming** module for Golang that helps reduce bugs and improve development efficiency. For example results, options, iterators, etc.
+A Rust-inspired **declarative generic programming module** for Golang that helps reduce bugs and improve development efficiency. 
 
 ![declarative_vs_imperative.jpg](doc/declarative_vs_imperative.jpg)
 
@@ -59,6 +59,18 @@ func ExampleVersion() {
 go≥1.19
 
 ## Features
+
+- `gust.Result` is a type that represents either a success or an error.
+- `gust.Option` is a type that represents either a value or nothing.
+- `gust.Mutex` is a better generic-type wrapper for `sync.Mutex` that holds a value.
+- `gust.RWMutex` is a better generic-type wrapper for `sync.RWMutex` that holds a value.
+- `gust.SyncMap` is a better generic-type wrapper for `sync.Map`.
+- `gust.AtomicValue` is a better generic-type wrapper for `atomic.Value`.
+- `iter` is a package that provides a generic-type iterator type.
+- `vec` is a toolkit for efficient handling of generic-type slices.
+- `valconv` is a package that provides a generic-type value converter.
+- `digit` is a package that provides generic-type digit operations.
+- and more...
 
 ### Result
 
