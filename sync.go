@@ -128,9 +128,6 @@ func (m *RWMutex[T]) TryRLock() Option[T] {
 // it does not affect other simultaneous readers.
 // It is a run-time error if rw is not locked for reading
 // on entry to RUnlock.
-func (m *RWMutex[T]) RUnlock(newData ...T) {
-	if len(newData) > 0 {
-		m.data = newData[0]
-	}
+func (m *RWMutex[T]) RUnlock() {
 	m.inner.RUnlock()
 }
