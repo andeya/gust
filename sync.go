@@ -190,13 +190,6 @@ type Map[K any, V any] struct {
 	inner sync.Map
 }
 
-// NewMap returns a new *Map.
-func NewMap[K any, V any]() *Map[K, V] {
-	return &Map[K, V]{
-		inner: sync.Map{},
-	}
-}
-
 // Load returns the value stored in the map for a key.
 func (m *Map[K, V]) Load(key K) Option[V] {
 	return BoolAssertOpt[V](m.inner.Load(key))
