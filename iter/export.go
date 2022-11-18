@@ -1,4 +1,4 @@
-// Package iter is a package that provides a generic-type iterator type.
+// Package iter is a package that provides a generic-type iterator.
 package iter
 
 import (
