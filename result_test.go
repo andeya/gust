@@ -65,3 +65,17 @@ func TestResultUnwrapOrReturn_2(t *testing.T) {
 	defer gust.CatchResult[string](&r)
 	panic("panic text")
 }
+
+func TestResultUnwrapOrReturn_3(t *testing.T) {
+	var r gust.EnumResult[string, error]
+	defer func() {
+		assert.Equal(t, gust.EnumErr[string, error](gust.ToErrBox("err")), r)
+	}()
+	defer gust.CatchEnumResult[string, error](&r)
+	var r1 = gust.Ok(1)
+	var v1 = r1.UnwrapOrReturn()
+	assert.Equal(t, 1, v1)
+	var r2 = gust.Err[int]("err")
+	var v2 = r2.UnwrapOrReturn()
+	assert.Equal(t, 0, v2)
+}
