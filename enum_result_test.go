@@ -43,21 +43,21 @@ func TestEnumResultIsValid(t *testing.T) {
 	assert.True(t, r2.IsValid())
 }
 
-func TestEnumResultUnwrapOrReturn_1(t *testing.T) {
+func TestEnumResultUnwrapOrThrow_1(t *testing.T) {
 	var r gust.EnumResult[string, string]
 	defer func() {
 		assert.Equal(t, gust.EnumErr[string, string]("err"), r)
 	}()
 	defer gust.CatchEnumResult[string, string](&r)
 	var r1 = gust.EnumOk[int, string](1)
-	var v1 = r1.UnwrapOrReturn()
+	var v1 = r1.UnwrapOrThrow()
 	assert.Equal(t, 1, v1)
 	var r2 = gust.EnumErr[int, string]("err")
-	var v2 = r2.UnwrapOrReturn()
+	var v2 = r2.UnwrapOrThrow()
 	assert.Equal(t, 0, v2)
 }
 
-func TestEnumResultUnwrapOrReturn_2(t *testing.T) {
+func TestEnumResultUnwrapOrThrow_2(t *testing.T) {
 	defer func() {
 		assert.Equal(t, "panic text", recover())
 	}()

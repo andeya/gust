@@ -26,3 +26,7 @@ func initNilPtr(v reflect.Value) (done bool) {
 		v = v.Elem()
 	}
 }
+
+type panicValue[T any] struct {
+	value T
+}
