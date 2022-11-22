@@ -334,8 +334,8 @@ func (r Result[T]) CtrlFlow() CtrlFlow[error, T] {
 //
 //	If there is an error, that panic should be caught with CatchResult
 func (r Result[T]) UnwrapOrThrow() T {
-	if r.IsErr() {
-		if !r.inner.isErr || r.inner.value == nil {
+	if r.inner.isErr {
+		if r.inner.value == nil {
 			var err error
 			v := any(toError(err))
 			panic(panicValue[*any]{&v})

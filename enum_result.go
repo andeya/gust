@@ -454,8 +454,8 @@ func (r EnumResult[T, E]) CtrlFlow() CtrlFlow[E, T] {
 //
 //	If there is an E, that panic should be caught with CatchEnumResult
 func (r EnumResult[T, E]) UnwrapOrThrow() T {
-	if r.IsErr() {
-		if !r.isErr || r.value == nil {
+	if r.isErr {
+		if r.value == nil {
 			var e E
 			v := any(e)
 			panic(panicValue[*any]{&v})
