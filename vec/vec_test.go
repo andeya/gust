@@ -236,6 +236,11 @@ func TestDistinct(t *testing.T) {
 	assert.Equal(t, len(slice), len(distinctCount))
 	assert.Equal(t, []string{"-1", "0", "1"}, slice)
 	assert.Equal(t, map[string]int{"-1": 2, "0": 2, "1": 2}, distinctCount)
+	var null []string
+	m := Distinct(&null, true)
+	assert.Equal(t, map[string]int{}, m)
+	assert.Equal(t, []string(nil), null)
+	assert.Equal(t, map[string]int{}, Distinct(&null, false))
 }
 
 func TestDistinctBy(t *testing.T) {
@@ -267,9 +272,9 @@ func TestRemoveEvery(t *testing.T) {
 }
 
 func TestStringSet(t *testing.T) {
-	set1 := []string{"1", "2", "3", "6", "8"}
-	set2 := []string{"2", "3", "5", "0"}
-	set3 := []string{"2", "6", "7"}
+	set1 := []string{"1", "1", "1", "2", "3", "6", "8"}
+	set2 := []string{"2", "3", "5", "2", "2", "0"}
+	set3 := []string{"2", "6", "6", "6", "7"}
 	un := SetsUnion(set1, set2, set3)
 	assert.Equal(t, []string{"1", "2", "3", "6", "8", "5", "0", "7"}, un)
 	in := SetsIntersect(set1, set2, set3)
