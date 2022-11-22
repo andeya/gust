@@ -449,7 +449,10 @@ func (r EnumResult[T, E]) CtrlFlow() CtrlFlow[E, T] {
 	return Continue[E, T](r.safeGetT())
 }
 
-// UnwrapOrReturn returns the contained T or panic returns itself
+// UnwrapOrReturn returns the contained T or panic returns itself.
+// NOTE:
+//
+//	If there is an E, that panic should be caught with CatchEnumResult
 func (r EnumResult[T, E]) UnwrapOrReturn() T {
 	if r.IsErr() {
 		if !r.isErr || r.value == nil {
@@ -462,7 +465,7 @@ func (r EnumResult[T, E]) UnwrapOrReturn() T {
 	return r.safeGetT()
 }
 
-// CatchEnumResult catches the panic and sets E into the *EnumResult[U,E]
+// CatchEnumResult catches panic caused by UnwrapOrReturn and sets E to *EnumResult[U,E]
 func CatchEnumResult[U any, E any](result *EnumResult[U, E]) {
 	switch p := recover().(type) {
 	case nil:
