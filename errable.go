@@ -102,6 +102,14 @@ func TryPanic[E any](errVal E) {
 	ToErrable(errVal).TryPanic()
 }
 
+// TryThrow panic returns E (panicValue[*E]) if the errVal is not nil.
+// NOTE:
+//
+//	If there is an E, that panic should be caught with CatchErrable[E] or CatchEnumResult[U, E].
+func TryThrow[E any](errVal E) {
+	ToErrable(errVal).TryThrow()
+}
+
 func (e Errable[E]) IsErr() bool {
 	return e.errVal != nil
 }
@@ -157,13 +165,6 @@ func (e Errable[E]) CtrlFlow() CtrlFlow[E, Void] {
 	return Continue[E, Void](nil)
 }
 
-// TryPanic panics if the errVal is not nil.
-func (e Errable[E]) TryPanic() {
-	if e.IsErr() {
-		panic(e.UnwrapErr())
-	}
-}
-
 func (e Errable[E]) InspectErr(f func(err E)) Errable[E] {
 	if e.IsErr() {
 		f(e.UnwrapErr())
@@ -176,4 +177,32 @@ func (e Errable[E]) Inspect(f func()) Errable[E] {
 		f()
 	}
 	return e
+}
+
+// TryPanic panics if the errVal is not nil.
+func (e Errable[E]) TryPanic() {
+	if e.IsErr() {
+		panic(e.UnwrapErr())
+	}
+}
+
+// TryThrow panic returns E (panicValue[*E]) if the errVal is not nil.
+// NOTE:
+//
+//	If there is an E, that panic should be caught with CatchErrable[E] or CatchEnumResult[U, E].
+func (e Errable[E]) TryThrow() {
+	if e.errVal != nil {
+		panic(panicValue[*E]{value: e.errVal})
+	}
+}
+
+// CatchErrable catches panic caused by Errable[E].TryThrow() and sets E to *Errable[E]
+func CatchErrable[E any](result *Errable[E]) {
+	switch p := recover().(type) {
+	case nil:
+	case panicValue[*E]:
+		result.errVal = p.value
+	default:
+		panic(p)
+	}
 }
