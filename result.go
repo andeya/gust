@@ -328,3 +328,28 @@ func (r Result[T]) CtrlFlow() CtrlFlow[error, T] {
 	}
 	return Continue[error, T](r.inner.safeGetT())
 }
+
+// UnwrapOrReturn returns the contained T or panic returns itself
+func (r Result[T]) UnwrapOrReturn() T {
+	if r.IsErr() {
+		if !r.inner.isErr || r.inner.value == nil {
+			var err error
+			v := any(toError(err))
+			panic(&v)
+		}
+		panic(r.inner.value)
+	}
+	return r.inner.safeGetT()
+}
+
+// CatchResult catches the panic and sets E into the *Result[U]
+func CatchResult[U any](result *Result[U]) {
+	switch p := recover().(type) {
+	case nil:
+	case *any:
+		result.inner.value = p
+		result.inner.isErr = true
+	default:
+		panic(p)
+	}
+}

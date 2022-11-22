@@ -42,3 +42,26 @@ func TestResultIsValid(t *testing.T) {
 	var r2 = gust.Ok[any](nil)
 	assert.True(t, r2.IsValid())
 }
+
+func TestResultUnwrapOrReturn_1(t *testing.T) {
+	var r gust.Result[string]
+	defer func() {
+		assert.Equal(t, gust.Err[string]("err"), r)
+	}()
+	defer gust.CatchResult[string](&r)
+	var r1 = gust.Ok(1)
+	var v1 = r1.UnwrapOrReturn()
+	assert.Equal(t, 1, v1)
+	var r2 = gust.Err[int]("err")
+	var v2 = r2.UnwrapOrReturn()
+	assert.Equal(t, 0, v2)
+}
+
+func TestResultUnwrapOrReturn_2(t *testing.T) {
+	defer func() {
+		assert.Equal(t, "panic text", recover())
+	}()
+	var r gust.Result[string]
+	defer gust.CatchResult[string](&r)
+	panic("panic text")
+}
