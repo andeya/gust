@@ -62,50 +62,17 @@ func Every[T any](s []T, fn func(k int, v T) bool) bool {
 	return true
 }
 
-// Fill changes all elements in the current slice to a value, from a start index to an end index.
-// @value
+// Some tests whether at least one element in the slice passes the test implemented by the provided function.
+// NOTE:
 //
-//	Zero-based index at which to copy the sequence to. If negative, target will be counted from the end.
-//
-// @start
-//
-//	Zero-based index at which to start copying elements from. If negative, start will be counted from the end.
-//
-// @end
-//
-//	Zero-based index at which to end copying elements from. CopyWithin copies up to but not including end.
-//	If negative, end will be counted from the end.
-//	If end is omitted, CopyWithin will copy until the last index (default to len(s)).
-func Fill[T any](s []T, value T, start int, end ...int) {
-	fixedStart, fixedEnd, ok := fixRange(len(s), start, end...)
-	if !ok {
-		return
-	}
-	for i := fixedStart; i < fixedEnd; i++ {
-		s[i] = value
-	}
-}
-
-// Filter creates a new slice with all elements that pass the test implemented by the provided function.
-func Filter[T any](s []T, fn func(k int, v T) bool) []T {
-	ret := make([]T, 0)
+//	Calling this method on an empty slice returns false for any condition!
+func Some[T any](s []T, fn func(k int, v T) bool) bool {
 	for k, v := range s {
 		if fn(k, v) {
-			ret = append(ret, v)
+			return true
 		}
 	}
-	return ret
-}
-
-// FilterMap returns a filtered and mapped slice of new elements.
-func FilterMap[T any, U any](s []T, fn func(k int, v T) gust.Option[U]) []U {
-	ret := make([]U, 0)
-	for k, v := range s {
-		fn(k, v).Inspect(func(u U) {
-			ret = append(ret, u)
-		})
-	}
-	return ret
+	return false
 }
 
 // Find returns the key-value of the first element in the provided slice that satisfies the provided testing function.
@@ -154,6 +121,52 @@ func LastIndexOf[T comparable](s []T, searchElement T, fromIndex ...int) int {
 	return -1
 }
 
+// Fill changes all elements in the current slice to a value, from a start index to an end index.
+// @value
+//
+//	Zero-based index at which to copy the sequence to. If negative, target will be counted from the end.
+//
+// @start
+//
+//	Zero-based index at which to start copying elements from. If negative, start will be counted from the end.
+//
+// @end
+//
+//	Zero-based index at which to end copying elements from. CopyWithin copies up to but not including end.
+//	If negative, end will be counted from the end.
+//	If end is omitted, CopyWithin will copy until the last index (default to len(s)).
+func Fill[T any](s []T, value T, start int, end ...int) {
+	fixedStart, fixedEnd, ok := fixRange(len(s), start, end...)
+	if !ok {
+		return
+	}
+	for i := fixedStart; i < fixedEnd; i++ {
+		s[i] = value
+	}
+}
+
+// Filter creates a new slice with all elements that pass the test implemented by the provided function.
+func Filter[T any](s []T, fn func(k int, v T) bool) []T {
+	ret := make([]T, 0)
+	for k, v := range s {
+		if fn(k, v) {
+			ret = append(ret, v)
+		}
+	}
+	return ret
+}
+
+// FilterMap returns a filtered and mapped slice of new elements.
+func FilterMap[T any, U any](s []T, fn func(k int, v T) gust.Option[U]) []U {
+	ret := make([]U, 0)
+	for k, v := range s {
+		fn(k, v).Inspect(func(u U) {
+			ret = append(ret, u)
+		})
+	}
+	return ret
+}
+
 // Map creates a new slice populated with the results of calling a provided function
 // on every element in the calling slice.
 func Map[T any, U any](s []T, mapping func(k int, v T) U) []U {
@@ -163,6 +176,18 @@ func Map[T any, U any](s []T, mapping func(k int, v T) U) []U {
 	ret := make([]U, len(s))
 	for k, v := range s {
 		ret[k] = mapping(k, v)
+	}
+	return ret
+}
+
+// Dict generates a map through the set function
+func Dict[T any, K comparable, V any](s []T, set func(m map[K]V, k int, v T)) map[K]V {
+	if s == nil {
+		return nil
+	}
+	ret := make(map[K]V, len(s))
+	for k, v := range s {
+		set(ret, k, v)
 	}
 	return ret
 }
@@ -292,19 +317,6 @@ func Slice[T any](s []T, begin int, end ...int) []T {
 		return []T{}
 	}
 	return Copy[T](s[fixedStart:fixedEnd])
-}
-
-// Some tests whether at least one element in the slice passes the test implemented by the provided function.
-// NOTE:
-//
-//	Calling this method on an empty slice returns false for any condition!
-func Some[T any](s []T, fn func(k int, v T) bool) bool {
-	for k, v := range s {
-		if fn(k, v) {
-			return true
-		}
-	}
-	return false
 }
 
 // Splice changes the contents of a slice by removing or replacing
