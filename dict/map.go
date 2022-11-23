@@ -68,7 +68,7 @@ func Every[K comparable, V any](m map[K]V, fn func(k K, v V) bool) bool {
 // NOTE:
 //
 //	Calling this method on an empty map returns false for any condition!
-func Some[K comparable, V any](m map[K]V, fn func(k K, v V) bool) bool {
+func Some[K comparable, V any](m map[K]V, fn func(K, V) bool) bool {
 	for k, v := range m {
 		if fn(k, v) {
 			return true
@@ -78,7 +78,7 @@ func Some[K comparable, V any](m map[K]V, fn func(k K, v V) bool) bool {
 }
 
 // Find returns an entry in the provided map that satisfies the test function.
-func Find[K comparable, V any](m map[K]V, fn func(k K, v V) bool) gust.Option[gust.DictEntry[K, V]] {
+func Find[K comparable, V any](m map[K]V, fn func(K, V) bool) gust.Option[gust.DictEntry[K, V]] {
 	for k, v := range m {
 		if fn(k, v) {
 			return gust.Some(gust.DictEntry[K, V]{Key: k, Value: v})
@@ -88,7 +88,7 @@ func Find[K comparable, V any](m map[K]V, fn func(k K, v V) bool) gust.Option[gu
 }
 
 // Filter creates a new map with all elements that pass the test implemented by the provided function.
-func Filter[K comparable, V any](m map[K]V, fn func(k K, v V) bool) map[K]V {
+func Filter[K comparable, V any](m map[K]V, fn func(K, V) bool) map[K]V {
 	ret := make(map[K]V, 0)
 	for k, v := range m {
 		if fn(k, v) {
@@ -99,7 +99,7 @@ func Filter[K comparable, V any](m map[K]V, fn func(k K, v V) bool) map[K]V {
 }
 
 // FilterMap returns a filtered and mapped map of new entries.
-func FilterMap[K comparable, V any, K2 comparable, V2 any](m map[K]V, fn func(k K, v V) gust.Option[gust.DictEntry[K2, V2]]) map[K2]V2 {
+func FilterMap[K comparable, V any, K2 comparable, V2 any](m map[K]V, fn func(K, V) gust.Option[gust.DictEntry[K2, V2]]) map[K2]V2 {
 	ret := make(map[K2]V2, 0)
 	for k, v := range m {
 		fn(k, v).Inspect(func(p gust.DictEntry[K2, V2]) {
@@ -110,18 +110,18 @@ func FilterMap[K comparable, V any, K2 comparable, V2 any](m map[K]V, fn func(k 
 }
 
 // FilterMapKey returns a filtered and mapped map of new entries.
-func FilterMapKey[K comparable, V any, K2 comparable](m map[K]V, fn func(k K, v V) gust.Option[gust.DictEntry[K2, V]]) map[K2]V {
+func FilterMapKey[K comparable, V any, K2 comparable](m map[K]V, fn func(K, V) gust.Option[gust.DictEntry[K2, V]]) map[K2]V {
 	return FilterMap[K, V, K2, V](m, fn)
 }
 
 // FilterMapValue returns a filtered and mapped map of new entries.
-func FilterMapValue[K comparable, V any, V2 any](m map[K]V, fn func(k K, v V) gust.Option[gust.DictEntry[K, V2]]) map[K]V2 {
+func FilterMapValue[K comparable, V any, V2 any](m map[K]V, fn func(K, V) gust.Option[gust.DictEntry[K, V2]]) map[K]V2 {
 	return FilterMap[K, V, K, V2](m, fn)
 }
 
 // Map creates a new map populated with the results of calling a provided function
 // on every entry in the calling map.
-func Map[K comparable, V any, K2 comparable, V2 any](m map[K]V, mapping func(k K, v V) gust.DictEntry[K2, V2]) map[K2]V2 {
+func Map[K comparable, V any, K2 comparable, V2 any](m map[K]V, mapping func(K, V) gust.DictEntry[K2, V2]) map[K2]V2 {
 	if m == nil {
 		return nil
 	}
@@ -133,9 +133,22 @@ func Map[K comparable, V any, K2 comparable, V2 any](m map[K]V, mapping func(k K
 	return ret
 }
 
+// MapCurry creates a new map populated with the results of calling a provided function
+// on every entry in the calling map.
+func MapCurry[K comparable, V any, K2 comparable, V2 any](m map[K]V, keyMapping func(K) K2) func(valueMapping func(V) V2) map[K2]V2 {
+	return func(valueMapping func(V) V2) map[K2]V2 {
+		return Map[K, V, K2, V2](m, func(k K, v V) gust.DictEntry[K2, V2] {
+			return gust.DictEntry[K2, V2]{
+				Key:   keyMapping(k),
+				Value: valueMapping(v),
+			}
+		})
+	}
+}
+
 // MapKey creates a new map populated with the results of calling a provided function
 // on every entry in the calling map.
-func MapKey[K comparable, V any, K2 comparable](m map[K]V, mapping func(k K, v V) K2) map[K2]V {
+func MapKey[K comparable, V any, K2 comparable](m map[K]V, mapping func(K, V) K2) map[K2]V {
 	return Map[K, V, K2, V](m, func(k K, v V) gust.DictEntry[K2, V] {
 		return gust.DictEntry[K2, V]{
 			Key:   mapping(k, v),
@@ -144,13 +157,35 @@ func MapKey[K comparable, V any, K2 comparable](m map[K]V, mapping func(k K, v V
 	})
 }
 
+// MapKeyAlone creates a new map populated with the results of calling a provided function
+// on every entry in the calling map.
+func MapKeyAlone[K comparable, V any, K2 comparable](m map[K]V, mapping func(K) K2) map[K2]V {
+	return Map[K, V, K2, V](m, func(k K, v V) gust.DictEntry[K2, V] {
+		return gust.DictEntry[K2, V]{
+			Key:   mapping(k),
+			Value: v,
+		}
+	})
+}
+
 // MapValue creates a new map populated with the results of calling a provided function
 // on every entry in the calling map.
-func MapValue[K comparable, V any, V2 any](m map[K]V, mapping func(k K, v V) V2) map[K]V2 {
+func MapValue[K comparable, V any, V2 any](m map[K]V, mapping func(K, V) V2) map[K]V2 {
 	return Map[K, V, K, V2](m, func(k K, v V) gust.DictEntry[K, V2] {
 		return gust.DictEntry[K, V2]{
 			Key:   k,
 			Value: mapping(k, v),
+		}
+	})
+}
+
+// MapValueAlone creates a new map populated with the results of calling a provided function
+// on every entry in the calling map.
+func MapValueAlone[K comparable, V any, V2 any](m map[K]V, mapping func(V) V2) map[K]V2 {
+	return Map[K, V, K, V2](m, func(k K, v V) gust.DictEntry[K, V2] {
+		return gust.DictEntry[K, V2]{
+			Key:   k,
+			Value: mapping(v),
 		}
 	})
 }
