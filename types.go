@@ -33,3 +33,9 @@ type VecEntry[T any] struct {
 	Index int
 	Elem  T
 }
+
+// DictEntry is a key-value entry of map.
+type DictEntry[K comparable, V any] struct {
+	Key   K
+	Value V
+}
