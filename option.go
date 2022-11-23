@@ -3,7 +3,6 @@ package gust
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"unsafe"
 )
 
@@ -181,9 +180,7 @@ func (o Option[T]) UnwrapOrDefault() T {
 	if o.IsSome() {
 		return o.UnwrapUnchecked()
 	}
-	var zero T
-	_ = initNilPtr(reflect.ValueOf(&zero))
-	return zero
+	return defaultValue[T]()
 }
 
 // Take takes the value out of the option, leaving a [`None`] in its place.
@@ -434,13 +431,30 @@ func (o *Option[T]) GetOrInsertWith(f func() T) *T {
 	if o.IsNone() {
 		var v *T
 		if f == nil {
-			v = new(T)
-			_ = initNilPtr(reflect.ValueOf(v))
+			v = defaultValuePtr[T]()
 		} else {
 			var some = f()
 			v = &some
 		}
 		o.value = &v
+	}
+	return *o.value
+}
+
+// GetOrInsertDefault inserts default value into the option if it is [`None`], then
+// returns the contained value pointer.
+func (o *Option[T]) GetOrInsertDefault() *T {
+	if o.IsNone() {
+		v := defaultValuePtr[T]()
+		o.value = &v
+	}
+	return *o.value
+}
+
+// AsPtr returns its pointer or nil.
+func (o *Option[T]) AsPtr() *T {
+	if o.value == nil {
+		return nil
 	}
 	return *o.value
 }

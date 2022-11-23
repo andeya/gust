@@ -3,7 +3,6 @@ package gust
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
 )
 
 // EnumOk wraps a successful result enumeration.
@@ -274,9 +273,7 @@ func (r EnumResult[T, E]) UnwrapOrDefault() T {
 	if r.IsOk() {
 		return r.safeGetT()
 	}
-	var zero T
-	_ = initNilPtr(reflect.ValueOf(&zero))
-	return zero
+	return defaultValue[T]()
 }
 
 // ExpectErr returns the contained E.

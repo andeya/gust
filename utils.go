@@ -2,6 +2,18 @@ package gust
 
 import "reflect"
 
+func defaultValue[T any]() T {
+	var zero T
+	_ = initNilPtr(reflect.ValueOf(&zero))
+	return zero
+}
+
+func defaultValuePtr[T any]() *T {
+	var zeroPtr = new(T)
+	_ = initNilPtr(reflect.ValueOf(zeroPtr))
+	return zeroPtr
+}
+
 // initNilPtr initializes nil pointer with zero value.
 func initNilPtr(v reflect.Value) (done bool) {
 	for {
