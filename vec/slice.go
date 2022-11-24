@@ -524,14 +524,14 @@ func vecDistinct[T comparable](src []T, dst *[]T) map[T]int {
 }
 
 // DistinctBy deduplication in place according to the mapping function
-func DistinctBy[T comparable, U comparable](s *[]T, mapping func(k int, v T) U) {
+func DistinctBy[T any, U comparable](s *[]T, mapping func(k int, v T) U) {
 	a := (*s)[:0]
 	distinctCount := vecDistinctBy(*s, &a, mapping)
 	n := len(distinctCount)
 	*s = a[:n:n]
 }
 
-func vecDistinctBy[T comparable, U comparable](src []T, dst *[]T, mapping func(k int, v T) U) map[U]int {
+func vecDistinctBy[T any, U comparable](src []T, dst *[]T, mapping func(k int, v T) U) map[U]int {
 	m := make(map[U]int, len(src))
 	if dst == nil {
 		for k, v := range src {
