@@ -180,6 +180,19 @@ func Map[T any, U any](s []T, mapping func(k int, v T) U) []U {
 	return ret
 }
 
+// MapAlone creates a new slice populated with the results of calling a provided function
+// on every element in the calling slice.
+func MapAlone[T any, U any](s []T, mapping func(v T) U) []U {
+	if s == nil {
+		return nil
+	}
+	ret := make([]U, len(s))
+	for k, v := range s {
+		ret[k] = mapping(v)
+	}
+	return ret
+}
+
 // Dict generates a map through the set function
 func Dict[T any, K comparable, V any](s []T, set func(m map[K]V, k int, v T)) map[K]V {
 	if s == nil {
