@@ -627,3 +627,29 @@ func SetsDifference[T comparable](set1, set2 []T, others ...[]T) []T {
 	}
 	return r
 }
+
+// Flatten returns a new slice that contains all elements in the nested slice.
+func Flatten[T any](s [][]T) []T {
+	if s == nil {
+		return nil
+	}
+	r := make([]T, 0, len(s))
+	for _, v := range s {
+		r = append(r, v...)
+	}
+	return r
+}
+
+// FlatMap returns a new type slice that contains all elements in the nested slice.
+func FlatMap[T any, U any](s [][]T, mapping func(T) U) []U {
+	if s == nil {
+		return nil
+	}
+	r := make([]U, 0, len(s))
+	for _, v := range s {
+		for _, vv := range v {
+			r = append(r, mapping(vv))
+		}
+	}
+	return r
+}

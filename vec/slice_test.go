@@ -293,3 +293,17 @@ func TestStringSet(t *testing.T) {
 	di := SetsDifference(set1, set2, set3)
 	assert.Equal(t, []string{"1", "8"}, di)
 }
+
+func TestFlatten(t *testing.T) {
+	slice := [][]string{{"1", "2"}, {"3", "4"}, {"5", "6"}}
+	flatten := Flatten(slice)
+	assert.Equal(t, []string{"1", "2", "3", "4", "5", "6"}, flatten)
+}
+
+func TestFlatMap(t *testing.T) {
+	slice := [][]string{{"1", "2"}, {"3", "4"}, {"5", "6"}}
+	flatten := FlatMap(slice, func(s string) string {
+		return "-" + s
+	})
+	assert.Equal(t, []string{"-1", "-2", "-3", "-4", "-5", "-6"}, flatten)
+}
