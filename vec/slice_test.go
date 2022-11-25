@@ -244,9 +244,20 @@ func TestDistinct(t *testing.T) {
 }
 
 func TestDistinctBy(t *testing.T) {
-	slice := []string{"-1", "0", "-12", "0", "1", "1234"}
-	DistinctBy(&slice, func(k int, v string) int { return len(v) })
+	data := []string{"-1", "0", "-12", "0", "1", "1234"}
+	slice := Copy(data)
+	mapping := func(k int, v string) int { return len(v) }
+	DistinctBy(&slice, mapping)
 	assert.Equal(t, []string{"-1", "0", "-12", "1234"}, slice)
+
+	slice = Copy(data)
+	DistinctBy(&slice, mapping, func(a, b string) string {
+		if a < b {
+			return b
+		}
+		return a
+	})
+	assert.Equal(t, []string{"-1", "1", "-12", "1234"}, slice)
 }
 
 func TestDistinctMap(t *testing.T) {

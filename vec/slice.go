@@ -524,34 +524,25 @@ func vecDistinct[T comparable](src []T, dst *[]T) map[T]int {
 }
 
 // DistinctBy deduplication in place according to the mapping function
-func DistinctBy[T any, U comparable](s *[]T, mapping func(k int, v T) U) {
+func DistinctBy[T any, U comparable](s *[]T, mapping func(k int, v T) U, compare ...func(a, b T) T) {
 	a := (*s)[:0]
-	distinctCount := vecDistinctBy(*s, &a, mapping)
-	n := len(distinctCount)
-	*s = a[:n:n]
-}
-
-func vecDistinctBy[T any, U comparable](src []T, dst *[]T, mapping func(k int, v T) U) map[U]int {
-	m := make(map[U]int, len(src))
-	if dst == nil {
-		for k, v := range src {
-			x := mapping(k, v)
-			n := m[x]
-			m[x] = n + 1
+	m := make(map[U]gust.VecEntry[T], len(*s))
+	for k, v := range *s {
+		x := mapping(k, v)
+		entry, ok := m[x]
+		if !ok {
+			m[x] = gust.VecEntry[T]{Index: len(a), Elem: v}
+			a = append(a, v)
+			continue
 		}
-	} else {
-		a := *dst
-		for k, v := range src {
-			x := mapping(k, v)
-			n := m[x]
-			m[x] = n + 1
-			if n == 0 {
-				a = append(a, v)
-			}
+		if len(compare) > 0 {
+			entry.Elem = compare[0](entry.Elem, v)
+			m[x] = entry
+			a[entry.Index] = entry.Elem
 		}
-		*dst = a
 	}
-	return m
+	n := len(m)
+	*s = a[:n:n]
 }
 
 // DistinctMap returns the unique elements after mapping.
