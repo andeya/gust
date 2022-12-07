@@ -31,6 +31,15 @@ func TestResultJSON(t *testing.T) {
 	var err4 = json.Unmarshal([]byte("0"), &r4)
 	assert.True(t, r4.IsErr())
 	assert.Equal(t, "json: cannot unmarshal number into Go value of type gust_test.T", err4.Error())
+
+	var r5 = gust.Ok[gust.Void](nil)
+	var b5, err5 = json.Marshal(r5)
+	assert.NoError(t, err5)
+	assert.Equal(t, `null`, string(b5))
+	var r6 gust.Result[gust.Void]
+	var err6 = json.Unmarshal(b5, &r6)
+	assert.NoError(t, err6)
+	assert.Equal(t, r5, r6)
 }
 
 func TestResultIsValid(t *testing.T) {
