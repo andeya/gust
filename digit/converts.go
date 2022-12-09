@@ -97,7 +97,7 @@ func ToBools[T gust.Digit](a []T) []bool {
 
 // FromBool converts bool to digit.
 func FromBool[T ~bool, D gust.Digit](v T) D {
-	if v == true {
+	if v {
 		return D(1)
 	}
 	return D(0)

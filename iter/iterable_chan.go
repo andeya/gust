@@ -38,7 +38,7 @@ func (c IterableChan[T]) SizeHint() (uint, gust.Option[uint]) {
 }
 
 func (c IterableChan[T]) Count() uint {
-	defer func() { recover() }()
+	defer func() { _ = recover() }()
 	var count = uint(len(c.c))
 	close(c.c)
 	return count

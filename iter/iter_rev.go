@@ -1,3 +1,4 @@
+// nolint:unused
 package iter
 
 import (
@@ -63,7 +64,7 @@ func (d *deRevIterator[T]) realFind(predicate func(T) bool) gust.Option[T] {
 }
 
 func (d *deRevIterator[T]) realRemaining() uint {
-	return d.iter.(DeIterator[T]).Remaining()
+	return d.iter.Remaining()
 }
 
 func (d *deRevIterator[T]) realNextBack() gust.Option[T] {

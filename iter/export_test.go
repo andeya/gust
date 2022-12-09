@@ -30,7 +30,7 @@ func TestZip(t *testing.T) {
 	var pairs = Fold[gust.Pair[string, int]](iter, nil, func(acc []gust.Pair[string, int], t gust.Pair[string, int]) []gust.Pair[string, int] {
 		return append(acc, t)
 	})
-	assert.Equal(t, []gust.Pair[string, int]{{"x", 1}, {"y", 2}}, pairs)
+	assert.Equal(t, []gust.Pair[string, int]{{A: "x", B: 1}, {A: "y", B: 2}}, pairs)
 }
 
 func TestToUnique(t *testing.T) {

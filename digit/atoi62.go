@@ -214,7 +214,7 @@ func Atoi(s string) (int, error) {
 		if s[0] == '-' || s[0] == '+' {
 			s = s[1:]
 			if len(s) < 1 {
-				return 0, &strconv.NumError{fnAtoi, s0, strconv.ErrSyntax}
+				return 0, &strconv.NumError{Func: fnAtoi, Num: s0, Err: strconv.ErrSyntax}
 			}
 		}
 
@@ -222,7 +222,7 @@ func Atoi(s string) (int, error) {
 		for _, ch := range []byte(s) {
 			ch -= '0'
 			if ch > 9 {
-				return 0, &strconv.NumError{fnAtoi, s0, strconv.ErrSyntax}
+				return 0, &strconv.NumError{Func: fnAtoi, Num: s0, Err: strconv.ErrSyntax}
 			}
 			n = n*10 + int(ch)
 		}
@@ -248,14 +248,14 @@ func lower(c byte) byte {
 	return c | ('x' - 'X')
 }
 func syntaxError(fn, str string) *strconv.NumError {
-	return &strconv.NumError{fn, str, strconv.ErrSyntax}
+	return &strconv.NumError{Func: fn, Num: str, Err: strconv.ErrSyntax}
 }
 func baseError(fn, str string, base int) *strconv.NumError {
-	return &strconv.NumError{fn, str, errors.New("invalid base " + strconv.Itoa(base))}
+	return &strconv.NumError{Func: fn, Num: str, Err: errors.New("invalid base " + strconv.Itoa(base))}
 }
 func rangeError(fn, str string) *strconv.NumError {
-	return &strconv.NumError{fn, str, strconv.ErrRange}
+	return &strconv.NumError{Func: fn, Num: str, Err: strconv.ErrRange}
 }
 func bitSizeError(fn, str string, bitSize int) *strconv.NumError {
-	return &strconv.NumError{fn, str, errors.New("invalid bit size " + strconv.Itoa(bitSize))}
+	return &strconv.NumError{Func: fn, Num: str, Err: errors.New("invalid bit size " + strconv.Itoa(bitSize))}
 }

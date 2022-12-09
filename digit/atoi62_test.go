@@ -467,7 +467,7 @@ func TestAtoi(t *testing.T) {
 			out, err := Atoi(test.in)
 			var testErr error
 			if test.err != nil {
-				testErr = &strconv.NumError{"Atoi", test.in, test.err.(*strconv.NumError).Err}
+				testErr = &strconv.NumError{Func: "Atoi", Num: test.in, Err: test.err.(*strconv.NumError).Err}
 			}
 			if int(test.out) != out || !reflect.DeepEqual(testErr, err) {
 				t.Errorf("Atoi(%q) = %v, %v want %v, %v",
@@ -480,7 +480,7 @@ func TestAtoi(t *testing.T) {
 			out, err := Atoi(test.in)
 			var testErr error
 			if test.err != nil {
-				testErr = &strconv.NumError{"Atoi", test.in, test.err.(*strconv.NumError).Err}
+				testErr = &strconv.NumError{Func: "Atoi", Num: test.in, Err: test.err.(*strconv.NumError).Err}
 			}
 			if test.out != int64(out) || !reflect.DeepEqual(testErr, err) {
 				t.Errorf("Atoi(%q) = %v, %v want %v, %v",
@@ -595,7 +595,7 @@ func TestNumError(t *testing.T) {
 	}
 }
 
-func BenchmarkparseInt(b *testing.B) {
+func BenchmarkParseInt(b *testing.B) {
 	b.Run("Pos", func(b *testing.B) {
 		benchmarkparseInt(b, 1)
 	})

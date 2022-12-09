@@ -129,6 +129,7 @@ func (r EnumResult[T, E]) XErr() Option[any] {
 }
 
 // ToXOk converts from `EnumResult[T,E]` to EnumResult[any,E].
+// nolint:gosimple
 func (r EnumResult[T, E]) ToXOk() EnumResult[any, E] {
 	return EnumResult[any, E]{
 		value: r.value,
@@ -137,6 +138,7 @@ func (r EnumResult[T, E]) ToXOk() EnumResult[any, E] {
 }
 
 // ToXErr converts from `EnumResult[T,E]` to EnumResult[T,any].
+// nolint:gosimple
 func (r EnumResult[T, E]) ToXErr() EnumResult[T, any] {
 	return EnumResult[T, any]{
 		value: r.value,
@@ -145,6 +147,7 @@ func (r EnumResult[T, E]) ToXErr() EnumResult[T, any] {
 }
 
 // ToX converts from `EnumResult[T,E]` to EnumResult[any,any].
+// nolint:gosimple
 func (r EnumResult[T, E]) ToX() EnumResult[any, any] {
 	return EnumResult[any, any]{
 		value: r.value,

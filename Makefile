@@ -26,13 +26,13 @@ tools:
 	${BIN} install github.com/jondot/goweight@latest
 	${BIN} install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	${BIN} get -t -u golang.org/x/tools/cmd/cover
-	${BIN} get -t -u github.com/sonatype-nexus-community/nancy@latest
+	${BIN} install github.com/sonatype-nexus-community/nancy@latest
 	go mod tidy
 
 lint:
-	golangci-lint run --timeout 60s --max-same-issues 50 ./...
+	golangci-lint run --timeout 600s --max-same-issues 50 ./...
 lint-fix:
-	golangci-lint run --timeout 60s --max-same-issues 50 --fix ./...
+	golangci-lint run --timeout 600s --max-same-issues 50 --fix ./...
 
 audit:
 	${BIN} mod tidy
