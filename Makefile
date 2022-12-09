@@ -15,7 +15,7 @@ watch-bench:
 	reflex -t 50ms -s -- sh -c 'go test -benchmem -count 3 -bench ./...'
 
 coverage:
-	${BIN} test -v -coverprofile=cover.out -covermode=atomic .
+	${BIN} test -v -coverprofile=cover.out -covermode=atomic ./...
 	${BIN} tool cover -html=cover.out -o cover.html
 
 # tools
@@ -30,9 +30,9 @@ tools:
 	go mod tidy
 
 lint:
-	golangci-lint run --timeout 600s --max-same-issues 50 ./...
+	golangci-lint run --print-resources-usage --fast --timeout 20m0s --max-same-issues 50 ./...
 lint-fix:
-	golangci-lint run --timeout 600s --max-same-issues 50 --fix ./...
+	golangci-lint run --print-resources-usage --fast --timeout 20m0s --max-same-issues 50 --fix ./...
 
 audit:
 	${BIN} mod tidy
