@@ -5,7 +5,7 @@
 [![GoDoc](https://godoc.org/github.com/andeya/gust?status.svg)](https://pkg.go.dev/github.com/andeya/gust)
 ![Build Status](https://github.com/andeya/gust/actions/workflows/go.yml/badge.svg)
 [![Go report](https://goreportcard.com/badge/github.com/andeya/gust)](https://goreportcard.com/report/github.com/andeya/gust)
-[![Coverage](https://img.shields.io/codecov/c/github/samber/do)](https://codecov.io/gh/andeya/gust)
+[![Coverage](https://img.shields.io/codecov/c/github/andeya/gust)](https://codecov.io/gh/andeya/gust)
 [![License](https://img.shields.io/github/license/andeya/gust)](./LICENSE)
 
 A Rust-inspired **declarative-programming and generic-type module** for Golang that helps avoid bugs and improve development efficiency. 

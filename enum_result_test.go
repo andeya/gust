@@ -65,3 +65,21 @@ func TestEnumResultUnwrapOrThrow_2(t *testing.T) {
 	defer gust.CatchEnumResult[int, string](&r)
 	panic("panic text")
 }
+
+func TestEnumResult_Err(t *testing.T) {
+	{
+		var x = gust.EnumOk[int, string](2)
+		assert.Equal(t, gust.None[string](), x.Err())
+	}
+	{
+		var x = gust.EnumErr[int, string]("some error message")
+		assert.Equal(t, gust.Some[string]("some error message"), x.Err())
+	}
+}
+
+func TestEnumResult_IsErrAnd(t *testing.T) {
+	{
+		var x = gust.EnumErr[int, int8](-1)
+		assert.True(t, x.IsErrAnd(func(x int8) bool { return x == -1 }))
+	}
+}
