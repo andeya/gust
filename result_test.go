@@ -178,7 +178,7 @@ func TestResult_Err(t *testing.T) {
 	}
 }
 
-func TestExpectErr(t *testing.T) {
+func TestResult_ExpectErr(t *testing.T) {
 	defer func() {
 		assert.Equal(t, gust.ToErrBox("Testing expect_err: 10"), recover())
 	}()
@@ -186,7 +186,7 @@ func TestExpectErr(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestExpect(t *testing.T) {
+func TestResult_Expect(t *testing.T) {
 	defer func() {
 		assert.Equal(t, "failed to parse number: strconv.Atoi: parsing \"4x\": invalid syntax", recover().(error).Error())
 	}()
@@ -194,14 +194,14 @@ func TestExpect(t *testing.T) {
 		Expect("failed to parse number")
 }
 
-func TestInspectErr(t *testing.T) {
+func TestIResult_nspectErr(t *testing.T) {
 	gust.Ret(strconv.Atoi("4x")).
 		InspectErr(func(err error) {
 			t.Logf("failed to convert: %v", err)
 		})
 }
 
-func TestInspect(t *testing.T) {
+func TestResult_Inspect(t *testing.T) {
 	gust.Ret(strconv.Atoi("4")).
 		Inspect(func(x int) {
 			fmt.Println("original: ", x)
@@ -378,7 +378,7 @@ func TestResult_Ret(t *testing.T) {
 	assert.Equal(t, -1, w2.Unwrap())
 }
 
-func TestUnwrapErr_1(t *testing.T) {
+func TestResult_UnwrapErr_1(t *testing.T) {
 	defer func() {
 		assert.Equal(t, gust.ToErrBox("called `Result.UnwrapErr()` on an `ok` value: 10"), recover())
 	}()
@@ -386,7 +386,7 @@ func TestUnwrapErr_1(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestUnwrapErr_2(t *testing.T) {
+func TestResult_UnwrapErr_2(t *testing.T) {
 	err := gust.Err[int]("emergency failure").UnwrapErr()
 	if assert.Error(t, err) {
 		assert.Equal(t, "emergency failure", err.Error())
@@ -395,7 +395,7 @@ func TestUnwrapErr_2(t *testing.T) {
 	}
 }
 
-func TestUnwrapOrDefault(t *testing.T) {
+func TestResult_UnwrapOrDefault(t *testing.T) {
 	assert.Equal(t, "car", gust.Ok("car").UnwrapOrDefault())
 	assert.Equal(t, "", gust.Err[string](nil).UnwrapOrDefault())
 	assert.Equal(t, time.Time{}, gust.Err[time.Time](nil).UnwrapOrDefault())
@@ -403,7 +403,7 @@ func TestUnwrapOrDefault(t *testing.T) {
 	assert.Equal(t, valconv.Ref(&time.Time{}), gust.Err[**time.Time](nil).UnwrapOrDefault())
 }
 
-func TestUnwrapOrElse(t *testing.T) {
+func TestResult_UnwrapOrElse(t *testing.T) {
 	var count = func(x error) int {
 		return len(x.Error())
 	}
@@ -411,7 +411,7 @@ func TestUnwrapOrElse(t *testing.T) {
 	assert.Equal(t, 3, gust.Err[int]("foo").UnwrapOrElse(count))
 }
 
-func TestUnwrap(t *testing.T) {
+func TestResult_Unwrap(t *testing.T) {
 	defer func() {
 		assert.Equal(t, "strconv.Atoi: parsing \"4x\": invalid syntax", recover().(error).Error())
 	}()
