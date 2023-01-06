@@ -49,6 +49,11 @@ func (r Result[T]) String() string {
 	return r.inner.String()
 }
 
+// Split returns the tuple (T, error).
+func (r Result[T]) Split() (T, error) {
+	return r.inner.Split()
+}
+
 // EnumResult returns the inner EnumResult[T, error].
 func (r Result[T]) EnumResult() EnumResult[T, error] {
 	return r.inner

@@ -114,6 +114,11 @@ func (o Option[T]) String() string {
 	return fmt.Sprintf("Some(%v)", o.UnwrapUnchecked())
 }
 
+// Split returns the tuple (T, bool).
+func (o Option[T]) Split() (T, bool) {
+	return o.UnwrapOrDefault(), o.IsSome()
+}
+
 // ToX converts to `Option[any]`.
 func (o Option[T]) ToX() Option[any] {
 	if o.IsNone() {

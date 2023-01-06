@@ -29,21 +29,26 @@ func (r *EnumResult[T, E]) IsValid() bool {
 }
 
 func (r EnumResult[T, E]) safeGetT() T {
-	if r.isErr || r.value == nil {
-		var t T
-		return t
+	if !r.isErr && r.value != nil {
+		v, _ := (*r.value).(T)
+		return v
 	}
-	v, _ := (*r.value).(T)
-	return v
+	var t T
+	return t
 }
 
 func (r EnumResult[T, E]) safeGetE() E {
-	if !r.isErr || r.value == nil {
-		var e E
-		return e
+	if r.isErr && r.value != nil {
+		v, _ := (*r.value).(E)
+		return v
 	}
-	v, _ := (*r.value).(E)
-	return v
+	var e E
+	return e
+}
+
+// Split returns the tuple (T, E).
+func (r EnumResult[T, E]) Split() (T, E) {
+	return r.safeGetT(), r.safeGetE()
 }
 
 // IsErr returns true if the result is E.

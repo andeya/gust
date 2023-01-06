@@ -57,6 +57,10 @@ func TestResult(t *testing.T) {
 
 	// Consume the result and return the contents with `Unwrap`.
 	var _ = goodResult3.Unwrap()
+
+	r, err := goodResult3.Split()
+	assert.NoError(t, err)
+	assert.Equal(t, true, r)
 }
 
 func TestResultJSON(t *testing.T) {

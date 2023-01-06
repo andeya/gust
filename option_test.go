@@ -413,6 +413,12 @@ func TestOption_Take(t *testing.T) {
 		var y = x.Take()
 		assert.True(t, x.IsNone())
 		assert.Equal(t, gust.Some(2), y)
+		a, ok := x.Split()
+		assert.False(t, ok)
+		assert.Equal(t, 0, a)
+		b, ok2 := y.Split()
+		assert.True(t, ok2)
+		assert.Equal(t, 2, b)
 	}
 	{
 		var x gust.Option[int] = gust.None[int]()
