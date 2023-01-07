@@ -337,7 +337,7 @@ func (r Result[T]) CtrlFlow() CtrlFlow[error, T] {
 // UnwrapOrThrow returns the contained T or panic returns error (panicValue[*any]).
 // NOTE:
 //
-//	If there is an error, that panic should be caught with CatchResult[U]
+//	If there is an error, that panic should be caught with CatchResult[T]
 func (r Result[T]) UnwrapOrThrow() T {
 	if r.inner.isErr {
 		if r.inner.value == nil {
@@ -350,8 +350,8 @@ func (r Result[T]) UnwrapOrThrow() T {
 	return r.inner.safeGetT()
 }
 
-// CatchResult catches panic caused by Result[T].UnwrapOrThrow() and sets error to *Result[U]
-func CatchResult[U any](result *Result[U]) {
+// CatchResult catches panic caused by Result[T].UnwrapOrThrow() and sets error to *Result[T]
+func CatchResult[T any](result *Result[T]) {
 	switch p := recover().(type) {
 	case nil:
 	case panicValue[*any]:

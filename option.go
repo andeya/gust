@@ -116,7 +116,11 @@ func (o Option[T]) String() string {
 
 // Split returns the tuple (T, bool).
 func (o Option[T]) Split() (T, bool) {
-	return o.UnwrapOrDefault(), o.IsSome()
+	if o.IsSome() {
+		return o.UnwrapUnchecked(), true
+	}
+	var t T
+	return t, false
 }
 
 // ToX converts to `Option[any]`.
