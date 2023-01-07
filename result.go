@@ -350,8 +350,8 @@ func (r Result[T]) UnwrapOrThrow() T {
 	return r.inner.safeGetT()
 }
 
-// CatchResult catches panic caused by Result[T].UnwrapOrThrow() and sets error to *Result[T]
-func CatchResult[T any](result *Result[T]) {
+// CatchResult catches panic caused by Result[T].UnwrapOrThrow() and sets error to *Result[U]
+func CatchResult[U any](result *Result[U]) {
 	switch p := recover().(type) {
 	case nil:
 	case panicValue[*any]:

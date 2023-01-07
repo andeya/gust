@@ -74,14 +74,3 @@ func Contains[T comparable](r gust.Result[T], x T) bool {
 func Flatten[T any](r gust.Result[gust.Result[T]]) gust.Result[T] {
 	return AndThen(r, func(rr gust.Result[T]) gust.Result[T] { return rr })
 }
-
-// UnwrapOrThrow returns the contained T or panic returns error (panicValue[*any]).
-// NOTE:
-//
-//	If there is an error, that panic should be caught with CatchResult[U]
-func UnwrapOrThrow[T any, U any](r gust.Result[T]) T {
-	if r.IsErr() {
-		gust.Err[U](r.Err()).UnwrapOrThrow()
-	}
-	return r.Unwrap()
-}

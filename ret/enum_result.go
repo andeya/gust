@@ -109,14 +109,3 @@ func EnumOrElse[T any, E any, F any](result gust.EnumResult[T, E], op func(E) gu
 func EnumFlatten[T any, E any](r gust.EnumResult[gust.EnumResult[T, E], E]) gust.EnumResult[T, E] {
 	return EnumAndThen(r, func(rr gust.EnumResult[T, E]) gust.EnumResult[T, E] { return rr })
 }
-
-// EnumUnwrapOrThrow returns the contained T or panic returns error (panicValue[*any]).
-// NOTE:
-//
-//	If there is an error, that panic should be caught with CatchResult[U,E]
-func EnumUnwrapOrThrow[T any, E any, U any](r gust.EnumResult[T, E]) T {
-	if r.IsErr() {
-		gust.EnumErr[U, E](r.Err().Unwrap()).UnwrapOrThrow()
-	}
-	return r.Unwrap()
-}

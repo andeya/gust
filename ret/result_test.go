@@ -68,13 +68,3 @@ func TestResult_Map_3(t *testing.T) {
 	assert.Equal(t, "Err(strconv.Atoi: parsing \"lol\": invalid syntax)", isMyNum("lol", 1).String())
 	assert.Equal(t, "Err(strconv.Atoi: parsing \"NaN\": invalid syntax)", isMyNum("NaN", 1).String())
 }
-
-func TestUnwrapThrow(t *testing.T) {
-	assert.Equal(t, 1, ret.UnwrapOrThrow[int, string](gust.Ok[int](1)))
-	var r gust.Result[string]
-	defer func() {
-		assert.Equal(t, "error", r.Err().Error())
-	}()
-	defer gust.CatchResult(&r)
-	_ = ret.UnwrapOrThrow[int, string](gust.Err[int]("error"))
-}
