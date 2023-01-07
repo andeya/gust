@@ -351,6 +351,15 @@ func (r Result[T]) UnwrapOrThrow() T {
 }
 
 // CatchResult catches panic caused by Result[T].UnwrapOrThrow() and sets error to *Result[U]
+// Example:
+//
+//	```go
+//	func example() (result Result[string]) {
+//	   defer CatchResult(&result)
+//	   Err[int]("int error").UnwrapOrThrow()
+//	   return Ok[string]("ok")
+//	}
+//	```
 func CatchResult[U any](result *Result[U]) {
 	switch p := recover().(type) {
 	case nil:

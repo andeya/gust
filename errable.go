@@ -197,6 +197,15 @@ func (e Errable[E]) TryThrow() {
 }
 
 // CatchErrable catches panic caused by Errable[E].TryThrow() and sets E to *Errable[E]
+// Example:
+//
+//	```go
+//	func example() (errable Errable[string]) {
+//		defer CatchErrable[E](&errable)
+//		ToErrable("panic error").TryThrow()
+//		return ToErrable("return error")
+//	}
+//	```
 func CatchErrable[E any](result *Errable[E]) {
 	switch p := recover().(type) {
 	case nil:

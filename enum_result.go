@@ -471,6 +471,15 @@ func (r EnumResult[T, E]) UnwrapOrThrow() T {
 }
 
 // CatchEnumResult catches panic caused by EnumResult[T, E].UnwrapOrThrow() or Errable[E].TryThrow(), and sets E to *EnumResult[U,E]
+// Example:
+//
+//	```go
+//	func example() (result EnumResult[int, string]) {
+//		defer CatchEnumResult[int, string](&result)
+//		EnumErr[string, string]("error").UnwrapOrThrow()
+//		return
+//	}
+//	```
 func CatchEnumResult[U any, E any](result *EnumResult[U, E]) {
 	switch p := recover().(type) {
 	case nil:
