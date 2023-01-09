@@ -65,6 +65,21 @@ func (m *Mutex[T]) Unlock(newData ...T) {
 	m.inner.Unlock()
 }
 
+// LockScope securely read and write the data in the mutex.
+func (m *Mutex[T]) LockScope(f func(T) T) {
+	m.inner.Lock()
+	defer m.inner.Unlock()
+	m.data = f(m.data)
+}
+
+// TryLockScope tries to securely read and write the data in the mutex.
+func (m *Mutex[T]) TryLockScope(f func(T) T) {
+	if m.inner.TryLock() {
+		defer m.inner.Unlock()
+		m.data = f(m.data)
+	}
+}
+
 // RWMutex is a better generic-type wrapper for `sync.RWMutex` that holds a value.
 // A RWMutex is a reader/writer mutual exclusion lock.
 // The lock can be held by an arbitrary number of readers or a single writer.
@@ -123,6 +138,21 @@ func (m *RWMutex[T]) Unlock(newData ...T) {
 	m.inner.Unlock()
 }
 
+// TryLockScope tries to securely read and write the data in the mutex.
+func (m *RWMutex[T]) TryLockScope(f func(T) T) {
+	if m.inner.TryLock() {
+		defer m.inner.Unlock()
+		m.data = f(m.data)
+	}
+}
+
+// LockScope securely read and write the data in the rwmutex.
+func (m *RWMutex[T]) LockScope(f func(T) T) {
+	m.inner.Lock()
+	defer m.inner.Unlock()
+	m.data = f(m.data)
+}
+
 // Happens-before relationships are indicated to the race detector via:
 // - Unlock  -> Lock:  readerSem
 // - Unlock  -> RLock: readerSem
@@ -164,6 +194,21 @@ func (m *RWMutex[T]) TryRLock() Option[T] {
 // on entry to RUnlock.
 func (m *RWMutex[T]) RUnlock() {
 	m.inner.RUnlock()
+}
+
+// TryRLockScope tries to securely read the data in the mutex.
+func (m *RWMutex[T]) TryRLockScope(f func(T) T) {
+	if m.inner.TryRLock() {
+		defer m.inner.RUnlock()
+		m.data = f(m.data)
+	}
+}
+
+// RLockScope securely read the data in the rwmutex.
+func (m *RWMutex[T]) RLockScope(f func(T) T) {
+	m.inner.RLock()
+	defer m.inner.RUnlock()
+	m.data = f(m.data)
 }
 
 // SyncMap is a better generic-type wrapper for `sync.Map`.
