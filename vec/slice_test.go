@@ -16,6 +16,16 @@ func TestGet(t *testing.T) {
 	assert.Equal(t, gust.None[string](), Get(slice, -10))
 }
 
+func TestDict(t *testing.T) {
+	slice := []string{"Dodo", "Tiger", "Penguin", "Dodo"}
+	dict := Dict(slice, func(m map[string]int, k int, v string) {
+		if _, ok := m[v]; !ok {
+			m[v] = k
+		}
+	})
+	assert.Equal(t, map[string]int{"Dodo": 0, "Tiger": 1, "Penguin": 2}, dict)
+}
+
 func TestConcat(t *testing.T) {
 	a := []string{"a", "0"}
 	b := []string{"b", "1"}

@@ -32,6 +32,18 @@ func Copy[T any](s []T) []T {
 	return r
 }
 
+// Dict generates a map through the set function.
+func Dict[T any, K comparable, V any](s []T, set func(m map[K]V, k int, v T)) map[K]V {
+	if s == nil {
+		return nil
+	}
+	ret := make(map[K]V, len(s))
+	for k, v := range s {
+		set(ret, k, v)
+	}
+	return ret
+}
+
 // CopyWithin copies part of a slice to another location in the current slice.
 // @target
 //
@@ -197,18 +209,6 @@ func MapAlone[T any, U any](s []T, mapping func(v T) U) []U {
 	ret := make([]U, len(s))
 	for k, v := range s {
 		ret[k] = mapping(v)
-	}
-	return ret
-}
-
-// Dict generates a map through the set function
-func Dict[T any, K comparable, V any](s []T, set func(m map[K]V, k int, v T)) map[K]V {
-	if s == nil {
-		return nil
-	}
-	ret := make(map[K]V, len(s))
-	for k, v := range s {
-		set(ret, k, v)
 	}
 	return ret
 }
