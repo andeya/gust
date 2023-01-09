@@ -3,6 +3,14 @@ package dict
 
 import "github.com/andeya/gust"
 
+// Get returns the gust.Option[V] of the entry for the provided key.
+func Get[K comparable, V any](m map[K]V, k K) gust.Option[V] {
+	if v, ok := m[k]; ok {
+		return gust.Some[V](v)
+	}
+	return gust.None[V]()
+}
+
 // Keys returns the keys of map.
 func Keys[K comparable, V any](m map[K]V) []K {
 	if m == nil {

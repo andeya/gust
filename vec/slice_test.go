@@ -8,6 +8,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestGet(t *testing.T) {
+	slice := []string{"Dodo", "Tiger", "Penguin", "Dodo"}
+	val := Get(slice, 1)
+	assert.Equal(t, gust.Some("Tiger"), val)
+	assert.Equal(t, gust.None[string](), Get(slice, 10))
+	assert.Equal(t, gust.None[string](), Get(slice, -10))
+}
+
 func TestConcat(t *testing.T) {
 	a := []string{"a", "0"}
 	b := []string{"b", "1"}

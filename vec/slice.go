@@ -6,6 +6,14 @@ import (
 	"github.com/andeya/gust/valconv"
 )
 
+// Get returns the gust.Option[T] at the specified index.
+func Get[T any](s []T, index int) gust.Option[T] {
+	if index >= 0 && len(s) > index {
+		return gust.Some(s[index])
+	}
+	return gust.None[T]()
+}
+
 // One try to return the first element, otherwise return zero value.
 func One[T any](s []T) T {
 	if len(s) > 0 {
