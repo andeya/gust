@@ -211,6 +211,30 @@ func (m *RWMutex[T]) RLockScope(read func(T)) {
 	read(m.data)
 }
 
+// TryBest tries to read and do the data in the RWMutex[T] safely,
+// swapping the data when readAndDo returns false and then trying to do again.
+func (m *RWMutex[T]) TryBest(readAndDo func(T) bool, swapWhenFalse func(old T) (new Option[T])) {
+	if readAndDo == nil {
+		return
+	}
+	var ok bool
+	m.RLockScope(func(old T) {
+		ok = readAndDo(old)
+	})
+	if ok || swapWhenFalse == nil {
+		return
+	}
+	m.inner.Lock()
+	defer m.inner.Unlock()
+	if readAndDo(m.data) {
+		return
+	}
+	swapWhenFalse(m.data).Inspect(func(newT T) {
+		m.data = newT
+		readAndDo(newT)
+	})
+}
+
 // SyncMap is a better generic-type wrapper for `sync.Map`.
 // A SyncMap is like a Go map[interface{}]interface{} but is safe for concurrent use
 // by multiple goroutines without additional locking or coordination.
