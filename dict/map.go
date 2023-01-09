@@ -47,6 +47,18 @@ func Entries[K comparable, V any](m map[K]V) []gust.DictEntry[K, V] {
 	return ret
 }
 
+// Vec generates an orderless slice through the set function.
+func Vec[K comparable, V any, T any](m map[K]V, set func(K, V) T) []T {
+	if m == nil {
+		return nil
+	}
+	ret := make([]T, 0, len(m))
+	for k, v := range m {
+		ret = append(ret, set(k, v))
+	}
+	return ret
+}
+
 // Copy creates a copy of the map.
 func Copy[K comparable, V any](m map[K]V) map[K]V {
 	if m == nil {
