@@ -247,6 +247,20 @@ L:
 	return s
 }
 
+// PushDistinctBy adds one or more new elements that do not exist in the current slice at the end.
+func PushDistinctBy[T any](s []T, isSame func(a, b T) bool, element ...T) []T {
+L:
+	for _, v := range element {
+		for _, vv := range s {
+			if isSame(vv, v) {
+				continue L
+			}
+		}
+		s = append(s, v)
+	}
+	return s
+}
+
 // Reduce executes a reducer function (that you provide) on each element of the slice,
 // resulting in a single output value.
 // @accumulator
@@ -532,19 +546,19 @@ func vecDistinct[T comparable](src []T, dst *[]T) map[T]int {
 }
 
 // DistinctBy deduplication in place according to the mapping function
-func DistinctBy[T any, U comparable](s *[]T, mapping func(k int, v T) U, compare ...func(a, b T) T) {
+func DistinctBy[T any, U comparable](s *[]T, toComparable func(k int, v T) U, whoToKeep ...func(a, b T) T) {
 	a := (*s)[:0]
 	m := make(map[U]gust.VecEntry[T], len(*s))
 	for k, v := range *s {
-		x := mapping(k, v)
+		x := toComparable(k, v)
 		entry, ok := m[x]
 		if !ok {
 			m[x] = gust.VecEntry[T]{Index: len(a), Elem: v}
 			a = append(a, v)
 			continue
 		}
-		if len(compare) > 0 {
-			entry.Elem = compare[0](entry.Elem, v)
+		if len(whoToKeep) > 0 {
+			entry.Elem = whoToKeep[0](entry.Elem, v)
 			m[x] = entry
 			a[entry.Index] = entry.Elem
 		}
