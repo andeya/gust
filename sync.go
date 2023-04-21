@@ -362,52 +362,64 @@ type LazyValue[T any] struct {
 	// The hot path is inlined at every call site.
 	// Placing done first allows more compact instructions on some architectures (amd64/386),
 	// and fewer instructions (to calculate offset) on other architectures.
-	done     uint32
-	m        sync.Mutex
-	onceInit func() Result[T]
-	result   Result[T]
+	done   uint32
+	m      sync.Mutex
+	result Result[T]
 }
 
-var errLazyValueNoCallback = errors.New("LazyValue.onceInit is nil")
+var errLazyValueNotInit = errors.New("LazyValue is not initialized")
 
-// NewLazyValue a value that can be lazily initialized once and read concurrently.
+// InitOnceBy sets the value once by initialization function before call o.Get().
 // NOTE: onceInit can not be nil
-func NewLazyValue[T any](onceInit func() Result[T]) *LazyValue[T] {
-	return &LazyValue[T]{
-		onceInit: onceInit,
-	}
-}
-
-// SetOnce sets the initialization callback function once before call o.Get().
-// NOTE: onceInit can not be nil
-func (o *LazyValue[T]) SetOnce(onceInit func() Result[T]) *LazyValue[T] {
-	if atomic.LoadUint32(&o.done) == 0 {
-		o.onceInit = onceInit
+func (o *LazyValue[T]) InitOnceBy(onceInit func() Result[T]) *LazyValue[T] {
+	if o.CanInit() {
+		o.m.Lock()
+		defer o.m.Unlock()
+		if o.done == 0 {
+			defer o.markInit()
+			if onceInit == nil {
+				o.result = Err[T](errLazyValueNotInit)
+			} else {
+				o.result = onceInit()
+			}
+		}
 	}
 	return o
+}
+
+// InitOnce sets the value once before call o.Get().
+func (o *LazyValue[T]) InitOnce(v T) *LazyValue[T] {
+	return o.InitOnceBy(func() Result[T] {
+		return Ok(v)
+	})
+}
+
+// InitZeroOnce sets the value to zero once before call o.Get().
+func (o *LazyValue[T]) InitZeroOnce() *LazyValue[T] {
+	o.InitOnce(o.Zero())
+	return o
+}
+
+// CanInit determine whether it can be initialized.
+func (o *LazyValue[T]) CanInit() bool {
+	return atomic.LoadUint32(&o.done) == 0
+}
+
+func (o *LazyValue[T]) markInit() {
+	atomic.StoreUint32(&o.done, 1)
 }
 
 // Get concurrency-safe initialization once value and get it.
 // NOTE: if o.onceInit is nil, return error
 func (o *LazyValue[T]) Get() Result[T] {
-	if atomic.LoadUint32(&o.done) == 0 {
-		// Outlined slow-path to allow inlining of the fast-path.
-		o.doSlow()
+	if o.CanInit() {
+		return Err[T](errLazyValueNotInit)
 	}
 	return o.result
 }
 
-func (o *LazyValue[T]) doSlow() {
-	o.m.Lock()
-	defer o.m.Unlock()
-	if o.done == 0 {
-		defer func() {
-			atomic.StoreUint32(&o.done, 1)
-		}()
-		if o.onceInit == nil {
-			o.result = Err[T](errLazyValueNoCallback)
-		} else {
-			o.result = o.onceInit()
-		}
-	}
+// Zero new a zero value.
+func (*LazyValue[T]) Zero() T {
+	var zero T
+	return zero
 }

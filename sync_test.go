@@ -52,13 +52,10 @@ func runLazyValue(t *testing.T, once *gust.LazyValue[*one], c chan bool) {
 }
 
 func TestLazyValue(t *testing.T) {
-	assert.EqualError(t, gust.NewLazyValue[int](nil).Get().Err(), "LazyValue.onceInit is nil")
-	assert.EqualError(t, new(gust.LazyValue[int]).Get().Err(), "LazyValue.onceInit is nil")
-	assert.Equal(t, 1, new(gust.LazyValue[int]).SetOnce(func() gust.Result[int] {
-		return gust.Ok(1)
-	}).Get().Unwrap())
+	assert.EqualError(t, new(gust.LazyValue[int]).Get().Err(), "LazyValue is not initialized")
+	assert.Equal(t, 1, new(gust.LazyValue[int]).InitOnce(1).Get().Unwrap())
 	o := new(one)
-	once := gust.NewLazyValue(func() gust.Result[*one] {
+	once := new(gust.LazyValue[*one]).InitOnceBy(func() gust.Result[*one] {
 		o.Increment()
 		return gust.Ok(o)
 	})
@@ -76,9 +73,6 @@ func TestLazyValue(t *testing.T) {
 }
 
 func TestLazyValuePanic(t *testing.T) {
-	var once = gust.NewLazyValue(func() gust.Result[struct{}] {
-		panic("failed")
-	})
 	defer func() {
 		if p := recover(); p != nil {
 			assert.Equal(t, "failed", p)
@@ -86,14 +80,15 @@ func TestLazyValuePanic(t *testing.T) {
 			t.Fatalf("should painc")
 		}
 	}()
+	var once = new(gust.LazyValue[struct{}]).InitOnceBy(func() gust.Result[struct{}] {
+		panic("failed")
+	})
 	_ = once.Get()
 	t.Fatalf("unreachable")
 }
 
 func BenchmarkLazyValue(b *testing.B) {
-	var once = gust.NewLazyValue(func() gust.Result[struct{}] {
-		return gust.Ok[struct{}](struct{}{})
-	})
+	var once = new(gust.LazyValue[struct{}]).InitZeroOnce()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			once.Get()
