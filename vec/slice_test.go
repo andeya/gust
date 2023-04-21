@@ -332,4 +332,5 @@ func TestSliceSegment(t *testing.T) {
 	slice := [][]string{{"1", "2"}, {"3", "4"}, {"5", "6"}, {"7"}}
 	assert.Equal(t, slice, segments1)
 	assert.Equal(t, slice, segments2)
+	assert.Equal(t, [][]string{{"1", "2"}, {"3", "4"}, {"5", "6"}}, SliceSegment([]string{"1", "2", "3", "4", "5", "6"}, 2))
 }
