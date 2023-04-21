@@ -369,7 +369,7 @@ type LazyValue[T any] struct {
 
 var errLazyValueNotInit = errors.New("LazyValue is not initialized")
 
-// InitOnceBy sets the value once by initialization function before call o.Get().
+// InitOnceBy initializes the value once by onceInit function before call o.Get().
 // NOTE: onceInit can not be nil
 func (o *LazyValue[T]) InitOnceBy(onceInit func() Result[T]) *LazyValue[T] {
 	if o.CanInit() {
@@ -387,14 +387,14 @@ func (o *LazyValue[T]) InitOnceBy(onceInit func() Result[T]) *LazyValue[T] {
 	return o
 }
 
-// InitOnce sets the value once before call o.Get().
+// InitOnce initializes the value once before call o.Get().
 func (o *LazyValue[T]) InitOnce(v T) *LazyValue[T] {
 	return o.InitOnceBy(func() Result[T] {
 		return Ok(v)
 	})
 }
 
-// InitZeroOnce sets the value to zero once before call o.Get().
+// InitZeroOnce initializes the value to zero once before call o.Get().
 func (o *LazyValue[T]) InitZeroOnce() *LazyValue[T] {
 	o.InitOnce(o.Zero())
 	return o
@@ -409,13 +409,26 @@ func (o *LazyValue[T]) markInit() {
 	atomic.StoreUint32(&o.done, 1)
 }
 
-// Get concurrency-safe initialization once value and get it.
-// NOTE: if o.onceInit is nil, return error
+// Get concurrency-safe get value result.
+// NOTE: if it is not initialized, return Err
 func (o *LazyValue[T]) Get() Result[T] {
 	if o.CanInit() {
 		return Err[T](errLazyValueNotInit)
 	}
 	return o.result
+}
+
+// MustGet concurrency-safe get value.
+// NOTE: panic if it is not initialized
+func (o *LazyValue[T]) MustGet() T {
+	return o.Get().Unwrap()
+}
+
+// UncheckGet does not check whether it is initialized,
+// returns the value directly, and returns zero value if it is not initialized.
+// NOTE: concurrency-unsafe
+func (o *LazyValue[T]) UncheckGet() T {
+	return o.result.inner.safeGetT()
 }
 
 // Zero new a zero value.

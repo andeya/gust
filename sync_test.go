@@ -53,6 +53,7 @@ func runLazyValue(t *testing.T, once *gust.LazyValue[*one], c chan bool) {
 
 func TestLazyValue(t *testing.T) {
 	assert.EqualError(t, new(gust.LazyValue[int]).Get().Err(), "LazyValue is not initialized")
+	assert.Equal(t, 0, new(gust.LazyValue[int]).UncheckGet())
 	assert.Equal(t, 1, new(gust.LazyValue[int]).InitOnce(1).Get().Unwrap())
 	o := new(one)
 	once := new(gust.LazyValue[*one]).InitOnceBy(func() gust.Result[*one] {
@@ -91,7 +92,7 @@ func BenchmarkLazyValue(b *testing.B) {
 	var once = new(gust.LazyValue[struct{}]).InitZeroOnce()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			once.Get()
+			once.UncheckGet()
 		}
 	})
 }
