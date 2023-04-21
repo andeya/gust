@@ -36,3 +36,62 @@ func TestAtomicValue(t *testing.T) {
 	assert.False(t, m.CompareAndSwap(1, 3))
 	assert.True(t, m.CompareAndSwap(2, 3))
 }
+
+type one int
+
+func (o *one) Increment() {
+	*o++
+}
+
+func runLazyValue(t *testing.T, once *gust.LazyValue[*one], c chan bool) {
+	o := once.Get().Unwrap()
+	if v := *o; v != 1 {
+		t.Errorf("once failed inside run: %d is not 1", v)
+	}
+	c <- true
+}
+
+func TestLazyValue(t *testing.T) {
+	o := new(one)
+	once := gust.NewLazyValue(func() gust.Result[*one] {
+		o.Increment()
+		return gust.Ok(o)
+	})
+	c := make(chan bool)
+	const N = 10
+	for i := 0; i < N; i++ {
+		go runLazyValue(t, once, c)
+	}
+	for i := 0; i < N; i++ {
+		<-c
+	}
+	if *o != 1 {
+		t.Errorf("once failed outside run: %d is not 1", *o)
+	}
+}
+
+func TestLazyValuePanic(t *testing.T) {
+	var once = gust.NewLazyValue(func() gust.Result[struct{}] {
+		panic("failed")
+	})
+	defer func() {
+		if p := recover(); p != nil {
+			assert.Equal(t, "failed", p)
+		} else {
+			t.Fatalf("should painc")
+		}
+	}()
+	_ = once.Get()
+	t.Fatalf("unreachable")
+}
+
+func BenchmarkLazyValue(b *testing.B) {
+	var once = gust.NewLazyValue(func() gust.Result[struct{}] {
+		return gust.Ok[struct{}](struct{}{})
+	})
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			once.Get()
+		}
+	})
+}

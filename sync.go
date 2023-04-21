@@ -353,3 +353,51 @@ func (v *AtomicValue[T]) Swap(new T) (old Option[T]) {
 func (v *AtomicValue[T]) CompareAndSwap(old T, new T) (swapped bool) {
 	return v.inner.CompareAndSwap(old, new)
 }
+
+// LazyValue a value that can be lazily initialized once and read concurrently.
+type LazyValue[T any] struct {
+	// done indicates whether the action has been performed.
+	// It is first in the struct because it is used in the hot path.
+	// The hot path is inlined at every call site.
+	// Placing done first allows more compact instructions on some architectures (amd64/386),
+	// and fewer instructions (to calculate offset) on other architectures.
+	done     uint32
+	m        sync.Mutex
+	onceInit func() Result[T]
+	result   Result[T]
+}
+
+// NewLazyValue a value that can be lazily initialized once and read concurrently.
+func NewLazyValue[T any](onceInit func() Result[T]) *LazyValue[T] {
+	return &LazyValue[T]{
+		onceInit: onceInit,
+	}
+}
+
+// SetOnce sets the initialization callback function once.
+func (o *LazyValue[T]) SetOnce(onceInit func() Result[T]) *LazyValue[T] {
+	if atomic.LoadUint32(&o.done) == 0 {
+		o.onceInit = onceInit
+	}
+	return o
+}
+
+// Get concurrency-safe initialization once value and get it.
+func (o *LazyValue[T]) Get() Result[T] {
+	if atomic.LoadUint32(&o.done) == 0 {
+		// Outlined slow-path to allow inlining of the fast-path.
+		o.doSlow()
+	}
+	return o.result
+}
+
+func (o *LazyValue[T]) doSlow() {
+	o.m.Lock()
+	defer o.m.Unlock()
+	if o.done == 0 {
+		defer func() {
+			atomic.StoreUint32(&o.done, 1)
+		}()
+		o.result = o.onceInit()
+	}
+}
