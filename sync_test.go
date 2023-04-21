@@ -52,7 +52,7 @@ func runLazyValue(t *testing.T, once *gust.LazyValue[*one], c chan bool) {
 }
 
 func TestLazyValue(t *testing.T) {
-	assert.Equal(t, gust.None[int](), new(gust.LazyValue[int]).TryGet())
+	assert.Equal(t, gust.None[int](), new(gust.LazyValue[int]).TryGetValue())
 	assert.Equal(t, 0, new(gust.LazyValue[int]).GetValue(false))
 	assert.Equal(t, 1, new(gust.LazyValue[int]).Init(1).GetValue(true))
 	o := new(one)
@@ -85,7 +85,7 @@ func TestLazyValuePanic1(t *testing.T) {
 	var once = new(gust.LazyValue[struct{}]).InitBySetter(func(*struct{}) error {
 		panic("failed")
 	}).Unwrap()
-	_ = once.TryGet()
+	_ = once.TryGetValue()
 	t.Fatalf("unreachable")
 }
 
@@ -106,7 +106,7 @@ func BenchmarkLazyValue(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			// once.GetValue(false)
-			once.TryGet()
+			once.TryGetValue()
 		}
 	})
 }

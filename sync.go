@@ -413,13 +413,22 @@ func (o *LazyValue[T]) markInit() {
 	atomic.StoreUint32(&o.done, 1)
 }
 
-// TryGet concurrency-safe get the Option[T].
+// TryGetValue concurrency-safe get the Option[T].
 // NOTE: if it is not initialized, return None
-func (o *LazyValue[T]) TryGet() Option[T] {
+func (o *LazyValue[T]) TryGetValue() Option[T] {
 	if o.IsInitialized() {
 		return Some(o.value)
 	}
 	return None[T]()
+}
+
+// TryGetPtr concurrency-safe get the Option[*T].
+// NOTE: if it is not initialized, return None
+func (o *LazyValue[T]) TryGetPtr() Option[*T] {
+	if o.IsInitialized() {
+		return Some(&o.value)
+	}
+	return None[*T]()
 }
 
 // GetValue concurrency-unsafe get the raw value.
