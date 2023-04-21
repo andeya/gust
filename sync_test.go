@@ -44,7 +44,7 @@ func (o *one) Increment() {
 }
 
 func runLazyValue(t *testing.T, once *gust.LazyValue[*one], c chan bool) {
-	o := once.Get().Unwrap()
+	o := once.GetValue(true)
 	if v := *o; v != 1 {
 		t.Errorf("once failed inside run: %d is not 1", v)
 	}
@@ -52,14 +52,14 @@ func runLazyValue(t *testing.T, once *gust.LazyValue[*one], c chan bool) {
 }
 
 func TestLazyValue(t *testing.T) {
-	assert.EqualError(t, new(gust.LazyValue[int]).Get().Err(), "LazyValue is not initialized")
-	assert.Equal(t, 0, new(gust.LazyValue[int]).UncheckGet())
-	assert.Equal(t, 1, new(gust.LazyValue[int]).InitOnce(1).Get().Unwrap())
+	assert.Equal(t, gust.None[int](), new(gust.LazyValue[int]).TryGet())
+	assert.Equal(t, 0, new(gust.LazyValue[int]).GetValue(false))
+	assert.Equal(t, 1, new(gust.LazyValue[int]).InitOnce(1).GetValue(true))
 	o := new(one)
 	once := new(gust.LazyValue[*one]).InitOnceBy(func() gust.Result[*one] {
 		o.Increment()
 		return gust.Ok(o)
-	})
+	}).Unwrap()
 	c := make(chan bool)
 	const N = 10
 	for i := 0; i < N; i++ {
@@ -73,7 +73,7 @@ func TestLazyValue(t *testing.T) {
 	}
 }
 
-func TestLazyValuePanic(t *testing.T) {
+func TestLazyValuePanic1(t *testing.T) {
 	defer func() {
 		if p := recover(); p != nil {
 			assert.Equal(t, "failed", p)
@@ -83,16 +83,29 @@ func TestLazyValuePanic(t *testing.T) {
 	}()
 	var once = new(gust.LazyValue[struct{}]).InitOnceBy(func() gust.Result[struct{}] {
 		panic("failed")
-	})
-	_ = once.Get()
+	}).Unwrap()
+	_ = once.TryGet()
+	t.Fatalf("unreachable")
+}
+
+func TestLazyValuePanic2(t *testing.T) {
+	defer func() {
+		if p := recover(); p != nil {
+			assert.Equal(t, "LazyValue is not initialized", p)
+		} else {
+			t.Fatalf("should painc")
+		}
+	}()
+	_ = new(gust.LazyValue[struct{}]).GetValue(true)
 	t.Fatalf("unreachable")
 }
 
 func BenchmarkLazyValue(b *testing.B) {
-	var once = new(gust.LazyValue[struct{}]).InitZeroOnce()
+	var once = new(gust.LazyValue[struct{}])
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			once.UncheckGet()
+			// once.GetValue(false)
+			once.TryGet()
 		}
 	})
 }
