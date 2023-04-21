@@ -327,10 +327,21 @@ func TestFlatMap(t *testing.T) {
 }
 
 func TestSliceSegment(t *testing.T) {
-	segments1 := SliceSegment([]string{"1", "2", "3", "4", "5", "6", "7"}, 2)
-	segments2 := SliceSegment([]string{"1", "2", "3", "4", "5", "6", "7"}, 2, true)
-	slice := [][]string{{"1", "2"}, {"3", "4"}, {"5", "6"}, {"7"}}
-	assert.Equal(t, slice, segments1)
-	assert.Equal(t, slice, segments2)
-	assert.Equal(t, [][]string{{"1", "2"}, {"3", "4"}, {"5", "6"}}, SliceSegment([]string{"1", "2", "3", "4", "5", "6"}, 2))
+	a := []string{"1", "2", "3", "4", "5", "6"}
+	b := append(a, "7")
+	segments1 := SliceSegment(b, 2)
+	segments2 := SliceSegment(b, 2, true)
+	segments3 := SliceSegment(b, len(b)+3)
+	segments4 := SliceSegment(b, len(b))
+	segments5 := SliceSegment(b, -1)
+	segments6 := SliceSegment(b, 0)
+	x := [][]string{{"1", "2"}, {"3", "4"}, {"5", "6"}}
+	y := append(x, []string{"7"})
+	assert.Equal(t, y, segments1)
+	assert.Equal(t, y, segments2)
+	assert.Equal(t, [][]string{b}, segments3)
+	assert.Equal(t, [][]string{b}, segments4)
+	assert.Equal(t, [][]string{b}, segments5)
+	assert.Equal(t, [][]string(nil), segments6)
+	assert.Equal(t, x, SliceSegment(a, 2))
 }
