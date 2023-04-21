@@ -366,22 +366,20 @@ type LazyValue[T any] struct {
 	value T
 }
 
-// InitOnceBy initializes the value once by onceInit function before get value.
+// InitOnceBySetter initializes the value once by onceInit function before get value.
 // NOTE: onceInit can not be nil
-func (o *LazyValue[T]) InitOnceBy(onceInit func() Result[T]) Result[*LazyValue[T]] {
+func (o *LazyValue[T]) InitOnceBySetter(onceInit func(ptr *T) error) Result[*LazyValue[T]] {
 	if !o.IsInitialized() {
 		o.m.Lock()
 		defer o.m.Unlock()
 		if o.done == 0 {
 			defer o.markInit()
 			if onceInit == nil {
-				return Err[*LazyValue[T]]("*LazyValue[T].InitOnceBy: onceInit function is nil")
+				return Err[*LazyValue[T]]("*LazyValue[T].InitOnceBySetter: onceInit function is nil")
 			} else {
-				r := onceInit()
-				if r.IsOk() {
-					o.value = r.inner.safeGetT()
-				} else {
-					return Err[*LazyValue[T]](r.inner.safeGetE())
+				err := onceInit(&o.value)
+				if err != nil {
+					return Err[*LazyValue[T]](err)
 				}
 			}
 		}
@@ -389,10 +387,19 @@ func (o *LazyValue[T]) InitOnceBy(onceInit func() Result[T]) Result[*LazyValue[T
 	return Ok(o)
 }
 
+// InitOnceByCloser initializes the value once by onceInit function before get value.
+// NOTE: onceInit can not be nil
+func (o *LazyValue[T]) InitOnceByCloser(onceInit func() error) Result[*LazyValue[T]] {
+	return o.InitOnceBySetter(func(ptr *T) error {
+		return onceInit()
+	})
+}
+
 // InitOnce initializes the value once before get value.
 func (o *LazyValue[T]) InitOnce(v T) *LazyValue[T] {
-	_ = o.InitOnceBy(func() Result[T] {
-		return Ok(v)
+	_ = o.InitOnceBySetter(func(ptr *T) error {
+		*ptr = v
+		return nil
 	})
 	return o
 }
@@ -416,7 +423,7 @@ func (o *LazyValue[T]) TryGet() Option[T] {
 }
 
 // GetValue concurrency-unsafe get the raw value.
-// NOTE: panic if it is not initialized
+// NOTE: if it is not initialized and mustInitialized is true, panic
 func (o *LazyValue[T]) GetValue(mustInitialized bool) T {
 	if !mustInitialized || o.IsInitialized() {
 		return o.value
@@ -425,7 +432,7 @@ func (o *LazyValue[T]) GetValue(mustInitialized bool) T {
 }
 
 // GetPtr concurrency-unsafe get the raw value pointer.
-// NOTE: panic if it is not initialized
+// NOTE: if it is not initialized and mustInitialized is true, panic
 func (o *LazyValue[T]) GetPtr(mustInitialized bool) *T {
 	if !mustInitialized || o.IsInitialized() {
 		return &o.value
