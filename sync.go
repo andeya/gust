@@ -1,6 +1,7 @@
 package gust
 
 import (
+	"errors"
 	"sync"
 	"sync/atomic"
 )
@@ -367,14 +368,18 @@ type LazyValue[T any] struct {
 	result   Result[T]
 }
 
+var errLazyValueNoCallback = errors.New("LazyValue.onceInit is nil")
+
 // NewLazyValue a value that can be lazily initialized once and read concurrently.
+// NOTE: onceInit can not be nil
 func NewLazyValue[T any](onceInit func() Result[T]) *LazyValue[T] {
 	return &LazyValue[T]{
 		onceInit: onceInit,
 	}
 }
 
-// SetOnce sets the initialization callback function once.
+// SetOnce sets the initialization callback function once before call o.Get().
+// NOTE: onceInit can not be nil
 func (o *LazyValue[T]) SetOnce(onceInit func() Result[T]) *LazyValue[T] {
 	if atomic.LoadUint32(&o.done) == 0 {
 		o.onceInit = onceInit
@@ -383,6 +388,7 @@ func (o *LazyValue[T]) SetOnce(onceInit func() Result[T]) *LazyValue[T] {
 }
 
 // Get concurrency-safe initialization once value and get it.
+// NOTE: if o.onceInit is nil, return error
 func (o *LazyValue[T]) Get() Result[T] {
 	if atomic.LoadUint32(&o.done) == 0 {
 		// Outlined slow-path to allow inlining of the fast-path.
@@ -398,6 +404,10 @@ func (o *LazyValue[T]) doSlow() {
 		defer func() {
 			atomic.StoreUint32(&o.done, 1)
 		}()
-		o.result = o.onceInit()
+		if o.onceInit == nil {
+			o.result = Err[T](errLazyValueNoCallback)
+		} else {
+			o.result = o.onceInit()
+		}
 	}
 }

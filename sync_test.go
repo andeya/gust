@@ -52,6 +52,11 @@ func runLazyValue(t *testing.T, once *gust.LazyValue[*one], c chan bool) {
 }
 
 func TestLazyValue(t *testing.T) {
+	assert.EqualError(t, gust.NewLazyValue[int](nil).Get().Err(), "LazyValue.onceInit is nil")
+	assert.EqualError(t, new(gust.LazyValue[int]).Get().Err(), "LazyValue.onceInit is nil")
+	assert.Equal(t, 1, new(gust.LazyValue[int]).SetOnce(func() gust.Result[int] {
+		return gust.Ok(1)
+	}).Get().Unwrap())
 	o := new(one)
 	once := gust.NewLazyValue(func() gust.Result[*one] {
 		o.Increment()
