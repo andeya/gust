@@ -325,3 +325,11 @@ func TestFlatMap(t *testing.T) {
 	})
 	assert.Equal(t, []string{"-1", "-2", "-3", "-4", "-5", "-6"}, flatten)
 }
+
+func TestSliceSegment(t *testing.T) {
+	segments1 := SliceSegment([]string{"1", "2", "3", "4", "5", "6", "7"}, 2)
+	segments2 := SliceSegment([]string{"1", "2", "3", "4", "5", "6", "7"}, 2, true)
+	slice := [][]string{{"1", "2"}, {"3", "4"}, {"5", "6"}, {"7"}}
+	assert.Equal(t, slice, segments1)
+	assert.Equal(t, slice, segments2)
+}

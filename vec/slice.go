@@ -675,3 +675,59 @@ func FlatMap[T any, U any](s [][]T, mapping func(T) U) []U {
 	}
 	return r
 }
+
+// ForEachSegment execute the callback for each slice.
+func ForEachSegment[T any](s []T, maxSegmentLength int, callback func(slice []T) error, useClone ...bool) error {
+	if maxSegmentLength == 0 || len(s) == 0 {
+		return nil
+	}
+	if maxSegmentLength < 0 {
+		maxSegmentLength = len(s)
+	}
+	clone := One(useClone)
+	// [
+	start := 0
+	// )
+	end := start + maxSegmentLength
+	for len(s) >= end {
+		elem := s[start:end]
+		if clone {
+			x := make([]T, maxSegmentLength)
+			copy(x, elem)
+			elem = x
+		}
+		if err := callback(elem); err != nil {
+			return err
+		}
+		start = end
+		end = start + maxSegmentLength
+	}
+	if count := len(s) - start; count > 0 {
+		elem := s[start:]
+		if clone {
+			x := make([]T, count)
+			copy(x, elem)
+			elem = x
+		}
+		if err := callback(elem); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// SliceSegment cut s into multiple segments according to the specified maximum segment length.
+func SliceSegment[T any](s []T, maxSegmentLength int, useClone ...bool) [][]T {
+	if maxSegmentLength == 0 || len(s) == 0 {
+		return nil
+	}
+	if maxSegmentLength < 0 {
+		maxSegmentLength = len(s)
+	}
+	var m = make([][]T, 0, len(s)/maxSegmentLength+1)
+	_ = ForEachSegment(s, maxSegmentLength, func(slice []T) error {
+		m = append(m, slice)
+		return nil
+	}, useClone...)
+	return m
+}
