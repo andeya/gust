@@ -366,16 +366,16 @@ type LazyValue[T any] struct {
 	value T
 }
 
-// InitOnceBySetter initializes the value once by onceInit function before get value.
+// InitBySetter initializes the value once by onceInit function before get value.
 // NOTE: onceInit can not be nil
-func (o *LazyValue[T]) InitOnceBySetter(onceInit func(ptr *T) error) Result[*LazyValue[T]] {
+func (o *LazyValue[T]) InitBySetter(onceInit func(ptr *T) error) Result[*LazyValue[T]] {
 	if !o.IsInitialized() {
 		o.m.Lock()
 		defer o.m.Unlock()
 		if o.done == 0 {
 			defer o.markInit()
 			if onceInit == nil {
-				return Err[*LazyValue[T]]("*LazyValue[T].InitOnceBySetter: onceInit function is nil")
+				return Err[*LazyValue[T]]("*LazyValue[T].InitBySetter: onceInit function is nil")
 			} else {
 				err := onceInit(&o.value)
 				if err != nil {
@@ -387,17 +387,17 @@ func (o *LazyValue[T]) InitOnceBySetter(onceInit func(ptr *T) error) Result[*Laz
 	return Ok(o)
 }
 
-// InitOnceByCloser initializes the value once by onceInit function before get value.
+// InitByClosure initializes the value once by onceInit function before get value.
 // NOTE: onceInit can not be nil
-func (o *LazyValue[T]) InitOnceByCloser(onceInit func() error) Result[*LazyValue[T]] {
-	return o.InitOnceBySetter(func(ptr *T) error {
+func (o *LazyValue[T]) InitByClosure(onceInit func() error) Result[*LazyValue[T]] {
+	return o.InitBySetter(func(ptr *T) error {
 		return onceInit()
 	})
 }
 
-// InitOnce initializes the value once before get value.
-func (o *LazyValue[T]) InitOnce(v T) *LazyValue[T] {
-	_ = o.InitOnceBySetter(func(ptr *T) error {
+// Init initializes the value once before get value.
+func (o *LazyValue[T]) Init(v T) *LazyValue[T] {
+	_ = o.InitBySetter(func(ptr *T) error {
 		*ptr = v
 		return nil
 	})

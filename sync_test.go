@@ -54,9 +54,9 @@ func runLazyValue(t *testing.T, once *gust.LazyValue[*one], c chan bool) {
 func TestLazyValue(t *testing.T) {
 	assert.Equal(t, gust.None[int](), new(gust.LazyValue[int]).TryGet())
 	assert.Equal(t, 0, new(gust.LazyValue[int]).GetValue(false))
-	assert.Equal(t, 1, new(gust.LazyValue[int]).InitOnce(1).GetValue(true))
+	assert.Equal(t, 1, new(gust.LazyValue[int]).Init(1).GetValue(true))
 	o := new(one)
-	once := new(gust.LazyValue[*one]).InitOnceBySetter(func(ptr **one) error {
+	once := new(gust.LazyValue[*one]).InitBySetter(func(ptr **one) error {
 		o.Increment()
 		*ptr = o
 		return nil
@@ -82,7 +82,7 @@ func TestLazyValuePanic1(t *testing.T) {
 			t.Fatalf("should painc")
 		}
 	}()
-	var once = new(gust.LazyValue[struct{}]).InitOnceBySetter(func(*struct{}) error {
+	var once = new(gust.LazyValue[struct{}]).InitBySetter(func(*struct{}) error {
 		panic("failed")
 	}).Unwrap()
 	_ = once.TryGet()
