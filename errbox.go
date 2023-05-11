@@ -9,6 +9,9 @@ var _ error = (*ErrBox)(nil)
 
 // ToErrBox wraps any error type.
 func ToErrBox(val any) *ErrBox {
+	if eb, ok := val.(*ErrBox); ok {
+		return eb
+	}
 	return &ErrBox{val: val}
 }
 

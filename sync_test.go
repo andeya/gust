@@ -44,7 +44,7 @@ func (o *one) Increment() {
 }
 
 func runLazyValue(t *testing.T, once *gust.LazyValue[*one], c chan bool) {
-	o := once.GetValue(true)
+	o := once.TryGetValue().Unwrap()
 	if v := *o; v != 1 {
 		t.Errorf("once failed inside run: %d is not 1", v)
 	}
@@ -52,15 +52,15 @@ func runLazyValue(t *testing.T, once *gust.LazyValue[*one], c chan bool) {
 }
 
 func TestLazyValue(t *testing.T) {
-	assert.Equal(t, gust.None[int](), new(gust.LazyValue[int]).TryGetValue())
-	assert.Equal(t, 0, new(gust.LazyValue[int]).GetValue(false))
-	assert.Equal(t, 1, new(gust.LazyValue[int]).Init(1).GetValue(true))
+	assert.Equal(t, gust.Err[int](gust.ErrLazyValueWithoutInit), new(gust.LazyValue[int]).TryGetValue())
+	assert.Equal(t, 0, new(gust.LazyValue[int]).SetInitValue(0).TryGetValue().Unwrap())
+	assert.Equal(t, 1, new(gust.LazyValue[int]).SetInitValue(1).TryGetValue().Unwrap())
 	o := new(one)
-	once := new(gust.LazyValue[*one]).InitBySetter(func(ptr **one) error {
+	once := new(gust.LazyValue[*one]).SetInitSetter(func(ptr **one) error {
 		o.Increment()
 		*ptr = o
 		return nil
-	}).Unwrap()
+	})
 	c := make(chan bool)
 	const N = 10
 	for i := 0; i < N; i++ {
@@ -82,22 +82,22 @@ func TestLazyValuePanic1(t *testing.T) {
 			t.Fatalf("should painc")
 		}
 	}()
-	var once = new(gust.LazyValue[struct{}]).InitBySetter(func(*struct{}) error {
+	var once = new(gust.LazyValue[struct{}]).SetInitSetter(func(*struct{}) error {
 		panic("failed")
-	}).Unwrap()
-	_ = once.TryGetValue()
+	})
+	_ = once.TryGetValue().Unwrap()
 	t.Fatalf("unreachable")
 }
 
 func TestLazyValuePanic2(t *testing.T) {
 	defer func() {
 		if p := recover(); p != nil {
-			assert.Equal(t, "LazyValue is not initialized", p)
+			assert.Equal(t, gust.ToErrBox(gust.ErrLazyValueWithoutInit), p)
 		} else {
 			t.Fatalf("should painc")
 		}
 	}()
-	_ = new(gust.LazyValue[struct{}]).GetValue(true)
+	_ = new(gust.LazyValue[struct{}]).TryGetValue().Unwrap()
 	t.Fatalf("unreachable")
 }
 

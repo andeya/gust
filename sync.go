@@ -361,43 +361,35 @@ type LazyValue[T any] struct {
 	// The hot path is inlined at every call site.
 	// Placing done first allows more compact instructions on some architectures (amd64/386),
 	// and fewer instructions (to calculate offset) on other architectures.
-	done  uint32
-	m     sync.Mutex
-	value T
+	done     uint32
+	m        sync.Mutex
+	value    Result[T]
+	onceInit func(ptr *T) error
 }
 
-// InitBySetter initializes the value once by onceInit function before get value.
+// SetInitSetter set initialization function.
 // NOTE: onceInit can not be nil
-func (o *LazyValue[T]) InitBySetter(onceInit func(ptr *T) error) Result[*LazyValue[T]] {
-	if !o.IsInitialized() {
-		o.m.Lock()
-		defer o.m.Unlock()
-		if o.done == 0 {
-			defer o.markInit()
-			if onceInit == nil {
-				return Err[*LazyValue[T]]("*LazyValue[T].InitBySetter: onceInit function is nil")
-			} else {
-				err := onceInit(&o.value)
-				if err != nil {
-					return Err[*LazyValue[T]](err)
-				}
-			}
-		}
+func (o *LazyValue[T]) SetInitSetter(onceInit func(ptr *T) error) *LazyValue[T] {
+	if o.IsInitialized() {
+		return o
 	}
-	return Ok(o)
+	o.m.Lock()
+	defer o.m.Unlock()
+	o.onceInit = onceInit
+	return o
 }
 
-// InitByClosure initializes the value once by onceInit function before get value.
+// SetInitClosure set initialization function.
 // NOTE: onceInit can not be nil
-func (o *LazyValue[T]) InitByClosure(onceInit func() error) Result[*LazyValue[T]] {
-	return o.InitBySetter(func(ptr *T) error {
+func (o *LazyValue[T]) SetInitClosure(onceInit func() error) *LazyValue[T] {
+	return o.SetInitSetter(func(ptr *T) error {
 		return onceInit()
 	})
 }
 
-// Init initializes the value once before get value.
-func (o *LazyValue[T]) Init(v T) *LazyValue[T] {
-	_ = o.InitBySetter(func(ptr *T) error {
+// SetInitValue set the initialization value.
+func (o *LazyValue[T]) SetInitValue(v T) *LazyValue[T] {
+	_ = o.SetInitSetter(func(ptr *T) error {
 		*ptr = v
 		return nil
 	})
@@ -413,38 +405,24 @@ func (o *LazyValue[T]) markInit() {
 	atomic.StoreUint32(&o.done, 1)
 }
 
+const ErrLazyValueWithoutInit = "*LazyValue[T]: onceInit function is nil"
+
 // TryGetValue concurrency-safe get the Option[T].
 // NOTE: if it is not initialized, return None
-func (o *LazyValue[T]) TryGetValue() Option[T] {
-	if o.IsInitialized() {
-		return Some(o.value)
+func (o *LazyValue[T]) TryGetValue() Result[T] {
+	if !o.IsInitialized() {
+		o.m.Lock()
+		defer o.m.Unlock()
+		if o.done == 0 {
+			defer o.markInit()
+			if o.onceInit == nil {
+				o.value = Err[T](ErrLazyValueWithoutInit)
+			} else {
+				var v T
+				err := o.onceInit(&v)
+				o.value = Ret[T](v, err)
+			}
+		}
 	}
-	return None[T]()
-}
-
-// TryGetPtr concurrency-safe get the Option[*T].
-// NOTE: if it is not initialized, return None
-func (o *LazyValue[T]) TryGetPtr() Option[*T] {
-	if o.IsInitialized() {
-		return Some(&o.value)
-	}
-	return None[*T]()
-}
-
-// GetValue concurrency-unsafe get the raw value.
-// NOTE: if it is not initialized and mustInitialized is true, panic
-func (o *LazyValue[T]) GetValue(mustInitialized bool) T {
-	if !mustInitialized || o.IsInitialized() {
-		return o.value
-	}
-	panic("LazyValue is not initialized")
-}
-
-// GetPtr concurrency-unsafe get the raw value pointer.
-// NOTE: if it is not initialized and mustInitialized is true, panic
-func (o *LazyValue[T]) GetPtr(mustInitialized bool) *T {
-	if !mustInitialized || o.IsInitialized() {
-		return &o.value
-	}
-	panic("LazyValue is not initialized")
+	return o.value
 }
