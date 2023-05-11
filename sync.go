@@ -367,6 +367,26 @@ type LazyValue[T any] struct {
 	onceInit func() Result[T]
 }
 
+// NewLazyValue new empty LazyValue.
+func NewLazyValue[T any]() *LazyValue[T] {
+	return new(LazyValue[T])
+}
+
+// NewLazyValueWithFunc new LazyValue with initialization function.
+func NewLazyValueWithFunc[T any](onceInit func() Result[T]) *LazyValue[T] {
+	return new(LazyValue[T]).SetInitFunc(onceInit)
+}
+
+// NewLazyValueWithValue new LazyValue with initialization value.
+func NewLazyValueWithValue[T any](v T) *LazyValue[T] {
+	return new(LazyValue[T]).SetInitValue(v)
+}
+
+// NewLazyValueWithZero new LazyValue with zero.
+func NewLazyValueWithZero[T any]() *LazyValue[T] {
+	return new(LazyValue[T]).SetInitZero()
+}
+
 // SetInitFunc set initialization function.
 // NOTE: onceInit can not be nil
 func (o *LazyValue[T]) SetInitFunc(onceInit func() Result[T]) *LazyValue[T] {
