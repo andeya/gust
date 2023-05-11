@@ -396,6 +396,17 @@ func (o *LazyValue[T]) SetInitValue(v T) *LazyValue[T] {
 	return o
 }
 
+// Zero creates a zero T.
+func (*LazyValue[T]) Zero() T {
+	var v T
+	return v
+}
+
+// SetInitZero set the zero value for initialization.
+func (o *LazyValue[T]) SetInitZero() *LazyValue[T] {
+	return o.SetInitValue(o.Zero())
+}
+
 // IsInitialized determine whether it is initialized.
 func (o *LazyValue[T]) IsInitialized() bool {
 	return atomic.LoadUint32(&o.done) != 0
@@ -407,8 +418,7 @@ func (o *LazyValue[T]) markInit() {
 
 const ErrLazyValueWithoutInit = "*LazyValue[T]: onceInit function is nil"
 
-// TryGetValue concurrency-safe get the Option[T].
-// NOTE: if it is not initialized, return None
+// TryGetValue concurrency-safe get the Result[T].
 func (o *LazyValue[T]) TryGetValue() Result[T] {
 	if !o.IsInitialized() {
 		o.m.Lock()
@@ -425,10 +435,4 @@ func (o *LazyValue[T]) TryGetValue() Result[T] {
 		}
 	}
 	return o.value
-}
-
-// Zero creates a zero T.
-func (*LazyValue[T]) Zero() T {
-	var v T
-	return v
 }
