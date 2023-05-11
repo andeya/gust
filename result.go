@@ -301,6 +301,11 @@ func (r Result[T]) ContainsErr(err any) bool {
 	return errors.Is(r.inner.safeGetE(), toError(err))
 }
 
+// AsPtr returns its pointer or nil.
+func (r Result[T]) AsPtr() *T {
+	return r.inner.AsPtr()
+}
+
 func (r Result[T]) MarshalJSON() ([]byte, error) {
 	return r.inner.MarshalJSON()
 }
@@ -339,15 +344,7 @@ func (r Result[T]) CtrlFlow() CtrlFlow[error, T] {
 //
 //	If there is an error, that panic should be caught with CatchResult[U]
 func (r Result[T]) UnwrapOrThrow() T {
-	if r.inner.isErr {
-		if r.inner.value == nil {
-			var err error
-			v := any(toError(err))
-			panic(panicValue[*any]{&v})
-		}
-		panic(panicValue[*any]{r.inner.value})
-	}
-	return r.inner.safeGetT()
+	return r.inner.UnwrapOrThrow()
 }
 
 // CatchResult catches panic caused by Result[T].UnwrapOrThrow() and sets error to *Result[U]
@@ -363,9 +360,9 @@ func (r Result[T]) UnwrapOrThrow() T {
 func CatchResult[U any](result *Result[U]) {
 	switch p := recover().(type) {
 	case nil:
-	case panicValue[*any]:
-		result.inner.value = p.value
-		result.inner.isErr = true
+	case panicValue[*error]:
+		result.inner.t = None[U]()
+		result.inner.e = p.value
 	default:
 		panic(p)
 	}
