@@ -101,6 +101,14 @@ func TestLazyValuePanic2(t *testing.T) {
 	t.Fatalf("unreachable")
 }
 
+func TestLazyValueGetPtr(t *testing.T) {
+	assert.Equal(t, (*int)(nil), new(gust.LazyValue[int]).GetPtr())
+	var zero int = 0
+	assert.Equal(t, &zero, new(gust.LazyValue[int]).SetInitZero().GetPtr())
+	var one int = 1
+	assert.Equal(t, &one, new(gust.LazyValue[int]).SetInitValue(1).GetPtr())
+}
+
 func BenchmarkLazyValue(b *testing.B) {
 	var once = new(gust.LazyValue[struct{}])
 	b.RunParallel(func(pb *testing.PB) {

@@ -436,3 +436,8 @@ func (o *LazyValue[T]) TryGetValue() Result[T] {
 	}
 	return o.value
 }
+
+// GetPtr returns its pointer or nil.
+func (o *LazyValue[T]) GetPtr() *T {
+	return o.TryGetValue().AsPtr()
+}
