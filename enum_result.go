@@ -7,40 +7,36 @@ import (
 
 // EnumOk wraps a successful result enumeration.
 func EnumOk[T any, E any](ok T) EnumResult[T, E] {
-	v := any(ok)
-	return EnumResult[T, E]{value: &v, isErr: false}
+	return EnumResult[T, E]{t: Some(ok)}
 }
 
 // EnumErr wraps a failure result enumeration.
 func EnumErr[T any, E any](err E) EnumResult[T, E] {
-	v := any(err)
-	return EnumResult[T, E]{value: &v, isErr: true}
+	return EnumResult[T, E]{e: &err}
 }
 
 // EnumResult represents a success (T) or failure (E) enumeration.
 type EnumResult[T any, E any] struct {
-	value *any
-	isErr bool
+	t Option[T]
+	e *E
 }
 
 // IsValid returns true if the object is initialized.
 func (r *EnumResult[T, E]) IsValid() bool {
-	return r != nil && r.value != nil
+	return r != nil && (r.e != nil || r.t.IsSome())
 }
 
 func (r EnumResult[T, E]) safeGetT() T {
-	if !r.isErr && r.value != nil {
-		v, _ := (*r.value).(T)
-		return v
+	if r.t.IsSome() {
+		return r.t.UnwrapUnchecked()
 	}
 	var t T
 	return t
 }
 
 func (r EnumResult[T, E]) safeGetE() E {
-	if r.isErr && r.value != nil {
-		v, _ := (*r.value).(E)
-		return v
+	if r.e != nil {
+		return *r.e
 	}
 	var e E
 	return e
@@ -53,7 +49,7 @@ func (r EnumResult[T, E]) Split() (T, E) {
 
 // IsErr returns true if the result is E.
 func (r EnumResult[T, E]) IsErr() bool {
-	return r.isErr
+	return r.e != nil
 }
 
 // IsOk returns true if the result is ok.
@@ -103,18 +99,12 @@ func (r EnumResult[T, E]) IsErrAnd(f func(E) bool) bool {
 
 // Ok converts from `Result[T,E]` to `Option[T]`.
 func (r EnumResult[T, E]) Ok() Option[T] {
-	if r.IsOk() {
-		return Some(r.safeGetT())
-	}
-	return None[T]()
+	return r.t
 }
 
 // XOk converts from `Result[T,E]` to `Option[any]`.
 func (r EnumResult[T, E]) XOk() Option[any] {
-	if r.IsOk() {
-		return Some[any](r.safeGetT())
-	}
-	return None[any]()
+	return r.t.ToX()
 }
 
 // Err returns E value `Option[E]`.
@@ -136,27 +126,41 @@ func (r EnumResult[T, E]) XErr() Option[any] {
 // ToXOk converts from `EnumResult[T,E]` to EnumResult[any,E].
 // nolint:gosimple
 func (r EnumResult[T, E]) ToXOk() EnumResult[any, E] {
+	if r.IsErr() {
+		return EnumResult[any, E]{
+			e: r.e,
+		}
+	}
 	return EnumResult[any, E]{
-		value: r.value,
-		isErr: r.isErr,
+		t: r.t.ToX(),
 	}
 }
 
 // ToXErr converts from `EnumResult[T,E]` to EnumResult[T,any].
 // nolint:gosimple
 func (r EnumResult[T, E]) ToXErr() EnumResult[T, any] {
+	if r.IsErr() {
+		e := any(*r.e)
+		return EnumResult[T, any]{
+			e: &e,
+		}
+	}
 	return EnumResult[T, any]{
-		value: r.value,
-		isErr: r.isErr,
+		t: r.t,
 	}
 }
 
 // ToX converts from `EnumResult[T,E]` to EnumResult[any,any].
 // nolint:gosimple
 func (r EnumResult[T, E]) ToX() EnumResult[any, any] {
+	if r.IsErr() {
+		e := any(*r.e)
+		return EnumResult[any, any]{
+			e: &e,
+		}
+	}
 	return EnumResult[any, any]{
-		value: r.value,
-		isErr: r.isErr,
+		t: r.t.ToX(),
 	}
 }
 
@@ -391,6 +395,11 @@ func (r EnumResult[T, E]) UnwrapOrElse(defaultFn func(E) T) T {
 	return r.safeGetT()
 }
 
+// AsPtr returns its pointer or nil.
+func (r EnumResult[T, E]) AsPtr() *T {
+	return r.t.AsPtr()
+}
+
 func (r EnumResult[T, E]) MarshalJSON() ([]byte, error) {
 	if r.IsErr() {
 		return nil, toError(r.safeGetE())
@@ -402,13 +411,12 @@ func (r *EnumResult[T, E]) UnmarshalJSON(b []byte) error {
 	var t T
 	err := json.Unmarshal(b, &t)
 	if err != nil {
-		r.isErr = true
-		e := any(fromError[E](err))
-		r.value = &e
+		r.t = None[T]()
+		e := fromError[E](err)
+		r.e = &e
 	} else {
-		r.isErr = false
-		v := any(t)
-		r.value = &v
+		r.t = Some(t)
+		r.e = nil
 	}
 	return err
 }
@@ -427,23 +435,15 @@ var (
 )
 
 func (r EnumResult[T, E]) Next() Option[T] {
-	if r.isErr || r.value == nil || *r.value == nil {
-		return None[T]()
-	}
-	v := *r.value
-	*r.value = nil
-	return Some[T](v.(T))
+	return r.t.Next()
 }
 
 func (r EnumResult[T, E]) NextBack() Option[T] {
-	return r.Next()
+	return r.t.NextBack()
 }
 
 func (r EnumResult[T, E]) Remaining() uint {
-	if r.isErr || r.value == nil || *r.value == nil {
-		return 0
-	}
-	return 1
+	return r.t.Remaining()
 }
 
 // CtrlFlow returns the `CtrlFlow[E, T]`.
@@ -454,18 +454,13 @@ func (r EnumResult[T, E]) CtrlFlow() CtrlFlow[E, T] {
 	return Continue[E, T](r.safeGetT())
 }
 
-// UnwrapOrThrow returns the contained T or panic returns E (panicValue[*any]).
+// UnwrapOrThrow returns the contained T or panic returns E (panicValue[*E]).
 // NOTE:
 //
 //	If there is an E, that panic should be caught with CatchEnumResult[U, E]
 func (r EnumResult[T, E]) UnwrapOrThrow() T {
-	if r.isErr {
-		if r.value == nil {
-			var e E
-			v := any(e)
-			panic(panicValue[*any]{&v})
-		}
-		panic(panicValue[*any]{r.value})
+	if r.IsErr() {
+		panic(panicValue[*E]{r.e})
 	}
 	return r.safeGetT()
 }
@@ -483,14 +478,9 @@ func (r EnumResult[T, E]) UnwrapOrThrow() T {
 func CatchEnumResult[U any, E any](result *EnumResult[U, E]) {
 	switch p := recover().(type) {
 	case nil:
-	case panicValue[*any]:
-		result.value = p.value
-		result.isErr = true
 	case panicValue[*E]:
-		// from Errable[E].TryThrow(), p.value != nil
-		v := any(*p.value)
-		result.value = &v
-		result.isErr = true
+		result.t = None[U]()
+		result.e = p.value
 	default:
 		panic(p)
 	}
