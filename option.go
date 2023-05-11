@@ -279,7 +279,7 @@ func (o Option[T]) XMapOrElse(defaultFn func() any, f func(T) any) any {
 // [`Ok(v)`] and [`None`] to [`Err(err)`].
 func (o Option[T]) OkOr(err any) Result[T] {
 	if o.IsSome() {
-		return Ok(o.UnwrapUnchecked())
+		return Result[T]{inner: EnumResult[T, error]{t: o}}
 	}
 	return Err[T](err)
 }
@@ -297,7 +297,7 @@ func (o Option[T]) XOkOr(err any) Result[any] {
 // [`Ok(v)`] and [`None`] to [`Err(errFn())`].
 func (o Option[T]) OkOrElse(errFn func() any) Result[T] {
 	if o.IsSome() {
-		return Ok(o.UnwrapUnchecked())
+		return Result[T]{inner: EnumResult[T, error]{t: o}}
 	}
 	return Err[T](errFn())
 }
@@ -315,7 +315,7 @@ func (o Option[T]) XOkOrElse(errFn func() any) Result[any] {
 // [`EnumOk(v)`] and [`None`] to [`EnumErr(err)`].
 func (o Option[T]) EnumOkOr(err any) EnumResult[T, any] {
 	if o.IsSome() {
-		return EnumOk[T, any](o.UnwrapUnchecked())
+		return EnumResult[T, any]{t: o}
 	}
 	return EnumErr[T, any](err)
 }
@@ -333,7 +333,7 @@ func (o Option[T]) XEnumOkOr(err any) EnumResult[any, any] {
 // [`EnumOk(v)`] and [`None`] to [`EnumErr(errFn())`].
 func (o Option[T]) EnumOkOrElse(errFn func() any) EnumResult[T, any] {
 	if o.IsSome() {
-		return EnumOk[T, any](o.UnwrapUnchecked())
+		return EnumResult[T, any]{t: o}
 	}
 	return EnumErr[T, any](errFn())
 }
@@ -462,7 +462,7 @@ func (o *Option[T]) GetOrInsertDefault() *T {
 
 // AsPtr returns its pointer or nil.
 func (o *Option[T]) AsPtr() *T {
-	if o.value == nil {
+	if o == nil || o.value == nil {
 		return nil
 	}
 	return *o.value
