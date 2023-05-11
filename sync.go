@@ -364,12 +364,12 @@ type LazyValue[T any] struct {
 	done     uint32
 	m        sync.Mutex
 	value    Result[T]
-	onceInit func(ptr *T) error
+	onceInit func() Result[T]
 }
 
-// SetInitSetter set initialization function.
+// SetInitFunc set initialization function.
 // NOTE: onceInit can not be nil
-func (o *LazyValue[T]) SetInitSetter(onceInit func(ptr *T) error) *LazyValue[T] {
+func (o *LazyValue[T]) SetInitFunc(onceInit func() Result[T]) *LazyValue[T] {
 	if o.IsInitialized() {
 		return o
 	}
@@ -379,19 +379,10 @@ func (o *LazyValue[T]) SetInitSetter(onceInit func(ptr *T) error) *LazyValue[T] 
 	return o
 }
 
-// SetInitClosure set initialization function.
-// NOTE: onceInit can not be nil
-func (o *LazyValue[T]) SetInitClosure(onceInit func() error) *LazyValue[T] {
-	return o.SetInitSetter(func(ptr *T) error {
-		return onceInit()
-	})
-}
-
 // SetInitValue set the initialization value.
 func (o *LazyValue[T]) SetInitValue(v T) *LazyValue[T] {
-	_ = o.SetInitSetter(func(ptr *T) error {
-		*ptr = v
-		return nil
+	_ = o.SetInitFunc(func() Result[T] {
+		return Ok(v)
 	})
 	return o
 }
@@ -428,9 +419,7 @@ func (o *LazyValue[T]) TryGetValue() Result[T] {
 			if o.onceInit == nil {
 				o.value = Err[T](ErrLazyValueWithoutInit)
 			} else {
-				var v T
-				err := o.onceInit(&v)
-				o.value = Ret[T](v, err)
+				o.value = o.onceInit()
 			}
 		}
 	}
