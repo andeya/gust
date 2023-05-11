@@ -426,3 +426,9 @@ func (o *LazyValue[T]) TryGetValue() Result[T] {
 	}
 	return o.value
 }
+
+// Zero creates a zero T.
+func (*LazyValue[T]) Zero() T {
+	var v T
+	return v
+}
