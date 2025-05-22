@@ -77,22 +77,22 @@ func EnumChan[T any](c chan T) Iterator[gust.VecEntry[T]] {
 }
 
 // FromResult creates a double ended iterator from a result.
-func FromResult[T any](ret gust.Result[T]) DeIterator[T] {
+func FromResult[T any](ret *gust.Result[T]) DeIterator[T] {
 	return FromDeIterable[T](ret)
 }
 
 // EnumResult creates a double ended iterator with index from a result.
-func EnumResult[T any](ret gust.Result[T]) DeIterator[gust.VecEntry[T]] {
+func EnumResult[T any](ret *gust.Result[T]) DeIterator[gust.VecEntry[T]] {
 	return EnumDeIterable[T](ret)
 }
 
 // FromOption creates a double ended iterator from an option.
-func FromOption[T any](opt gust.Option[T]) DeIterator[T] {
+func FromOption[T any](opt *gust.Option[T]) DeIterator[T] {
 	return FromDeIterable[T](opt)
 }
 
 // EnumOption creates a double ended iterator with index from an option.
-func EnumOption[T any](opt gust.Option[T]) DeIterator[gust.VecEntry[T]] {
+func EnumOption[T any](opt *gust.Option[T]) DeIterator[gust.VecEntry[T]] {
 	return EnumDeIterable[T](opt)
 }
 

@@ -1,8 +1,10 @@
 package gust
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 )
 
 // Ret wraps a result.
@@ -34,6 +36,13 @@ func FmtErr[T any](format string, a ...any) Result[T] {
 // represents either success (T) or failure (error).
 type Result[T any] struct {
 	inner EnumResult[T, error]
+}
+
+// Ref returns the pointer of the object.
+//
+//go:inline
+func (r Result[T]) Ref() *Result[T] {
+	return &r
 }
 
 // IsValid returns true if the object is initialized.
@@ -318,23 +327,33 @@ func (r Result[T]) MarshalJSON() ([]byte, error) {
 }
 
 func (r *Result[T]) UnmarshalJSON(b []byte) error {
+	if r == nil {
+		var t T
+		return &json.InvalidUnmarshalError{Type: reflect.TypeOf(t)}
+	}
 	return r.inner.UnmarshalJSON(b)
 }
 
 var (
-	_ Iterable[any]   = Result[any]{}
-	_ DeIterable[any] = Result[any]{}
+	_ Iterable[any]   = new(Result[any])
+	_ DeIterable[any] = new(Result[any])
 )
 
-func (r Result[T]) Next() Option[T] {
+func (r *Result[T]) Next() Option[T] {
+	if r == nil {
+		return None[T]()
+	}
 	return r.inner.Next()
 }
 
-func (r Result[T]) NextBack() Option[T] {
-	return r.inner.NextBack()
+func (r *Result[T]) NextBack() Option[T] {
+	return r.Next()
 }
 
-func (r Result[T]) Remaining() uint {
+func (r *Result[T]) Remaining() uint {
+	if r == nil {
+		return 0
+	}
 	return r.inner.Remaining()
 }
 
@@ -368,6 +387,9 @@ func (r *Result[T]) Catch() {
 	switch p := recover().(type) {
 	case nil:
 	case panicValue[error]:
+		if r == nil {
+			panic(p.ValueOrDefault())
+		}
 		if r.inner.t.IsSome() {
 			r.inner.t = None[T]()
 		}
@@ -391,6 +413,9 @@ func CatchResult[U any](result *Result[U]) {
 	switch p := recover().(type) {
 	case nil:
 	case panicValue[error]:
+		if result == nil {
+			panic(p.ValueOrDefault())
+		}
 		if result.inner.t.IsSome() {
 			result.inner.t = None[U]()
 		}

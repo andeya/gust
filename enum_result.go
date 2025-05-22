@@ -3,6 +3,7 @@ package gust
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 )
 
 // EnumOk wraps a successful result enumeration.
@@ -19,6 +20,13 @@ func EnumErr[T any, E any](err E) EnumResult[T, E] {
 type EnumResult[T any, E any] struct {
 	t Option[T]
 	e *E
+}
+
+// Ref returns the pointer of the object.
+//
+//go:inline
+func (r EnumResult[T, E]) Ref() *EnumResult[T, E] {
+	return &r
 }
 
 // IsValid returns true if the object is initialized.
@@ -409,6 +417,9 @@ func (r EnumResult[T, E]) MarshalJSON() ([]byte, error) {
 
 func (r *EnumResult[T, E]) UnmarshalJSON(b []byte) error {
 	var t T
+	if r == nil {
+		return &json.InvalidUnmarshalError{Type: reflect.TypeOf(t)}
+	}
 	err := json.Unmarshal(b, &t)
 	if err != nil {
 		r.t = None[T]()
@@ -430,19 +441,25 @@ func fromError[E any](e error) E {
 }
 
 var (
-	_ Iterable[any]   = EnumResult[any, any]{}
-	_ DeIterable[any] = EnumResult[any, any]{}
+	_ Iterable[any]   = new(EnumResult[any, any])
+	_ DeIterable[any] = new(EnumResult[any, any])
 )
 
-func (r EnumResult[T, E]) Next() Option[T] {
+func (r *EnumResult[T, E]) Next() Option[T] {
+	if r == nil {
+		return None[T]()
+	}
 	return r.t.Next()
 }
 
-func (r EnumResult[T, E]) NextBack() Option[T] {
-	return r.t.NextBack()
+func (r *EnumResult[T, E]) NextBack() Option[T] {
+	return r.Next()
 }
 
-func (r EnumResult[T, E]) Remaining() uint {
+func (r *EnumResult[T, E]) Remaining() uint {
+	if r == nil {
+		return 0
+	}
 	return r.t.Remaining()
 }
 
@@ -479,6 +496,9 @@ func (r *EnumResult[T, E]) Catch() {
 	switch p := recover().(type) {
 	case nil:
 	case panicValue[E]:
+		if r == nil {
+			panic(p.ValueOrDefault())
+		}
 		if r.t.IsSome() {
 			r.t = None[T]()
 		}
@@ -502,6 +522,9 @@ func CatchEnumResult[U any, E any](result *EnumResult[U, E]) {
 	switch p := recover().(type) {
 	case nil:
 	case panicValue[E]:
+		if result == nil {
+			panic(p.ValueOrDefault())
+		}
 		if result.t.IsSome() {
 			result.t = None[U]()
 		}

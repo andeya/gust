@@ -3,6 +3,7 @@ package gust
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"unsafe"
 )
 
@@ -11,30 +12,27 @@ import (
 //
 //	`ok=true` is wrapped as Some,
 //	and `ok=false` is wrapped as None.
-func BoolOpt[T any](val T, ok bool) Option[T] {
+func BoolOpt[T any](value T, ok bool) Option[T] {
 	if !ok {
 		return Option[T]{value: nil}
 	}
-	v := &val
-	return Option[T]{value: &v}
+	return Option[T]{value: &value}
 }
 
 // AssertOpt wraps a value as an Option.
 func AssertOpt[T any](i any) Option[T] {
-	val, ok := i.(T)
+	value, ok := i.(T)
 	if !ok {
 		return Option[T]{value: nil}
 	}
-	v := &val
-	return Option[T]{value: &v}
+	return Option[T]{value: &value}
 }
 
 // BoolAssertOpt wraps a value as an Option.
 func BoolAssertOpt[T any](i any, ok bool) Option[T] {
 	if ok {
-		if val, ok2 := i.(T); ok2 {
-			v := &val
-			return Option[T]{value: &v}
+		if value, ok2 := i.(T); ok2 {
+			return Option[T]{value: &value}
 		}
 	}
 	return Option[T]{value: nil}
@@ -49,8 +47,7 @@ func PtrOpt[U any, T *U](ptr T) Option[T] {
 	if ptr == nil {
 		return Option[T]{value: nil}
 	}
-	v := &ptr
-	return Option[T]{value: &v}
+	return Option[T]{value: &ptr}
 }
 
 // ElemOpt wraps a value from pointer.
@@ -62,7 +59,7 @@ func ElemOpt[T any](ptr *T) Option[T] {
 	if ptr == nil {
 		return Option[T]{value: nil}
 	}
-	return Option[T]{value: &ptr}
+	return Option[T]{value: ptr}
 }
 
 // ZeroOpt wraps a value as an Option.
@@ -70,13 +67,12 @@ func ElemOpt[T any](ptr *T) Option[T] {
 //
 //	`non-zero T` is wrapped as Some,
 //	and `zero T` is wrapped as None.
-func ZeroOpt[T comparable](val T) Option[T] {
+func ZeroOpt[T comparable](value T) Option[T] {
 	var zero T
-	if zero == val {
+	if zero == value {
 		return Option[T]{value: nil}
 	}
-	v := &val
-	return Option[T]{value: &v}
+	return Option[T]{value: &value}
 }
 
 // Some wraps a non-none value.
@@ -85,8 +81,7 @@ func ZeroOpt[T comparable](val T) Option[T] {
 //	Option[T].IsSome() returns true.
 //	and Option[T].IsNone() returns false.
 func Some[T any](value T) Option[T] {
-	v := &value
-	return Option[T]{value: &v}
+	return Option[T]{value: &value}
 }
 
 // None returns a none.
@@ -103,7 +98,14 @@ func None[T any]() Option[T] {
 //
 //	every [`Option`] is either [`Some`](which is non-none T), or [`None`](which is none).
 type Option[T any] struct {
-	value **T
+	value *T
+}
+
+// Ref returns the pointer of the object.
+//
+//go:inline
+func (o Option[T]) Ref() *Option[T] {
+	return &o
 }
 
 // String returns the string representation.
@@ -146,7 +148,7 @@ func (o Option[T]) IsSomeAnd(f func(T) bool) bool {
 
 // IsNone returns `true` if the option is none.
 func (o Option[T]) IsNone() bool {
-	return o.value == nil || *o.value == nil
+	return o.value == nil
 }
 
 // Expect returns the contained [`Some`] value.
@@ -193,18 +195,18 @@ func (o Option[T]) UnwrapOrDefault() T {
 }
 
 // Take takes the value out of the option, leaving a [`None`] in its place.
-func (o Option[T]) Take() Option[T] {
-	if o.IsNone() {
+func (o *Option[T]) Take() Option[T] {
+	if o == nil || o.IsNone() {
 		return None[T]()
 	}
-	v := *o.value
-	*o.value = nil
-	return Option[T]{value: &v}
+	v := o.value
+	o.value = nil
+	return Option[T]{value: v}
 }
 
 // UnwrapUnchecked returns the contained value.
 func (o Option[T]) UnwrapUnchecked() T {
-	return **o.value
+	return *o.value
 }
 
 // Map maps an `Option[T]` to `Option[T]` by applying a function to a contained value.
@@ -419,45 +421,52 @@ func (o Option[T]) Xor(optb Option[T]) Option[T] {
 
 // Insert inserts `value` into the option, then returns its pointer.
 func (o *Option[T]) Insert(some T) *T {
-	v := &some
-	o.value = &v
-	return v
+	if o == nil {
+		return nil
+	}
+	o.value = &some
+	return o.value
 }
 
 // GetOrInsert inserts `value` into the option if it is [`None`], then
 // returns the contained value pointer.
 func (o *Option[T]) GetOrInsert(some T) *T {
-	if o.IsNone() {
-		v := &some
-		o.value = &v
+	if o == nil {
+		return nil
 	}
-	return *o.value
+	if o.IsNone() {
+		o.value = &some
+	}
+	return o.value
 }
 
 // GetOrInsertWith inserts a value computed from `f` into the option if it is [`None`],
 // then returns the contained value.
 func (o *Option[T]) GetOrInsertWith(f func() T) *T {
+	if o == nil {
+		return nil
+	}
 	if o.IsNone() {
-		var v *T
 		if f == nil {
-			v = defaultValuePtr[T]()
+			o.value = defaultValuePtr[T]()
 		} else {
 			var some = f()
-			v = &some
+			o.value = &some
 		}
-		o.value = &v
 	}
-	return *o.value
+	return o.value
 }
 
 // GetOrInsertDefault inserts default value into the option if it is [`None`], then
 // returns the contained value pointer.
 func (o *Option[T]) GetOrInsertDefault() *T {
-	if o.IsNone() {
-		v := defaultValuePtr[T]()
-		o.value = &v
+	if o == nil {
+		return nil
 	}
-	return *o.value
+	if o.IsNone() {
+		o.value = defaultValuePtr[T]()
+	}
+	return o.value
 }
 
 // AsPtr returns its pointer or nil.
@@ -465,7 +474,7 @@ func (o *Option[T]) AsPtr() *T {
 	if o == nil || o.value == nil {
 		return nil
 	}
-	return *o.value
+	return o.value
 }
 
 // Replace replaces the actual value in the option by the value given in parameter,
@@ -473,8 +482,7 @@ func (o *Option[T]) AsPtr() *T {
 // leaving a [`Some`] in its place without deinitializing either one.
 func (o *Option[T]) Replace(some T) (old Option[T]) {
 	old.value = o.value
-	v := &some
-	o.value = &v
+	o.value = &some
 	return old
 }
 
@@ -488,6 +496,10 @@ func (o Option[T]) MarshalJSON() ([]byte, error) {
 }
 
 func (o *Option[T]) UnmarshalJSON(b []byte) error {
+	if o == nil {
+		var v T
+		return &json.InvalidUnmarshalError{Type: reflect.TypeOf(v)}
+	}
 	o.value = nil
 	if *(*string)(unsafe.Pointer(&b)) == null {
 		return nil
@@ -495,31 +507,31 @@ func (o *Option[T]) UnmarshalJSON(b []byte) error {
 	var value = new(T)
 	err := json.Unmarshal(b, value)
 	if err == nil {
-		o.value = &value
+		o.value = value
 	}
 	return err
 }
 
 var (
-	_ Iterable[any]   = Option[any]{}
-	_ DeIterable[any] = Option[any]{}
+	_ Iterable[any]   = new(Option[any])
+	_ DeIterable[any] = new(Option[any])
 )
 
-func (o Option[T]) Next() Option[T] {
-	if o.IsNone() {
-		return o
+func (o *Option[T]) Next() Option[T] {
+	if o == nil || o.IsNone() {
+		return None[T]()
 	}
 	v := o.Unwrap()
-	*o.value = nil
+	o.value = nil
 	return Some(v)
 }
 
-func (o Option[T]) NextBack() Option[T] {
+func (o *Option[T]) NextBack() Option[T] {
 	return o.Next()
 }
 
-func (o Option[T]) Remaining() uint {
-	if o.IsNone() {
+func (o *Option[T]) Remaining() uint {
+	if o == nil || o.IsNone() {
 		return 0
 	}
 	return 1

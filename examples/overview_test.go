@@ -57,12 +57,12 @@ func TestResultFlatten(t *testing.T) {
 	var results []gust.Result[uint64]
 	var errs []error
 	var nums = iter.
-		ToFlatten[gust.Result[uint64], uint64](
-		iter.ToMap[string, gust.Result[uint64]](
+		ToFlatten[*gust.Result[uint64], uint64](
+		iter.ToMap[string, *gust.Result[uint64]](
 			iter.FromElements("17", "not a number", "99", "-27", "768"),
-			func(s string) gust.Result[uint64] { return gust.Ret(strconv.ParseUint(s, 10, 64)) },
+			func(s string) *gust.Result[uint64] { return gust.Ret(strconv.ParseUint(s, 10, 64)).Ref() },
 		).
-			ToInspect(func(x gust.Result[uint64]) {
+			ToInspect(func(x *gust.Result[uint64]) {
 				// Save clones of the raw `Result` values to inspect
 				results = append(results,
 					x.InspectErr(func(err error) {

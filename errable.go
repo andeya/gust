@@ -222,6 +222,9 @@ func (e *Errable[E]) Catch() {
 	switch p := recover().(type) {
 	case nil:
 	case panicValue[E]:
+		if e == nil {
+			panic(p.ValueOrDefault())
+		}
 		e.errVal = p.value
 	default:
 		panic(p)
@@ -242,6 +245,9 @@ func CatchErrable[E any](errable *Errable[E]) {
 	switch p := recover().(type) {
 	case nil:
 	case panicValue[E]:
+		if errable == nil {
+			panic(p.ValueOrDefault())
+		}
 		errable.errVal = p.value
 	default:
 		panic(p)

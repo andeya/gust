@@ -46,12 +46,26 @@ type panicValue[T any] struct {
 	value *T
 }
 
+func (p panicValue[T]) ValueOrDefault() T {
+	if p.value == nil {
+		var t T
+		return t
+	}
+	return *p.value
+}
+
 func (p panicValue[T]) String() string {
-	return fmt.Sprintf("%v", p.value)
+	if p.value == nil {
+		return fmt.Sprintf("%v", p.value)
+	}
+	return fmt.Sprintf("%v", *p.value)
 }
 
 func (p panicValue[T]) GoString() string {
-	return fmt.Sprintf("%#v", p.value)
+	if p.value == nil {
+		return fmt.Sprintf("%#v", p.value)
+	}
+	return fmt.Sprintf("%#v", *p.value)
 }
 
 func (p panicValue[T]) Error() string {
