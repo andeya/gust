@@ -23,8 +23,10 @@ func Err[T any](err any) Result[T] {
 	return Result[T]{inner: EnumErr[T, error](toError(err))}
 }
 
-// ErrFmt wraps a failure result with a formatted error.
-func ErrFmt[T any](format string, a ...any) Result[T] {
+// FmtErr wraps a failure result with a formatted error.
+//
+//go:inline
+func FmtErr[T any](format string, a ...any) Result[T] {
 	return Err[T](fmt.Errorf(format, a...))
 }
 

@@ -1,6 +1,7 @@
 package gust
 
 import (
+	"fmt"
 	"reflect"
 )
 
@@ -97,7 +98,16 @@ func ToErrable[E any](errVal E) Errable[E] {
 	return Errable[E]{errVal: &errVal}
 }
 
+// FmtErrable wraps an Errable with a formatted error.
+//
+//go:inline
+func FmtErrable(format string, args ...any) Errable[error] {
+	return ToErrable(fmt.Errorf(format, args...))
+}
+
 // TryPanic panics if the errVal is not nil.
+//
+//go:inline
 func TryPanic[E any](errVal E) {
 	ToErrable(errVal).TryPanic()
 }
@@ -106,6 +116,8 @@ func TryPanic[E any](errVal E) {
 // NOTE:
 //
 //	If there is an E, that panic should be caught with CatchErrable[E] or CatchEnumResult[U, E].
+//
+//go:inline
 func TryThrow[E any](errVal E) {
 	ToErrable(errVal).TryThrow()
 }
