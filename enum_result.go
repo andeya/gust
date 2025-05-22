@@ -460,9 +460,32 @@ func (r EnumResult[T, E]) CtrlFlow() CtrlFlow[E, T] {
 //	If there is an E, that panic should be caught with CatchEnumResult[U, E]
 func (r EnumResult[T, E]) UnwrapOrThrow() T {
 	if r.IsErr() {
-		panic(panicValue[*E]{r.e})
+		panic(panicValue[E]{r.e})
 	}
 	return r.safeGetT()
+}
+
+// CatchEnumResult catches panic caused by EnumResult[U, E].UnwrapOrThrow() or Errable[E].TryThrow(), and sets E to *EnumResult[T,E]
+// Example:
+//
+//	```go
+//	func example() (result EnumResult[int, string]) {
+//		defer result.Catch()
+//		EnumErr[string, string]("error").UnwrapOrThrow()
+//		return
+//	}
+//	```
+func (r *EnumResult[T, E]) Catch() {
+	switch p := recover().(type) {
+	case nil:
+	case panicValue[E]:
+		if r.t.IsSome() {
+			r.t = None[T]()
+		}
+		r.e = p.value
+	default:
+		panic(p)
+	}
 }
 
 // CatchEnumResult catches panic caused by EnumResult[T, E].UnwrapOrThrow() or Errable[E].TryThrow(), and sets E to *EnumResult[U,E]
@@ -478,8 +501,10 @@ func (r EnumResult[T, E]) UnwrapOrThrow() T {
 func CatchEnumResult[U any, E any](result *EnumResult[U, E]) {
 	switch p := recover().(type) {
 	case nil:
-	case panicValue[*E]:
-		result.t = None[U]()
+	case panicValue[E]:
+		if result.t.IsSome() {
+			result.t = None[U]()
+		}
 		result.e = p.value
 	default:
 		panic(p)

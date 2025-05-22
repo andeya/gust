@@ -1,6 +1,9 @@
 package gust
 
-import "reflect"
+import (
+	"fmt"
+	"reflect"
+)
 
 func defaultValue[T any]() T {
 	var zero T
@@ -40,5 +43,17 @@ func initNilPtr(v reflect.Value) (done bool) {
 }
 
 type panicValue[T any] struct {
-	value T
+	value *T
+}
+
+func (p panicValue[T]) String() string {
+	return fmt.Sprintf("%v", p.value)
+}
+
+func (p panicValue[T]) GoString() string {
+	return fmt.Sprintf("%#v", p.value)
+}
+
+func (p panicValue[T]) Error() string {
+	return fmt.Sprintf("%v", p.value)
 }

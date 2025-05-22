@@ -540,3 +540,13 @@ func (o Option[T]) ToErrable() Errable[T] {
 	}
 	return NonErrable[T]()
 }
+
+// UnwrapOrThrow returns the contained T or panic returns error (panicValue[*any]).
+// NOTE:
+//
+//	If there is an error, that panic should be caught with CatchResult[U]
+//
+//go:inline
+func (r Option[T]) UnwrapOrThrow(err any) T {
+	return r.OkOr(err).UnwrapOrThrow()
+}

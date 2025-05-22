@@ -23,6 +23,11 @@ func Err[T any](err any) Result[T] {
 	return Result[T]{inner: EnumErr[T, error](toError(err))}
 }
 
+// ErrFmt wraps a failure result with a formatted error.
+func ErrFmt[T any](format string, a ...any) Result[T] {
+	return Err[T](fmt.Errorf(format, a...))
+}
+
 // Result can be used to improve `func()(T,error)`,
 // represents either success (T) or failure (error).
 type Result[T any] struct {
@@ -347,6 +352,29 @@ func (r Result[T]) UnwrapOrThrow() T {
 	return r.inner.UnwrapOrThrow()
 }
 
+// Catch catches panic caused by Result[U].UnwrapOrThrow() and sets error to *Result[T]
+// Example:
+//
+//	```go
+//	func example() (result Result[string]) {
+//	   defer result.Catch()
+//	   Err[int]("int error").UnwrapOrThrow()
+//	   return Ok[string]("ok")
+//	}
+//	```
+func (r *Result[T]) Catch() {
+	switch p := recover().(type) {
+	case nil:
+	case panicValue[error]:
+		if r.inner.t.IsSome() {
+			r.inner.t = None[T]()
+		}
+		r.inner.e = p.value
+	default:
+		panic(p)
+	}
+}
+
 // CatchResult catches panic caused by Result[T].UnwrapOrThrow() and sets error to *Result[U]
 // Example:
 //
@@ -360,8 +388,10 @@ func (r Result[T]) UnwrapOrThrow() T {
 func CatchResult[U any](result *Result[U]) {
 	switch p := recover().(type) {
 	case nil:
-	case panicValue[*error]:
-		result.inner.t = None[U]()
+	case panicValue[error]:
+		if result.inner.t.IsSome() {
+			result.inner.t = None[U]()
+		}
 		result.inner.e = p.value
 	default:
 		panic(p)

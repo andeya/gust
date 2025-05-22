@@ -143,6 +143,43 @@ func TestResultUnwrapOrThrow_3(t *testing.T) {
 	assert.Equal(t, 0, v2)
 }
 
+func TestResultUnwrapOrThrow_4(t *testing.T) {
+	var r gust.Result[string]
+	defer func() {
+		assert.Equal(t, gust.Err[string]("err"), r)
+	}()
+	defer r.Catch()
+	var r1 = gust.Ok(1)
+	var v1 = r1.UnwrapOrThrow()
+	assert.Equal(t, 1, v1)
+	var r2 = gust.Err[int]("err")
+	var v2 = r2.UnwrapOrThrow()
+	assert.Equal(t, 0, v2)
+}
+
+func TestResultUnwrapOrThrow_5(t *testing.T) {
+	defer func() {
+		assert.Equal(t, "panic text", recover())
+	}()
+	var r gust.Result[string]
+	defer r.Catch()
+	panic("panic text")
+}
+
+func TestResultUnwrapOrThrow_6(t *testing.T) {
+	var r gust.EnumResult[string, error]
+	defer func() {
+		assert.Equal(t, gust.EnumErr[string, error](gust.ToErrBox("err")), r)
+	}()
+	defer gust.CatchEnumResult[string, error](&r)
+	var r1 = gust.Ok(1)
+	var v1 = r1.UnwrapOrThrow()
+	assert.Equal(t, 1, v1)
+	var r2 = gust.Err[int]("err")
+	var v2 = r2.UnwrapOrThrow()
+	assert.Equal(t, 0, v2)
+}
+
 func TestResult_And(t *testing.T) {
 	{
 		x := gust.Ok(2)

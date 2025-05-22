@@ -43,11 +43,11 @@ func ExampleErrable() {
 }
 
 func TestErrableTryThrow_1(t *testing.T) {
-	var r gust.Errable[int]
+	var e gust.Errable[int]
 	defer func() {
-		assert.Equal(t, gust.ToErrable[int](1), r)
+		assert.Equal(t, gust.ToErrable[int](1), e)
 	}()
-	defer gust.CatchErrable[int](&r)
+	defer gust.CatchErrable[int](&e)
 	gust.ToErrable(1).TryThrow()
 }
 
@@ -55,8 +55,8 @@ func TestErrableTryThrow_2(t *testing.T) {
 	defer func() {
 		assert.Equal(t, "panic text", recover())
 	}()
-	var r gust.Errable[string]
-	defer gust.CatchErrable[string](&r)
+	var e gust.Errable[string]
+	defer gust.CatchErrable[string](&e)
 	panic("panic text")
 }
 
@@ -84,5 +84,50 @@ func TestErrableTryThrow_5(t *testing.T) {
 		assert.Equal(t, gust.EnumErr[int, string]("err"), r)
 	}()
 	defer gust.CatchEnumResult[int, string](&r)
+	gust.TryThrow("err")
+}
+
+func TestErrableTryThrow_6(t *testing.T) {
+	var e gust.Errable[int]
+	defer func() {
+		assert.Equal(t, gust.ToErrable[int](1), e)
+	}()
+	defer e.Catch()
+	gust.ToErrable(1).TryThrow()
+}
+
+func TestErrableTryThrow_7(t *testing.T) {
+	defer func() {
+		assert.Equal(t, "panic text", recover())
+	}()
+	var e gust.Errable[string]
+	defer e.Catch()
+	panic("panic text")
+}
+
+func TestErrableTryThrow_8(t *testing.T) {
+	var r gust.Result[string]
+	defer func() {
+		assert.Equal(t, gust.Err[string]("err"), r)
+	}()
+	defer r.Catch()
+	assert.Equal(t, gust.Void(nil), gust.ToErrable("err").Result().UnwrapOrThrow())
+}
+
+func TestErrableTryThrow_9(t *testing.T) {
+	var r gust.EnumResult[int, string]
+	defer func() {
+		assert.Equal(t, gust.EnumErr[int, string]("err"), r)
+	}()
+	defer r.Catch()
+	assert.Equal(t, gust.Void(nil), gust.ToErrable("err").EnumResult().UnwrapOrThrow())
+}
+
+func TestErrableTryThrow_10(t *testing.T) {
+	var r gust.EnumResult[int, string]
+	defer func() {
+		assert.Equal(t, gust.EnumErr[int, string]("err"), r)
+	}()
+	defer r.Catch()
 	gust.TryThrow("err")
 }

@@ -192,7 +192,27 @@ func (e Errable[E]) TryPanic() {
 //	If there is an E, that panic should be caught with CatchErrable[E] or CatchEnumResult[U, E].
 func (e Errable[E]) TryThrow() {
 	if e.errVal != nil {
-		panic(panicValue[*E]{value: e.errVal})
+		panic(panicValue[E]{value: e.errVal})
+	}
+}
+
+// CatchErrable catches panic caused by Errable[E].TryThrow() and sets E to *Errable[E]
+// Example:
+//
+//	```go
+//	func example() (errable Errable[string]) {
+//		defer errable.Catch()
+//		ToErrable("panic error").TryThrow()
+//		return ToErrable("return error")
+//	}
+//	```
+func (e *Errable[E]) Catch() {
+	switch p := recover().(type) {
+	case nil:
+	case panicValue[E]:
+		e.errVal = p.value
+	default:
+		panic(p)
 	}
 }
 
@@ -206,11 +226,11 @@ func (e Errable[E]) TryThrow() {
 //		return ToErrable("return error")
 //	}
 //	```
-func CatchErrable[E any](result *Errable[E]) {
+func CatchErrable[E any](errable *Errable[E]) {
 	switch p := recover().(type) {
 	case nil:
-	case panicValue[*E]:
-		result.errVal = p.value
+	case panicValue[E]:
+		errable.errVal = p.value
 	default:
 		panic(p)
 	}
