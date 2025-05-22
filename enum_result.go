@@ -452,6 +452,7 @@ func (r *EnumResult[T, E]) Next() Option[T] {
 	return r.t.Next()
 }
 
+//go:inline
 func (r *EnumResult[T, E]) NextBack() Option[T] {
 	return r.Next()
 }

@@ -346,6 +346,7 @@ func (r *Result[T]) Next() Option[T] {
 	return r.inner.Next()
 }
 
+//go:inline
 func (r *Result[T]) NextBack() Option[T] {
 	return r.Next()
 }

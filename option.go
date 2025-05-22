@@ -526,6 +526,7 @@ func (o *Option[T]) Next() Option[T] {
 	return Some(v)
 }
 
+//go:inline
 func (o *Option[T]) NextBack() Option[T] {
 	return o.Next()
 }
