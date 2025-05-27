@@ -19,7 +19,7 @@ func BoolOpt[T any](value T, ok bool) Option[T] {
 	return Option[T]{value: &value}
 }
 
-// AssertOpt wraps a value as an Option.
+// AssertOpt returns the Option[T] of asserting `i` to type `T`
 func AssertOpt[T any](i any) Option[T] {
 	value, ok := i.(T)
 	if !ok {

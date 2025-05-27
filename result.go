@@ -32,6 +32,15 @@ func FmtErr[T any](format string, a ...any) Result[T] {
 	return Err[T](fmt.Errorf(format, a...))
 }
 
+// AssertRet returns the Result[T] of asserting `i` to type `T`
+func AssertRet[T any](i any) Result[T] {
+	value, ok := i.(T)
+	if !ok {
+		return FmtErr[T]("assertion error: %T is not %T", i, value)
+	}
+	return Ok(value)
+}
+
 // Result can be used to improve `func()(T,error)`,
 // represents either success (T) or failure (error).
 type Result[T any] struct {

@@ -88,6 +88,13 @@ func TestOption(t *testing.T) {
 		})
 }
 
+func TestOption_AssertOpt(t *testing.T) {
+	opt := gust.AssertOpt[int](1)
+	assert.Equal(t, gust.Some(1), opt)
+	opt2 := gust.AssertOpt[int]("")
+	assert.Equal(t, gust.None[int](), opt2)
+}
+
 func TestOptionJSON(t *testing.T) {
 	var r = gust.None[any]()
 	var b, err = json.Marshal(r)

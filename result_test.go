@@ -63,6 +63,13 @@ func TestResult(t *testing.T) {
 	assert.Equal(t, true, r)
 }
 
+func TestResult_AssertRet(t *testing.T) {
+	r := gust.AssertRet[int](1)
+	assert.Equal(t, gust.Ok(1), r)
+	r2 := gust.AssertRet[int]("")
+	assert.Equal(t, gust.FmtErr[int]("assertion error: string is not int"), r2)
+}
+
 func TestResultJSON(t *testing.T) {
 	var r = gust.Err[any](errors.New("err"))
 	var b, err = json.Marshal(r)
