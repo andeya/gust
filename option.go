@@ -206,6 +206,10 @@ func (o *Option[T]) Take() Option[T] {
 
 // UnwrapUnchecked returns the contained value.
 func (o Option[T]) UnwrapUnchecked() T {
+	if o.value == nil {
+		var t T
+		return t
+	}
 	return *o.value
 }
 

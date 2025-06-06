@@ -238,6 +238,13 @@ func (r Result[T]) UnwrapOrDefault() T {
 	return r.inner.UnwrapOrDefault()
 }
 
+// UnwrapUnchecked returns the contained T.
+//
+//go:inline
+func (r Result[T]) UnwrapUnchecked() T {
+	return r.Ok().UnwrapUnchecked()
+}
+
 // ExpectErr returns the contained error.
 // Panics if the value is not an error, with a panic message including the
 // passed message, and the content of the [`Ok`].

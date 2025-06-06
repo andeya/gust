@@ -488,3 +488,26 @@ func TestOption_Xor(t *testing.T) {
 		assert.Equal(t, gust.None[uint32](), x.Xor(y))
 	}
 }
+
+func TestOption_UnwrapUnchecked(t *testing.T) {
+	{
+		var x = gust.Some("foo")
+		assert.Equal(t, "foo", x.UnwrapUnchecked())
+	}
+	{
+		var x gust.Option[string]
+		assert.Equal(t, "", x.UnwrapUnchecked())
+	}
+	{
+		var r gust.Result[string]
+		assert.Equal(t, "", r.Ok().UnwrapUnchecked())
+	}
+	{
+		var r = gust.Err[string]("foo")
+		assert.Equal(t, "", r.Ok().UnwrapUnchecked())
+	}
+	{
+		var r = gust.Ok[string]("foo")
+		assert.Equal(t, "foo", r.Ok().UnwrapUnchecked())
+	}
+}

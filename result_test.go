@@ -465,3 +465,18 @@ func TestResult_Unwrap(t *testing.T) {
 	}()
 	gust.Ret(strconv.Atoi("4x")).Unwrap()
 }
+
+func TestResult_UnwrapUnchecked(t *testing.T) {
+	{
+		var r gust.Result[string]
+		assert.Equal(t, "", r.UnwrapUnchecked())
+	}
+	{
+		var r = gust.Err[string]("foo")
+		assert.Equal(t, "", r.UnwrapUnchecked())
+	}
+	{
+		var r = gust.Ok[string]("foo")
+		assert.Equal(t, "foo", r.UnwrapUnchecked())
+	}
+}
