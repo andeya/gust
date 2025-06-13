@@ -3,6 +3,8 @@ package valconv
 
 import (
 	"unsafe"
+
+	"github.com/andeya/gust"
 )
 
 // BytesToString convert []byte type to ~string type.
@@ -58,6 +60,38 @@ func ToAnyMap[K comparable, V any](a map[K]V) map[K]any {
 func SafeAssert[T any](v any) T {
 	t, _ := v.(T)
 	return t
+}
+
+// SafeAssertSlice convert []any to []T.
+func SafeAssertSlice[T any](a []any) gust.Result[[]T] {
+	if a == nil {
+		return gust.Ok[[]T](nil)
+	}
+	var ok bool
+	r := make([]T, len(a))
+	for k, v := range a {
+		r[k], ok = v.(T)
+		if !ok {
+			return gust.FmtErr[[]T]("assert slice[%v] type failed, got %T want %T", k, v, *new(T))
+		}
+	}
+	return gust.Ok(r)
+}
+
+// SafeAssertMap convert map[K]any to map[K]V.
+func SafeAssertMap[K comparable, V any](a map[K]any) gust.Result[map[K]V] {
+	if a == nil {
+		return gust.Ok[map[K]V](nil)
+	}
+	var ok bool
+	r := make(map[K]V, len(a))
+	for k, v := range a {
+		r[k], ok = v.(V)
+		if !ok {
+			return gust.FmtErr[map[K]V]("assert map[%v] type failed, got %T want %T", k, v, *new(V))
+		}
+	}
+	return gust.Ok(r)
 }
 
 // UnsafeAssertSlice convert []any to []T.

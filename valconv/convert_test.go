@@ -39,18 +39,43 @@ func TestToAnyMap(t *testing.T) {
 func TestSafeAssert(t *testing.T) {
 	var s any = "abc"
 	assert.Equal(t, s, SafeAssert[string](s))
+	assert.Equal(t, 0, SafeAssert[int](s))
+}
+
+func TestSafeAssertSlice(t *testing.T) {
+	var a = []interface{}{"a", "b", "c"}
+	s := SafeAssertSlice[string](a).Unwrap()
+	assert.Equal(t, []string{"a", "b", "c"}, s)
+	assert.Panics(t, func() {
+		SafeAssertSlice[int](a).Unwrap()
+	})
+}
+
+func TestSafeAssertMap(t *testing.T) {
+	var a = map[string]interface{}{"a": 1, "b": 2, "c": 3}
+	s := SafeAssertMap[string, int](a).Unwrap()
+	assert.Equal(t, map[string]int{"a": 1, "b": 2, "c": 3}, s)
+	assert.Panics(t, func() {
+		SafeAssertMap[string, string](a).Unwrap()
+	})
 }
 
 func TestUnsafeAssertSlice(t *testing.T) {
 	var a = []interface{}{"a", "b", "c"}
 	s := UnsafeAssertSlice[string](a)
 	assert.Equal(t, []string{"a", "b", "c"}, s)
+	assert.Panics(t, func() {
+		UnsafeAssertSlice[int](a)
+	})
 }
 
 func TestUnsafeAssertMap(t *testing.T) {
 	var a = map[string]interface{}{"a": 1, "b": 2, "c": 3}
 	s := UnsafeAssertMap[string, int](a)
 	assert.Equal(t, map[string]int{"a": 1, "b": 2, "c": 3}, s)
+	assert.Panics(t, func() {
+		UnsafeAssertMap[string, string](a)
+	})
 }
 
 func BenchmarkBytesToString(b *testing.B) {

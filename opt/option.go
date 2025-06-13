@@ -2,18 +2,56 @@ package opt
 
 import "github.com/andeya/gust"
 
-// Assert asserts gust.Option[T] as gust.Option[U].
-func Assert[T any, U any](o gust.Option[T]) gust.Option[U] {
+// SafeAssert asserts gust.Option[T] as gust.Result[gust.Option[U]].
+// NOTE:
+//
+//	If the assertion fails, return error.
+func SafeAssert[T any, U any](o gust.Option[T]) gust.Result[gust.Option[U]] {
 	if o.IsSome() {
-		return gust.Some[U](any(o.UnwrapUnchecked()).(U))
+		u, ok := any(o.UnwrapUnchecked()).(U)
+		if ok {
+			return gust.Ok(gust.Some[U](u))
+		}
+		return gust.FmtErr[gust.Option[U]]("type assert error, got %T, want %T", o.UnwrapUnchecked(), u)
+	}
+	return gust.Ok(gust.None[U]())
+}
+
+// XSafeAssert asserts gust.Option[any] as gust.Result[gust.Option[U]].
+// NOTE:
+//
+//	If the assertion fails, return error.
+func XSafeAssert[U any](o gust.Option[any]) gust.Result[gust.Option[U]] {
+	if o.IsSome() {
+		u, ok := o.UnwrapUnchecked().(U)
+		if ok {
+			return gust.Ok(gust.Some[U](u))
+		}
+		return gust.FmtErr[gust.Option[U]]("type assert error, got %T, want %T", o.UnwrapUnchecked(), u)
+	}
+	return gust.Ok(gust.None[U]())
+}
+
+// FuzzyAssert asserts gust.Option[T] as gust.Option[U].
+// NOTE:
+//
+//	If the assertion fails, return none.
+func FuzzyAssert[T any, U any](o gust.Option[T]) gust.Option[U] {
+	if o.IsSome() {
+		u, ok := any(o.UnwrapUnchecked()).(U)
+		return gust.BoolAssertOpt[U](u, ok)
 	}
 	return gust.None[U]()
 }
 
-// XAssert asserts gust.Option[any] as gust.Option[U].
-func XAssert[U any](o gust.Option[any]) gust.Option[U] {
+// XFuzzyAssert asserts gust.Option[any] as gust.Option[U].
+// NOTE:
+//
+//	If the assertion fails, return none.
+func XFuzzyAssert[U any](o gust.Option[any]) gust.Option[U] {
 	if o.IsSome() {
-		return gust.Some[U](o.UnwrapUnchecked().(U))
+		u, ok := o.UnwrapUnchecked().(U)
+		return gust.BoolAssertOpt[U](u, ok)
 	}
 	return gust.None[U]()
 }

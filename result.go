@@ -36,7 +36,7 @@ func FmtErr[T any](format string, a ...any) Result[T] {
 func AssertRet[T any](i any) Result[T] {
 	value, ok := i.(T)
 	if !ok {
-		return FmtErr[T]("assertion error: %T is not %T", i, value)
+		return FmtErr[T]("type assert error, got %T, want %T", i, value)
 	}
 	return Ok(value)
 }

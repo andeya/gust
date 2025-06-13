@@ -84,7 +84,7 @@ func (d *deFilterMapIterator[T, B]) realRemaining() uint {
 }
 
 func (d *deFilterMapIterator[T, B]) realNextBack() gust.Option[B] {
-	return opt.XAssert[B](d.iter.(DeIterator[T]).TryRfold(nil, func(_ any, x T) gust.AnyCtrlFlow {
+	return opt.XFuzzyAssert[B](d.iter.(DeIterator[T]).TryRfold(nil, func(_ any, x T) gust.AnyCtrlFlow {
 		v := d.f(x)
 		if v.IsSome() {
 			return gust.AnyBreak(v.Unwrap())

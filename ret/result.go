@@ -5,7 +5,11 @@ import "github.com/andeya/gust"
 // Assert asserts gust.Result[T] as gust.Result[U].
 func Assert[T any, U any](o gust.Result[T]) gust.Result[U] {
 	if o.IsOk() {
-		return gust.Ok[U](any(o.Unwrap()).(U))
+		u, ok := any(o.Unwrap()).(U)
+		if ok {
+			return gust.Ok[U](u)
+		}
+		return gust.FmtErr[U]("type assert error, got %T, want %T", o.Unwrap(), u)
 	}
 	return gust.Err[U](o.UnwrapErr())
 }
@@ -13,7 +17,11 @@ func Assert[T any, U any](o gust.Result[T]) gust.Result[U] {
 // XAssert asserts gust.Result[any] as gust.Result[U].
 func XAssert[U any](o gust.Result[any]) gust.Result[U] {
 	if o.IsOk() {
-		return gust.Ok[U](o.Unwrap().(U))
+		u, ok := o.Unwrap().(U)
+		if ok {
+			return gust.Ok[U](u)
+		}
+		return gust.FmtErr[U]("type assert error, got %T, want %T", o.Unwrap(), u)
 	}
 	return gust.Err[U](o.UnwrapErr())
 }

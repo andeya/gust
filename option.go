@@ -29,6 +29,10 @@ func AssertOpt[T any](i any) Option[T] {
 }
 
 // BoolAssertOpt wraps a value as an Option.
+// NOTE:
+//
+//	`ok=true` is wrapped as Some,
+//	and `ok=false` is wrapped as None.
 func BoolAssertOpt[T any](i any, ok bool) Option[T] {
 	if ok {
 		if value, ok2 := i.(T); ok2 {

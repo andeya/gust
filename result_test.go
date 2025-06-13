@@ -67,7 +67,7 @@ func TestResult_AssertRet(t *testing.T) {
 	r := gust.AssertRet[int](1)
 	assert.Equal(t, gust.Ok(1), r)
 	r2 := gust.AssertRet[int]("")
-	assert.Equal(t, gust.FmtErr[int]("assertion error: string is not int"), r2)
+	assert.Equal(t, gust.FmtErr[int]("type assert error, got string, want int"), r2)
 }
 
 func TestResultJSON(t *testing.T) {
@@ -242,7 +242,7 @@ func TestResult_Expect(t *testing.T) {
 		Expect("failed to parse number")
 }
 
-func TestIResult_nspectErr(t *testing.T) {
+func TestResult_InspectErr(t *testing.T) {
 	gust.Ret(strconv.Atoi("4x")).
 		InspectErr(func(err error) {
 			t.Logf("failed to convert: %v", err)

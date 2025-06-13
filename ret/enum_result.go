@@ -2,32 +2,32 @@ package ret
 
 import "github.com/andeya/gust"
 
-// EnumAssert asserts gust.EnumResult[T,E] as gust.EnumResult[U,F].
-func EnumAssert[T any, E any, U any, F any](o gust.EnumResult[T, E]) gust.EnumResult[U, F] {
+// EnumUnsafeAssert asserts gust.EnumResult[T,E] as gust.EnumResult[U,F].
+func EnumUnsafeAssert[T any, E any, U any, F any](o gust.EnumResult[T, E]) gust.EnumResult[U, F] {
 	if o.IsOk() {
 		return gust.EnumOk[U, F](any(o.Unwrap()).(U))
 	}
 	return gust.EnumErr[U, F](any(o.UnwrapErr()).(F))
 }
 
-// EnumXOkAssert asserts gust.EnumResult[any, E] as gust.EnumResult[U, E].
-func EnumXOkAssert[T any, E any, U any](o gust.EnumResult[any, E]) gust.EnumResult[U, E] {
+// EnumXOkUnsafeAssert asserts gust.EnumResult[any, E] as gust.EnumResult[U, E].
+func EnumXOkUnsafeAssert[T any, E any, U any](o gust.EnumResult[any, E]) gust.EnumResult[U, E] {
 	if o.IsOk() {
 		return gust.EnumOk[U, E](o.Unwrap().(U))
 	}
 	return gust.EnumErr[U, E](o.UnwrapErr())
 }
 
-// EnumXErrAssert asserts gust.EnumResult[T, any] as gust.EnumResult[T, E].
-func EnumXErrAssert[T any, E any](o gust.EnumResult[T, any]) gust.EnumResult[T, E] {
+// EnumXErrUnsafeAssert asserts gust.EnumResult[T, any] as gust.EnumResult[T, E].
+func EnumXErrUnsafeAssert[T any, E any](o gust.EnumResult[T, any]) gust.EnumResult[T, E] {
 	if o.IsOk() {
 		return gust.EnumOk[T, E](o.Unwrap())
 	}
 	return gust.EnumErr[T, E](o.UnwrapErr().(E))
 }
 
-// EnumXAssert asserts gust.EnumResult[any, any] as gust.EnumResult[T, E].
-func EnumXAssert[T any, E any](o gust.EnumResult[any, any]) gust.EnumResult[T, E] {
+// EnumXUnsafeAssert asserts gust.EnumResult[any, any] as gust.EnumResult[T, E].
+func EnumXUnsafeAssert[T any, E any](o gust.EnumResult[any, any]) gust.EnumResult[T, E] {
 	if o.IsOk() {
 		return gust.EnumOk[T, E](o.Unwrap().(T))
 	}
