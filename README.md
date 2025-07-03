@@ -50,7 +50,6 @@ go≥1.19
 - `gust.RWMutex` is a better generic-type wrapper for `sync.RWMutex` that holds a value.
 - `gust.SyncMap` is a better generic-type wrapper for `sync.Map`.
 - `gust.AtomicValue` is a better generic-type wrapper for `atomic.Value`.
-- `iter` is a package that provides a generic-type iterator.
 - `vec` is a package of generic-type functions for slices.
 - `valconv` is a package that provides a generic-type value converter.
 - `digit` is a package of generic-type functions for digit.
