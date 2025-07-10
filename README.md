@@ -15,8 +15,6 @@ A Rust-inspired **declarative-programming and generic-type module** for Golang t
 After using this package, your code style will be like this:
 
 ```go
-package examples_test
-
 import (
 	"github.com/andeya/gust"
 	"github.com/andeya/gust/dict"
