@@ -18,9 +18,6 @@ After using this package, your code style will be like this:
 package examples_test
 
 import (
-	"errors"
-	"fmt"
-
 	"github.com/andeya/gust"
 	"github.com/andeya/gust/dict"
 	"github.com/andeya/gust/valconv"
