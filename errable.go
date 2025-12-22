@@ -231,7 +231,7 @@ func (e *Errable[E]) Catch() {
 	}
 }
 
-// CatchErrable catches panic caused by Errable[E].TryThrow() and sets E to *Errable[E]
+// CatchErrable catches panic caused by `Errable[E].TryThrow()` and sets E to `*Errable[E]`
 // Example:
 //
 //	```go

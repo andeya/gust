@@ -475,7 +475,7 @@ func (r EnumResult[T, E]) CtrlFlow() CtrlFlow[E, T] {
 // UnwrapOrThrow returns the contained T or panic returns E (panicValue[*E]).
 // NOTE:
 //
-//	If there is an E, that panic should be caught with CatchEnumResult[U, E]
+//	If there is an E, that panic should be caught with `EnumResult[T, E].Catch()` or `CatchEnumResult[U, E]`
 func (r EnumResult[T, E]) UnwrapOrThrow() T {
 	if r.IsErr() {
 		panic(panicValue[E]{r.e})
@@ -483,7 +483,7 @@ func (r EnumResult[T, E]) UnwrapOrThrow() T {
 	return r.safeGetT()
 }
 
-// CatchEnumResult catches panic caused by EnumResult[U, E].UnwrapOrThrow() or Errable[E].TryThrow(), and sets E to *EnumResult[T,E]
+// Catch catches panic caused by `EnumResult[U, E].UnwrapOrThrow()` or `Errable[E].TryThrow()`, and sets E to `*EnumResult[T,E]`
 // Example:
 //
 //	```go
@@ -509,7 +509,7 @@ func (r *EnumResult[T, E]) Catch() {
 	}
 }
 
-// CatchEnumResult catches panic caused by EnumResult[T, E].UnwrapOrThrow() or Errable[E].TryThrow(), and sets E to *EnumResult[U,E]
+// CatchEnumResult catches panic caused by `EnumResult[T, E].UnwrapOrThrow()` or `Errable[E].TryThrow()`, and sets E to `*EnumResult[U,E]`
 // Example:
 //
 //	```go
