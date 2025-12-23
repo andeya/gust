@@ -68,3 +68,77 @@ func TestResult_Map_3(t *testing.T) {
 	assert.Equal(t, "Err(strconv.Atoi: parsing \"lol\": invalid syntax)", isMyNum("lol", 1).String())
 	assert.Equal(t, "Err(strconv.Atoi: parsing \"NaN\": invalid syntax)", isMyNum("NaN", 1).String())
 }
+
+func TestAnd(t *testing.T) {
+	// Test with Ok and Ok
+	r1 := gust.Ok(2)
+	r2 := gust.Ok(3)
+	result1 := ret.And(r1, r2)
+	assert.True(t, result1.IsOk())
+	assert.Equal(t, 3, result1.Unwrap())
+
+	// Test with Ok and Err
+	r3 := gust.Ok(2)
+	r4 := gust.Err[int]("error")
+	result2 := ret.And(r3, r4)
+	assert.True(t, result2.IsErr())
+
+	// Test with Err and Ok
+	r5 := gust.Err[int]("error")
+	r6 := gust.Ok(3)
+	result3 := ret.And(r5, r6)
+	assert.True(t, result3.IsErr())
+	assert.Equal(t, "error", result3.Err().Error())
+
+	// Test with Err and Err
+	r7 := gust.Err[int]("error1")
+	r8 := gust.Err[int]("error2")
+	result4 := ret.And(r7, r8)
+	assert.True(t, result4.IsErr())
+	assert.Equal(t, "error1", result4.Err().Error())
+}
+
+func TestAndThen(t *testing.T) {
+	// Test with Ok and successful operation
+	r1 := gust.Ok(2)
+	result1 := ret.AndThen(r1, func(x int) gust.Result[int] {
+		return gust.Ok(x * 2)
+	})
+	assert.True(t, result1.IsOk())
+	assert.Equal(t, 4, result1.Unwrap())
+
+	// Test with Ok and error operation
+	r2 := gust.Ok(2)
+	result2 := ret.AndThen(r2, func(x int) gust.Result[int] {
+		return gust.Err[int]("error")
+	})
+	assert.True(t, result2.IsErr())
+
+	// Test with Err (should not call function)
+	r3 := gust.Err[int]("error")
+	result3 := ret.AndThen(r3, func(x int) gust.Result[int] {
+		return gust.Ok(x * 2)
+	})
+	assert.True(t, result3.IsErr())
+	assert.Equal(t, "error", result3.Err().Error())
+}
+
+func TestFlatten(t *testing.T) {
+	// Test with Ok(Ok(value))
+	r1 := gust.Ok(gust.Ok(42))
+	result1 := ret.Flatten(r1)
+	assert.True(t, result1.IsOk())
+	assert.Equal(t, 42, result1.Unwrap())
+
+	// Test with Ok(Err(error))
+	r2 := gust.Ok(gust.Err[int]("error"))
+	result2 := ret.Flatten(r2)
+	assert.True(t, result2.IsErr())
+	assert.Equal(t, "error", result2.Err().Error())
+
+	// Test with Err
+	r3 := gust.Err[gust.Result[int]]("outer error")
+	result3 := ret.Flatten(r3)
+	assert.True(t, result3.IsErr())
+	assert.Equal(t, "outer error", result3.Err().Error())
+}

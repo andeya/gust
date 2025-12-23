@@ -95,6 +95,52 @@ func TestOption_AssertOpt(t *testing.T) {
 	assert.Equal(t, gust.None[int](), opt2)
 }
 
+func TestBoolOpt(t *testing.T) {
+	// Test with ok=true
+	opt1 := gust.BoolOpt(42, true)
+	assert.True(t, opt1.IsSome())
+	assert.Equal(t, 42, opt1.Unwrap())
+
+	// Test with ok=false
+	opt2 := gust.BoolOpt(42, false)
+	assert.True(t, opt2.IsNone())
+}
+
+func TestBoolAssertOpt(t *testing.T) {
+	// Test with ok=true and valid type
+	opt1 := gust.BoolAssertOpt[int](42, true)
+	assert.True(t, opt1.IsSome())
+	assert.Equal(t, 42, opt1.Unwrap())
+
+	// Test with ok=false
+	opt2 := gust.BoolAssertOpt[int](42, false)
+	assert.True(t, opt2.IsNone())
+
+	// Test with ok=true but invalid type
+	opt3 := gust.BoolAssertOpt[int]("string", true)
+	assert.True(t, opt3.IsNone())
+}
+
+func TestZeroOpt(t *testing.T) {
+	// Test with non-zero value
+	opt1 := gust.ZeroOpt(42)
+	assert.True(t, opt1.IsSome())
+	assert.Equal(t, 42, opt1.Unwrap())
+
+	// Test with zero value
+	opt2 := gust.ZeroOpt(0)
+	assert.True(t, opt2.IsNone())
+
+	// Test with zero string
+	opt3 := gust.ZeroOpt("")
+	assert.True(t, opt3.IsNone())
+
+	// Test with non-zero string
+	opt4 := gust.ZeroOpt("test")
+	assert.True(t, opt4.IsSome())
+	assert.Equal(t, "test", opt4.Unwrap())
+}
+
 func TestOptionJSON(t *testing.T) {
 	var r = gust.None[any]()
 	var b, err = json.Marshal(r)

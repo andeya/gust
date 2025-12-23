@@ -131,3 +131,9 @@ func TestErrableTryThrow_10(t *testing.T) {
 	defer r.Catch()
 	gust.TryThrow("err")
 }
+
+func TestFmtErrable(t *testing.T) {
+	errable := gust.FmtErrable("error: %s", "test")
+	assert.True(t, errable.IsErr())
+	assert.Contains(t, errable.ToError().Error(), "error: test")
+}

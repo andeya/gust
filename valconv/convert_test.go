@@ -25,15 +25,39 @@ func TestUnsafeConvert(t *testing.T) {
 }
 
 func TestToAnySlice(t *testing.T) {
+	// Test with non-nil slice
 	var s = []string{"a", "b", "c"}
 	a := ToAnySlice(s)
 	assert.Equal(t, []interface{}{"a", "b", "c"}, a)
+
+	// Test with nil slice
+	var nilSlice []string
+	a2 := ToAnySlice(nilSlice)
+	assert.Nil(t, a2)
+
+	// Test with empty slice
+	emptySlice := []string{}
+	a3 := ToAnySlice(emptySlice)
+	assert.Len(t, a3, 0)
+	assert.NotNil(t, a3)
 }
 
 func TestToAnyMap(t *testing.T) {
+	// Test with non-nil map
 	var s = map[string]int{"a": 1, "b": 2, "c": 3}
 	a := ToAnyMap(s)
 	assert.Equal(t, map[string]interface{}{"a": 1, "b": 2, "c": 3}, a)
+
+	// Test with nil map
+	var nilMap map[string]int
+	a2 := ToAnyMap(nilMap)
+	assert.Nil(t, a2)
+
+	// Test with empty map
+	emptyMap := map[string]int{}
+	a3 := ToAnyMap(emptyMap)
+	assert.Len(t, a3, 0)
+	assert.NotNil(t, a3)
 }
 
 func TestSafeAssert(t *testing.T) {
@@ -43,21 +67,49 @@ func TestSafeAssert(t *testing.T) {
 }
 
 func TestSafeAssertSlice(t *testing.T) {
+	// Test with valid types
 	var a = []interface{}{"a", "b", "c"}
 	s := SafeAssertSlice[string](a).Unwrap()
 	assert.Equal(t, []string{"a", "b", "c"}, s)
-	assert.Panics(t, func() {
-		SafeAssertSlice[int](a).Unwrap()
-	})
+
+	// Test with invalid types
+	result := SafeAssertSlice[int](a)
+	assert.True(t, result.IsErr())
+
+	// Test with nil slice
+	var nilSlice []interface{}
+	result2 := SafeAssertSlice[string](nilSlice)
+	assert.True(t, result2.IsOk())
+	assert.Nil(t, result2.Unwrap())
+
+	// Test with empty slice
+	emptySlice := []interface{}{}
+	result3 := SafeAssertSlice[string](emptySlice)
+	assert.True(t, result3.IsOk())
+	assert.Equal(t, []string{}, result3.Unwrap())
 }
 
 func TestSafeAssertMap(t *testing.T) {
+	// Test with valid types
 	var a = map[string]interface{}{"a": 1, "b": 2, "c": 3}
 	s := SafeAssertMap[string, int](a).Unwrap()
 	assert.Equal(t, map[string]int{"a": 1, "b": 2, "c": 3}, s)
-	assert.Panics(t, func() {
-		SafeAssertMap[string, string](a).Unwrap()
-	})
+
+	// Test with invalid types
+	result := SafeAssertMap[string, string](a)
+	assert.True(t, result.IsErr())
+
+	// Test with nil map
+	var nilMap map[string]interface{}
+	result2 := SafeAssertMap[string, int](nilMap)
+	assert.True(t, result2.IsOk())
+	assert.Nil(t, result2.Unwrap())
+
+	// Test with empty map
+	emptyMap := map[string]interface{}{}
+	result3 := SafeAssertMap[string, int](emptyMap)
+	assert.True(t, result3.IsOk())
+	assert.Equal(t, map[string]int{}, result3.Unwrap())
 }
 
 func TestUnsafeAssertSlice(t *testing.T) {

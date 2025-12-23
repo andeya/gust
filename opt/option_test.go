@@ -94,3 +94,134 @@ func TestOption_ZipWith(t *testing.T) {
 	assert.Equal(t, opt.ZipWith(x, y, newPoint), gust.Some(Point{x: 17.5, y: 42.7}))
 	assert.Equal(t, opt.ZipWith(x, gust.None[float64](), newPoint), gust.None[Point]())
 }
+
+func TestSafeAssert(t *testing.T) {
+	// Test with valid type assertion
+	opt1 := gust.Some(42)
+	result1 := opt.SafeAssert[int, int](opt1)
+	assert.True(t, result1.IsOk())
+	assert.True(t, result1.Unwrap().IsSome())
+	assert.Equal(t, 42, result1.Unwrap().Unwrap())
+
+	// Test with invalid type assertion
+	opt2 := gust.Some(42)
+	result2 := opt.SafeAssert[int, string](opt2)
+	assert.True(t, result2.IsErr())
+
+	// Test with None
+	opt3 := gust.None[int]()
+	result3 := opt.SafeAssert[int, string](opt3)
+	assert.True(t, result3.IsOk())
+	assert.True(t, result3.Unwrap().IsNone())
+}
+
+func TestXSafeAssert(t *testing.T) {
+	// Test with valid type assertion
+	opt1 := gust.Some[any](42)
+	result1 := opt.XSafeAssert[int](opt1)
+	assert.True(t, result1.IsOk())
+	assert.True(t, result1.Unwrap().IsSome())
+	assert.Equal(t, 42, result1.Unwrap().Unwrap())
+
+	// Test with invalid type assertion
+	opt2 := gust.Some[any](42)
+	result2 := opt.XSafeAssert[string](opt2)
+	assert.True(t, result2.IsErr())
+
+	// Test with None
+	opt3 := gust.None[any]()
+	result3 := opt.XSafeAssert[int](opt3)
+	assert.True(t, result3.IsOk())
+	assert.True(t, result3.Unwrap().IsNone())
+}
+
+func TestFuzzyAssert(t *testing.T) {
+	// Test with valid type assertion
+	opt1 := gust.Some(42)
+	result1 := opt.FuzzyAssert[int, int](opt1)
+	assert.True(t, result1.IsSome())
+	assert.Equal(t, 42, result1.Unwrap())
+
+	// Test with invalid type assertion
+	opt2 := gust.Some(42)
+	result2 := opt.FuzzyAssert[int, string](opt2)
+	assert.True(t, result2.IsNone())
+
+	// Test with None
+	opt3 := gust.None[int]()
+	result3 := opt.FuzzyAssert[int, string](opt3)
+	assert.True(t, result3.IsNone())
+}
+
+func TestXFuzzyAssert(t *testing.T) {
+	// Test with valid type assertion
+	opt1 := gust.Some[any](42)
+	result1 := opt.XFuzzyAssert[int](opt1)
+	assert.True(t, result1.IsSome())
+	assert.Equal(t, 42, result1.Unwrap())
+
+	// Test with invalid type assertion
+	opt2 := gust.Some[any](42)
+	result2 := opt.XFuzzyAssert[string](opt2)
+	assert.True(t, result2.IsNone())
+
+	// Test with None
+	opt3 := gust.None[any]()
+	result3 := opt.XFuzzyAssert[int](opt3)
+	assert.True(t, result3.IsNone())
+}
+
+func TestAnd(t *testing.T) {
+	// Test with Some and Some
+	opt1 := gust.Some(2)
+	opt2 := gust.Some(3)
+	result1 := opt.And(opt1, opt2)
+	assert.True(t, result1.IsSome())
+	assert.Equal(t, 3, result1.Unwrap())
+
+	// Test with Some and None
+	opt3 := gust.Some(2)
+	opt4 := gust.None[int]()
+	result2 := opt.And(opt3, opt4)
+	assert.True(t, result2.IsNone())
+
+	// Test with None and Some
+	opt5 := gust.None[int]()
+	opt6 := gust.Some(3)
+	result3 := opt.And(opt5, opt6)
+	assert.True(t, result3.IsNone())
+
+	// Test with None and None
+	opt7 := gust.None[int]()
+	opt8 := gust.None[int]()
+	result4 := opt.And(opt7, opt8)
+	assert.True(t, result4.IsNone())
+}
+
+func TestEnumOkOr(t *testing.T) {
+	// Test with Some
+	opt1 := gust.Some(42)
+	result1 := opt.EnumOkOr(opt1, "error")
+	assert.True(t, result1.IsOk())
+	assert.Equal(t, 42, result1.Unwrap())
+
+	// Test with None
+	opt2 := gust.None[int]()
+	result2 := opt.EnumOkOr(opt2, "error")
+	assert.True(t, result2.IsErr())
+	assert.Equal(t, "error", result2.UnwrapErr())
+}
+
+func TestEnumOkOrElse(t *testing.T) {
+	// Test with Some
+	opt1 := gust.Some(42)
+	result1 := opt.EnumOkOrElse(opt1, func() string { return "error" })
+	assert.True(t, result1.IsOk())
+	assert.Equal(t, 42, result1.Unwrap())
+
+	// Test with None
+	opt2 := gust.None[int]()
+	result2 := opt.EnumOkOrElse(opt2, func() string { return "error" })
+	assert.True(t, result2.IsErr())
+	assert.Equal(t, "error", result2.UnwrapErr())
+}

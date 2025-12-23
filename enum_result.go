@@ -441,8 +441,8 @@ func fromError[E any](e error) E {
 }
 
 var (
-	_ Iterable[any]   = new(EnumResult[any, any])
-	_ DeIterable[any] = new(EnumResult[any, any])
+	_ Iterable[any]            = new(EnumResult[any, any])
+	_ DoubleEndedIterable[any] = new(EnumResult[any, any])
 )
 
 func (r *EnumResult[T, E]) Next() Option[T] {

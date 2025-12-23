@@ -443,6 +443,32 @@ func TestResult_UnwrapErr_2(t *testing.T) {
 	}
 }
 
+func TestFmtErr(t *testing.T) {
+	result := gust.FmtErr[int]("error: %s", "test")
+	assert.True(t, result.IsErr())
+	assert.Contains(t, result.Err().Error(), "error: test")
+}
+
+func TestAssertRet(t *testing.T) {
+	// Test with valid type
+	result1 := gust.AssertRet[int](42)
+	assert.True(t, result1.IsOk())
+	assert.Equal(t, 42, result1.Unwrap())
+
+	// Test with invalid type
+	result2 := gust.AssertRet[int]("string")
+	assert.True(t, result2.IsErr())
+	assert.Contains(t, result2.Err().Error(), "type assert error")
+}
+
+func TestCatchResult(t *testing.T) {
+	var result gust.Result[int]
+	defer gust.CatchResult(&result)
+	gust.Err[int]("test error").UnwrapOrThrow()
+	assert.True(t, result.IsErr())
+	assert.Equal(t, "test error", result.Err().Error())
+}
+
 func TestResult_UnwrapOrDefault(t *testing.T) {
 	assert.Equal(t, "car", gust.Ok("car").UnwrapOrDefault())
 	assert.Equal(t, "", gust.Err[string](nil).UnwrapOrDefault())

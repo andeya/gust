@@ -15,6 +15,33 @@ func TestMutex(t *testing.T) {
 	m.Unlock(2)
 	assert.Equal(t, 2, m.Lock())
 	m.Unlock()
+
+	// Test TryLock
+	result := m.TryLock()
+	assert.True(t, result.IsSome())
+	assert.Equal(t, 2, result.Unwrap())
+	m.Unlock()
+
+	// Test LockScope
+	m.LockScope(func(old int) int {
+		return old * 2
+	})
+	result2 := m.TryLock()
+	assert.True(t, result2.IsSome())
+	assert.Equal(t, 4, result2.Unwrap())
+	m.Unlock()
+
+	// Test TryLockScope (successful)
+	success := false
+	m.TryLockScope(func(old int) int {
+		success = true
+		return old + 1
+	})
+	assert.True(t, success)
+	result3 := m.TryLock()
+	assert.True(t, result3.IsSome())
+	assert.Equal(t, 5, result3.Unwrap())
+	m.Unlock()
 }
 
 func TestSyncMap(t *testing.T) {
@@ -24,6 +51,47 @@ func TestSyncMap(t *testing.T) {
 	assert.Equal(t, gust.Some(1), m.Load("a"))
 	m.Delete("a")
 	assert.Equal(t, gust.None[int](), m.Load("a"))
+
+	// Test LoadOrStore
+	existing := m.LoadOrStore("b", 2)
+	assert.True(t, existing.IsNone()) // Key doesn't exist
+	assert.Equal(t, gust.Some(2), m.Load("b"))
+
+	existing2 := m.LoadOrStore("b", 3)
+	assert.True(t, existing2.IsSome()) // Key exists
+	assert.Equal(t, 2, existing2.Unwrap())
+	assert.Equal(t, gust.Some(2), m.Load("b")) // Value unchanged
+
+	// Test LoadAndDelete
+	deleted := m.LoadAndDelete("b")
+	assert.True(t, deleted.IsSome())
+	assert.Equal(t, 2, deleted.Unwrap())
+	assert.Equal(t, gust.None[int](), m.Load("b"))
+
+	deleted2 := m.LoadAndDelete("nonexistent")
+	assert.True(t, deleted2.IsNone())
+
+	// Test Range
+	m.Store("x", 10)
+	m.Store("y", 20)
+	m.Store("z", 30)
+	keys := make(map[string]int)
+	m.Range(func(key string, value int) bool {
+		keys[key] = value
+		return true
+	})
+	assert.Len(t, keys, 3)
+	assert.Equal(t, 10, keys["x"])
+	assert.Equal(t, 20, keys["y"])
+	assert.Equal(t, 30, keys["z"])
+
+	// Test Range with early termination
+	count := 0
+	m.Range(func(key string, value int) bool {
+		count++
+		return count < 2 // Stop after 2 iterations
+	})
+	assert.Equal(t, 2, count)
 }
 
 func TestAtomicValue(t *testing.T) {
@@ -35,6 +103,7 @@ func TestAtomicValue(t *testing.T) {
 	assert.Equal(t, gust.Some(2), m.Load())
 	assert.False(t, m.CompareAndSwap(1, 3))
 	assert.True(t, m.CompareAndSwap(2, 3))
+	assert.Equal(t, gust.Some(3), m.Load())
 }
 
 type one int
@@ -106,6 +175,144 @@ func TestLazyValueGetPtr(t *testing.T) {
 	assert.Equal(t, &zero, new(gust.LazyValue[int]).SetInitZero().GetPtr())
 	var one int = 1
 	assert.Equal(t, &one, new(gust.LazyValue[int]).SetInitValue(1).GetPtr())
+}
+
+func TestNewRWMutex(t *testing.T) {
+	m := gust.NewRWMutex(10)
+	
+	// Test Lock/Unlock
+	assert.Equal(t, 10, m.Lock())
+	m.Unlock(20)
+	assert.Equal(t, 20, m.Lock())
+	m.Unlock()
+
+	// Test TryLock
+	result := m.TryLock()
+	assert.True(t, result.IsSome())
+	assert.Equal(t, 20, result.Unwrap())
+	m.Unlock()
+
+	// Test RLock/RUnlock
+	assert.Equal(t, 20, m.RLock())
+	m.RUnlock()
+
+	// Test TryRLock
+	result2 := m.TryRLock()
+	assert.True(t, result2.IsSome())
+	assert.Equal(t, 20, result2.Unwrap())
+	m.RUnlock()
+
+	// Test LockScope
+	m.LockScope(func(old int) int {
+		return old * 2
+	})
+	result3 := m.TryLock()
+	assert.True(t, result3.IsSome())
+	assert.Equal(t, 40, result3.Unwrap())
+	m.Unlock()
+
+	// Test TryLockScope
+	success := false
+	m.TryLockScope(func(old int) int {
+		success = true
+		return old + 1
+	})
+	assert.True(t, success)
+	result4 := m.TryLock()
+	assert.True(t, result4.IsSome())
+	assert.Equal(t, 41, result4.Unwrap())
+	m.Unlock()
+
+	// Test RLockScope
+	readValue := 0
+	m.RLockScope(func(val int) {
+		readValue = val
+	})
+	assert.Equal(t, 41, readValue)
+
+	// Test TryRLockScope
+	readValue2 := 0
+	m.TryRLockScope(func(val int) {
+		readValue2 = val
+	})
+	assert.Equal(t, 41, readValue2)
+
+	// Test TryBest
+	swapCount := 0
+	m.TryBest(func(val int) bool {
+		return val > 50 // Condition fails
+	}, func(old int) gust.Option[int] {
+		swapCount++
+		return gust.Some(100) // Swap to 100
+	})
+	assert.Equal(t, 1, swapCount)
+	result5 := m.TryLock()
+	assert.True(t, result5.IsSome())
+	assert.Equal(t, 100, result5.Unwrap())
+	m.Unlock()
+
+	// Test TryBest with successful condition
+	m.TryBest(func(val int) bool {
+		return val > 50 // Condition succeeds
+	}, func(old int) gust.Option[int] {
+		return gust.Some(200) // Should not be called
+	})
+	result6 := m.TryLock()
+	assert.True(t, result6.IsSome())
+	assert.Equal(t, 100, result6.Unwrap()) // Value unchanged
+	m.Unlock()
+}
+
+func TestLazyValueNewFunctions(t *testing.T) {
+	// Test NewLazyValue
+	lv1 := gust.NewLazyValue[int]()
+	assert.False(t, lv1.IsInitialized())
+	assert.Equal(t, gust.Err[int](gust.ErrLazyValueWithoutInit), lv1.TryGetValue())
+
+	// Test NewLazyValueWithValue
+	lv2 := gust.NewLazyValueWithValue(42)
+	assert.True(t, lv2.IsInitialized())
+	assert.Equal(t, gust.Some(42), lv2.TryGetValue().Ok())
+
+	// Test NewLazyValueWithZero
+	lv3 := gust.NewLazyValueWithZero[int]()
+	assert.True(t, lv3.IsInitialized())
+	assert.Equal(t, gust.Some(0), lv3.TryGetValue().Ok())
+
+	// Test NewLazyValueWithFunc
+	lv4 := gust.NewLazyValueWithFunc(func() gust.Result[int] {
+		return gust.Ok(100)
+	})
+	assert.True(t, lv4.IsInitialized())
+	assert.Equal(t, gust.Some(100), lv4.TryGetValue().Ok())
+
+	// Test SetInitFunc on uninitialized
+	lv5 := gust.NewLazyValue[string]()
+	lv5.SetInitFunc(func() gust.Result[string] {
+		return gust.Ok("test")
+	})
+	assert.Equal(t, gust.Some("test"), lv5.TryGetValue().Ok())
+
+	// Test SetInitFunc on initialized (should not change)
+	lv6 := gust.NewLazyValueWithValue("original")
+	lv6.SetInitFunc(func() gust.Result[string] {
+		return gust.Ok("new")
+	})
+	assert.Equal(t, gust.Some("original"), lv6.TryGetValue().Ok())
+
+	// Test SetInitValue
+	lv7 := gust.NewLazyValue[int]()
+	lv7.SetInitValue(200)
+	assert.Equal(t, gust.Some(200), lv7.TryGetValue().Ok())
+
+	// Test SetInitZero
+	lv8 := gust.NewLazyValue[int]()
+	lv8.SetInitZero()
+	assert.Equal(t, gust.Some(0), lv8.TryGetValue().Ok())
+
+	// Test Zero
+	var zero int
+	assert.Equal(t, zero, lv8.Zero())
 }
 
 func BenchmarkLazyValue(b *testing.B) {

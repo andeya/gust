@@ -9,7 +9,7 @@ type (
 	SizeIterable[T any] interface {
 		Remaining() uint
 	}
-	DeIterable[T any] interface {
+	DoubleEndedIterable[T any] interface {
 		Iterable[T]
 		SizeIterable[T]
 		NextBack() Option[T]

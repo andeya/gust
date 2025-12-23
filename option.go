@@ -521,8 +521,8 @@ func (o *Option[T]) UnmarshalJSON(b []byte) error {
 }
 
 var (
-	_ Iterable[any]   = new(Option[any])
-	_ DeIterable[any] = new(Option[any])
+	_ Iterable[any]            = new(Option[any])
+	_ DoubleEndedIterable[any] = new(Option[any])
 )
 
 func (o *Option[T]) Next() Option[T] {

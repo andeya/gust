@@ -1,0 +1,79 @@
+package iter
+
+import (
+	"github.com/andeya/gust"
+)
+
+// Sum sums the elements of an iterator.
+//
+// Takes each element, adds them together, and returns the result.
+//
+// An empty iterator returns the *additive identity* ("zero") of the type,
+// which is 0 for integers and -0.0 for floats.
+//
+// # Panics
+//
+// When calling Sum() and a primitive integer type is being returned, this
+// method will panic if the computation overflows and overflow checks are
+// enabled.
+//
+// # Examples
+//
+//	var a = []int{1, 2, 3}
+//	var sum = Sum(FromSlice(a))
+//	assert.Equal(t, 6, sum)
+//
+//	var b = []float64{}
+//	var sumFloat = Sum(FromSlice(b))
+//	assert.Equal(t, -0.0, sumFloat)
+func Sum[T gust.Digit](iter Iterator[T]) T {
+	var zero T
+	return Fold(iter, zero, func(acc T, x T) T { return acc + x })
+}
+
+// Product iterates over the entire iterator, multiplying all the elements
+//
+// An empty iterator returns the one value of the type.
+//
+// # Panics
+//
+// When calling Product() and a primitive integer type is being returned,
+// method will panic if the computation overflows and overflow checks are
+// enabled.
+//
+// # Examples
+//
+//	var factorial = func(n int) int {
+//		return Product(FromRange(1, n+1))
+//	}
+//	assert.Equal(t, 1, factorial(0))
+//	assert.Equal(t, 1, factorial(1))
+//	assert.Equal(t, 120, factorial(5))
+func Product[T gust.Digit](iter Iterator[T]) T {
+	// For numeric types, we need to handle the identity element
+	// For integers, it's 1, for floats it's 1.0
+	// We'll use a type switch or helper function
+	first := iter.Next()
+	if first.IsNone() {
+		return getProductIdentity[T]()
+	}
+	return Fold(iter, first.Unwrap(), func(acc T, x T) T { return acc * x })
+}
+
+// getProductIdentity returns the multiplicative identity for type T
+func getProductIdentity[T gust.Digit]() T {
+	var zero T
+	switch any(zero).(type) {
+	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
+		return any(1).(T)
+	case float32:
+		return any(float32(1.0)).(T)
+	case float64:
+		return any(1.0).(T)
+	default:
+		// For unknown types, return zero (this shouldn't happen for gust.Digit)
+		var zero T
+		return zero
+	}
+}
+
