@@ -179,7 +179,7 @@ func TestLazyValueGetPtr(t *testing.T) {
 
 func TestNewRWMutex(t *testing.T) {
 	m := gust.NewRWMutex(10)
-	
+
 	// Test Lock/Unlock
 	assert.Equal(t, 10, m.Lock())
 	m.Unlock(20)
@@ -269,22 +269,25 @@ func TestLazyValueNewFunctions(t *testing.T) {
 	assert.False(t, lv1.IsInitialized())
 	assert.Equal(t, gust.Err[int](gust.ErrLazyValueWithoutInit), lv1.TryGetValue())
 
-	// Test NewLazyValueWithValue
+	// Test NewLazyValueWithValue - lazy initialization
 	lv2 := gust.NewLazyValueWithValue(42)
-	assert.True(t, lv2.IsInitialized())
+	assert.False(t, lv2.IsInitialized()) // Not initialized until TryGetValue is called
 	assert.Equal(t, gust.Some(42), lv2.TryGetValue().Ok())
+	assert.True(t, lv2.IsInitialized()) // Now initialized after TryGetValue
 
-	// Test NewLazyValueWithZero
+	// Test NewLazyValueWithZero - lazy initialization
 	lv3 := gust.NewLazyValueWithZero[int]()
-	assert.True(t, lv3.IsInitialized())
+	assert.False(t, lv3.IsInitialized()) // Not initialized until TryGetValue is called
 	assert.Equal(t, gust.Some(0), lv3.TryGetValue().Ok())
+	assert.True(t, lv3.IsInitialized()) // Now initialized after TryGetValue
 
-	// Test NewLazyValueWithFunc
+	// Test NewLazyValueWithFunc - lazy initialization
 	lv4 := gust.NewLazyValueWithFunc(func() gust.Result[int] {
 		return gust.Ok(100)
 	})
-	assert.True(t, lv4.IsInitialized())
+	assert.False(t, lv4.IsInitialized()) // Not initialized until TryGetValue is called
 	assert.Equal(t, gust.Some(100), lv4.TryGetValue().Ok())
+	assert.True(t, lv4.IsInitialized()) // Now initialized after TryGetValue
 
 	// Test SetInitFunc on uninitialized
 	lv5 := gust.NewLazyValue[string]()

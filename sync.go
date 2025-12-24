@@ -373,28 +373,37 @@ func NewLazyValue[T any]() *LazyValue[T] {
 }
 
 // NewLazyValueWithFunc new LazyValue with initialization function.
+// The value will be computed lazily when TryGetValue() is called.
 func NewLazyValueWithFunc[T any](onceInit func() Result[T]) *LazyValue[T] {
 	return new(LazyValue[T]).SetInitFunc(onceInit)
 }
 
 // NewLazyValueWithValue new LazyValue with initialization value.
+// The value will be computed lazily when TryGetValue() is called.
 func NewLazyValueWithValue[T any](v T) *LazyValue[T] {
 	return new(LazyValue[T]).SetInitValue(v)
 }
 
 // NewLazyValueWithZero new LazyValue with zero.
+// The value will be computed lazily when TryGetValue() is called.
 func NewLazyValueWithZero[T any]() *LazyValue[T] {
 	return new(LazyValue[T]).SetInitZero()
 }
 
 // SetInitFunc set initialization function.
 // NOTE: onceInit can not be nil
+// If the LazyValue already has an initialization function set (even if not initialized yet),
+// this function will not override it.
 func (o *LazyValue[T]) SetInitFunc(onceInit func() Result[T]) *LazyValue[T] {
 	if o.IsInitialized() {
 		return o
 	}
 	o.m.Lock()
 	defer o.m.Unlock()
+	// Don't override if onceInit is already set
+	if o.onceInit != nil {
+		return o
+	}
 	o.onceInit = onceInit
 	return o
 }
