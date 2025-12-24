@@ -373,37 +373,326 @@ func TestSmall_SingleDigit(t *testing.T) {
 	}
 }
 
-func TestFormatBits_Base10_EdgeCases(t *testing.T) {
-	// Test formatBits with base 10 edge cases
-	testCases := []struct {
-		in   uint64
-		want string
-	}{
-		{10, "10"},
-		{99, "99"},
-		{100, "100"},
-		{999, "999"},
-		{1000, "1000"},
-		{9999, "9999"},
-		{10000, "10000"},
-	}
+// TestFormatBits_Base10_EdgeCases, TestFormatBits_Base10_SingleDigit and TestFormatBits_Base10_UsGreaterThanOrEqual10
+// are merged into TestFormatBits_Base10_UsLessThan10, TestFormatBits_Base10_UsLessThan100 and TestFormatBits_Base10_UsGreaterThanOrEqual100
 
-	for _, tc := range testCases {
-		got := FormatUint(tc.in, 10)
-		if got != tc.want {
-			t.Errorf("FormatUint(%d, 10) = %q, want %q", tc.in, got, tc.want)
+func TestFormatBits_AllBases(t *testing.T) {
+	// Test formatBits with all valid bases (2-62)
+	for base := 2; base <= 62; base++ {
+		got := FormatUint(100, base)
+		if len(got) == 0 {
+			t.Errorf("FormatUint(100, %d) should return non-empty string", base)
 		}
 	}
 }
 
-func TestFormatBits_Base10_SingleDigit(t *testing.T) {
-	// Test formatBits with single digit case (us < 10)
-	// This covers the branch where us < 10 after the loop
+func TestFormatBits_NonPowerOfTwoBases(t *testing.T) {
+	// Test formatBits with non-power-of-two bases (general case)
+	testCases := []struct {
+		in   uint64
+		base int
+	}{
+		{100, 3},
+		{100, 5},
+		{100, 7},
+		{100, 9},
+		{100, 11},
+		{100, 13},
+		{100, 15},
+		{100, 17},
+		{100, 19},
+		{100, 21},
+		{100, 23},
+		{100, 25},
+		{100, 27},
+		{100, 29},
+		{100, 31},
+		{100, 33},
+		{100, 35},
+		{100, 37},
+		{100, 39},
+		{100, 41},
+		{100, 43},
+		{100, 45},
+		{100, 47},
+		{100, 49},
+		{100, 51},
+		{100, 53},
+		{100, 55},
+		{100, 57},
+		{100, 59},
+		{100, 61},
+	}
+
+	for _, tc := range testCases {
+		got := FormatUint(tc.in, tc.base)
+		if len(got) == 0 {
+			t.Errorf("FormatUint(%d, %d) should return non-empty string", tc.in, tc.base)
+		}
+		// Verify it can be parsed back
+		result := ParseUint(got, tc.base, 64)
+		if result.IsErr() {
+			t.Errorf("FormatUint(%d, %d) = %q, but ParseUint failed: %v", tc.in, tc.base, got, result.Err())
+		} else if result.Unwrap() != tc.in {
+			t.Errorf("FormatUint(%d, %d) = %q, but ParseUint returned %d", tc.in, tc.base, got, result.Unwrap())
+		}
+	}
+}
+
+func TestFormatBits_PowerOfTwoBases_All(t *testing.T) {
+	// Test formatBits with all power-of-two bases
+	powerOfTwoBases := []int{2, 4, 8, 16, 32}
+	for _, base := range powerOfTwoBases {
+		got := FormatUint(255, base)
+		if len(got) == 0 {
+			t.Errorf("FormatUint(255, %d) should return non-empty string", base)
+		}
+		// Verify it can be parsed back
+		result := ParseUint(got, base, 64)
+		if result.IsErr() {
+			t.Errorf("FormatUint(255, %d) = %q, but ParseUint failed: %v", base, got, result.Err())
+		} else if result.Unwrap() != 255 {
+			t.Errorf("FormatUint(255, %d) = %q, but ParseUint returned %d", base, got, result.Unwrap())
+		}
+	}
+}
+
+func TestFormatBits_Base10_LargeNumbers(t *testing.T) {
+	// Test formatBits with base 10 and large numbers
+	testCases := []uint64{
+		1e6,
+		1e7,
+		1e8,
+		1e9,
+		1e10,
+		1e11,
+		1e12,
+		1e13,
+		1e14,
+		1e15,
+		1e16,
+		1e17,
+		1e18,
+	}
+
+	for _, tc := range testCases {
+		got := FormatUint(tc, 10)
+		if len(got) == 0 {
+			t.Errorf("FormatUint(%d, 10) should return non-empty string", tc)
+		}
+		// Verify it can be parsed back
+		result := ParseUint(got, 10, 64)
+		if result.IsErr() {
+			t.Errorf("FormatUint(%d, 10) = %q, but ParseUint failed: %v", tc, got, result.Err())
+		} else if result.Unwrap() != tc {
+			t.Errorf("FormatUint(%d, 10) = %q, but ParseUint returned %d", tc, got, result.Unwrap())
+		}
+	}
+}
+
+func TestFormatBits_NegativeNumbers_AllBases(t *testing.T) {
+	// Test formatBits with negative numbers and various bases
+	testCases := []struct {
+		in   int64
+		base int
+	}{
+		{-1, 2},
+		{-10, 10},
+		{-100, 16},
+		{-255, 32},
+		{-1000, 37},
+		{-10000, 62},
+	}
+
+	for _, tc := range testCases {
+		got := FormatInt(tc.in, tc.base)
+		if len(got) == 0 {
+			t.Errorf("FormatInt(%d, %d) should return non-empty string", tc.in, tc.base)
+		}
+		if got[0] != '-' {
+			t.Errorf("FormatInt(%d, %d) = %q, should start with '-'", tc.in, tc.base, got)
+		}
+	}
+}
+
+// TestFormatBits_AppendMode is already defined above
+
+func TestFormatBits_Zero(t *testing.T) {
+	// Test formatBits with zero
+	got := FormatUint(0, 10)
+	if got != "0" {
+		t.Errorf("FormatUint(0, 10) = %q, want \"0\"", got)
+	}
+
+	got2 := FormatInt(0, 10)
+	if got2 != "0" {
+		t.Errorf("FormatInt(0, 10) = %q, want \"0\"", got2)
+	}
+
+	got3 := FormatUint(0, 16)
+	if got3 != "0" {
+		t.Errorf("FormatUint(0, 16) = %q, want \"0\"", got3)
+	}
+
+	got4 := FormatUint(0, 37)
+	if got4 != "0" {
+		t.Errorf("FormatUint(0, 37) = %q, want \"0\"", got4)
+	}
+}
+
+func TestFormatBits_Base10_UsLessThan10(t *testing.T) {
+	// Test formatBits with us < 10 case (single digit after loop)
+	// Test using FormatUint (public API)
 	for i := uint64(0); i < 10; i++ {
 		got := FormatUint(i, 10)
 		want := string(rune('0' + i))
 		if got != want {
 			t.Errorf("FormatUint(%d, 10) = %q, want %q", i, got, want)
+		}
+	}
+	// Test using formatBits directly (internal function)
+	testCases := []struct {
+		u    uint64
+		want string
+	}{
+		{0, "0"},
+		{1, "1"},
+		{2, "2"},
+		{3, "3"},
+		{4, "4"},
+		{5, "5"},
+		{6, "6"},
+		{7, "7"},
+		{8, "8"},
+		{9, "9"},
+	}
+	for _, tc := range testCases {
+		_, s := formatBits(nil, tc.u, 10, false, false)
+		if s != tc.want {
+			t.Errorf("formatBits(%d, 10, false, false) = %q, want %q", tc.u, s, tc.want)
+		}
+	}
+}
+
+func TestFormatBits_Base10_UsLessThan100(t *testing.T) {
+	// Test formatBits with us < 100 case (covers us >= 10 branch at line 157)
+	// Test using FormatUint (public API)
+	for i := uint64(10); i < 100; i++ {
+		got := FormatUint(i, 10)
+		// Verify it's a 2-digit string
+		if len(got) != 2 {
+			t.Errorf("FormatUint(%d, 10) = %q, should be 2 digits", i, got)
+		}
+		// Verify it can be parsed back
+		result := ParseUint(got, 10, 64)
+		if result.IsErr() {
+			t.Errorf("FormatUint(%d, 10) = %q, but ParseUint failed: %v", i, got, result.Err())
+		} else if result.Unwrap() != i {
+			t.Errorf("FormatUint(%d, 10) = %q, but ParseUint returned %d", i, got, result.Unwrap())
+		}
+	}
+	// Test using formatBits directly (internal function)
+	testCases := []struct {
+		u    uint64
+		want string
+	}{
+		{10, "10"},
+		{11, "11"},
+		{99, "99"},
+		{100, "100"}, // This will have us >= 100, so it will use the loop
+	}
+	for _, tc := range testCases {
+		_, s := formatBits(nil, tc.u, 10, false, false)
+		if s != tc.want {
+			t.Errorf("formatBits(%d, 10, false, false) = %q, want %q", tc.u, s, tc.want)
+		}
+	}
+}
+
+func TestFormatBits_Base10_UsGreaterThanOrEqual100(t *testing.T) {
+	// Test formatBits with us >= 100 case (triggers the loop at line 145)
+	// Test using FormatUint (public API)
+	testCases := []uint64{
+		100,
+		101,
+		199,
+		200,
+		999,
+		1000,
+		9999,
+		10000,
+	}
+
+	for _, tc := range testCases {
+		got := FormatUint(tc, 10)
+		if len(got) == 0 {
+			t.Errorf("FormatUint(%d, 10) should return non-empty string", tc)
+		}
+		// Verify it can be parsed back
+		result := ParseUint(got, 10, 64)
+		if result.IsErr() {
+			t.Errorf("FormatUint(%d, 10) = %q, but ParseUint failed: %v", tc, got, result.Err())
+		} else if result.Unwrap() != tc {
+			t.Errorf("FormatUint(%d, 10) = %q, but ParseUint returned %d", tc, got, result.Unwrap())
+		}
+	}
+	// Test using formatBits directly (internal function)
+	testCases2 := []struct {
+		u    uint64
+		want string
+	}{
+		{100, "100"},
+		{101, "101"},
+		{999, "999"},
+		{1000, "1000"},
+		{12345, "12345"},
+		{99999, "99999"},
+		{100000, "100000"},
+	}
+	for _, tc := range testCases2 {
+		_, s := formatBits(nil, tc.u, 10, false, false)
+		if s != tc.want {
+			t.Errorf("formatBits(%d, 10, false, false) = %q, want %q", tc.u, s, tc.want)
+		}
+	}
+}
+
+func TestIsPowerOfTwo(t *testing.T) {
+	// Test isPowerOfTwo function indirectly through formatBits
+	// Power of two bases: 2, 4, 8, 16, 32
+	powerOfTwoBases := []int{2, 4, 8, 16, 32}
+	for _, base := range powerOfTwoBases {
+		got := FormatUint(255, base)
+		if len(got) == 0 {
+			t.Errorf("FormatUint(255, %d) should return non-empty string", base)
+		}
+	}
+
+	// Non-power of two bases: 3, 5, 7, 9, etc.
+	nonPowerOfTwoBases := []int{3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33, 35, 37}
+	for _, base := range nonPowerOfTwoBases {
+		got := FormatUint(255, base)
+		if len(got) == 0 {
+			t.Errorf("FormatUint(255, %d) should return non-empty string", base)
+		}
+	}
+}
+
+func TestFormatBits_Base10_Host32bit(t *testing.T) {
+	// Test formatBits with base 10 and Host32bit branch
+	// This tests the u >= 1e9 loop in Host32bit case
+	if Host32bit {
+		largeNum := uint64(1e9)
+		got := FormatUint(largeNum, 10)
+		expected := "1000000000"
+		if got != expected {
+			t.Errorf("FormatUint(%d, 10) = %q, want %q", largeNum, got, expected)
+		}
+
+		veryLargeNum := uint64(1e18)
+		got2 := FormatUint(veryLargeNum, 10)
+		if len(got2) == 0 {
+			t.Error("FormatUint(1e18, 10) should return non-empty string")
 		}
 	}
 }
@@ -456,50 +745,6 @@ func TestFormatBits_PowerOfTwoBases(t *testing.T) {
 	}
 }
 
-func TestFormatBits_Base10_SingleDigitResult(t *testing.T) {
-	// Test formatBits with base 10 where result is single digit (us < 10)
-	testCases := []struct {
-		in   uint64
-		want string
-	}{
-		{0, "0"},
-		{1, "1"},
-		{2, "2"},
-		{3, "3"},
-		{4, "4"},
-		{5, "5"},
-		{6, "6"},
-		{7, "7"},
-		{8, "8"},
-		{9, "9"},
-	}
-
-	for _, tc := range testCases {
-		got := FormatUint(tc.in, 10)
-		if got != tc.want {
-			t.Errorf("FormatUint(%d, 10) = %q, want %q", tc.in, got, tc.want)
-		}
-	}
-}
-
-func TestFormatBits_Base10_TwoDigitResult(t *testing.T) {
-	// Test formatBits with base 10 where result is two digits (us < 100 && us >= 10)
-	testCases := []struct {
-		in   uint64
-		want string
-	}{
-		{10, "10"},
-		{11, "11"},
-		{99, "99"},
-	}
-
-	for _, tc := range testCases {
-		got := FormatUint(tc.in, 10)
-		if got != tc.want {
-			t.Errorf("FormatUint(%d, 10) = %q, want %q", tc.in, got, tc.want)
-		}
-	}
-}
 
 func TestFormatBits_AppendInt_Negative(t *testing.T) {
 	// Test AppendInt with negative numbers
@@ -529,5 +774,180 @@ func TestFormatBits_AppendUint_AllBases(t *testing.T) {
 		if string(got) != tc.want {
 			t.Errorf("AppendUint(%q, %d, %d) = %q, want %q", string(tc.dst), tc.in, tc.base, string(got), tc.want)
 		}
+	}
+}
+
+func TestFormatBits_GeneralCase_NonPowerOfTwo(t *testing.T) {
+	// Test formatBits with general case (non-power-of-two base)
+	// This tests the general case path at line 181
+	// Test with bases that are not powers of 2 and not 10
+	testCases := []struct {
+		u    uint64
+		base int
+		want string
+	}{
+		{0, 3, "0"},
+		{1, 3, "1"},
+		{2, 3, "2"},
+		{3, 3, "10"},
+		{4, 3, "11"},
+		{9, 3, "100"},
+		{0, 5, "0"},
+		{1, 5, "1"},
+		{4, 5, "4"},
+		{5, 5, "10"},
+		{25, 5, "100"},
+		{0, 7, "0"},
+		{1, 7, "1"},
+		{6, 7, "6"},
+		{7, 7, "10"},
+		{49, 7, "100"},
+		{0, 11, "0"},
+		{1, 11, "1"},
+		{10, 11, "a"},
+		{11, 11, "10"},
+		{0, 13, "0"},
+		{1, 13, "1"},
+		{12, 13, "c"},
+		{13, 13, "10"},
+		{0, 17, "0"},
+		{1, 17, "1"},
+		{16, 17, "g"},
+		{17, 17, "10"},
+		{0, 19, "0"},
+		{1, 19, "1"},
+		{18, 19, "i"},
+		{19, 19, "10"},
+		{0, 23, "0"},
+		{1, 23, "1"},
+		{22, 23, "m"},
+		{23, 23, "10"},
+		{0, 29, "0"},
+		{1, 29, "1"},
+		{28, 29, "s"},
+		{29, 29, "10"},
+		{0, 31, "0"},
+		{1, 31, "1"},
+		{30, 31, "u"},
+		{31, 31, "10"},
+		{0, 37, "0"},
+		{1, 37, "1"},
+		{36, 37, "A"},
+		{37, 37, "10"},
+		{0, 41, "0"},
+		{1, 41, "1"},
+		{40, 41, "E"}, // digits[40] = 'E' (36 + 4 = 40, 'A' + 4 = 'E')
+		{41, 41, "10"},
+		{0, 43, "0"},
+		{1, 43, "1"},
+		{42, 43, "G"}, // digits[42] = 'G' (36 + 6 = 42, 'A' + 6 = 'G')
+		{43, 43, "10"},
+		{0, 47, "0"},
+		{1, 47, "1"},
+		{46, 47, "K"}, // digits[46] = 'K' (36 + 10 = 46, 'A' + 10 = 'K')
+		{47, 47, "10"},
+		{0, 53, "0"},
+		{1, 53, "1"},
+		{52, 53, "Q"}, // digits[52] = 'Q' (36 + 16 = 52, 'A' + 16 = 'Q')
+		{53, 53, "10"},
+		{0, 59, "0"},
+		{1, 59, "1"},
+		{58, 59, "W"}, // digits[58] = 'W' (36 + 22 = 58, 'A' + 22 = 'W')
+		{59, 59, "10"},
+		{0, 61, "0"},
+		{1, 61, "1"},
+		{60, 61, "Y"}, // digits[60] = 'Y' (36 + 24 = 60, 'A' + 24 = 'Y')
+		{61, 61, "10"},
+	}
+
+	for _, tc := range testCases {
+		_, s := formatBits(nil, tc.u, tc.base, false, false)
+		if s != tc.want {
+			t.Errorf("formatBits(%d, %d, false, false) = %q, want %q", tc.u, tc.base, s, tc.want)
+		}
+	}
+}
+
+func TestFormatBits_GeneralCase_LargeNumbers(t *testing.T) {
+	// Test formatBits with general case and large numbers
+	// This tests the u >= b loop at line 184
+	testCases := []struct {
+		u    uint64
+		base int
+	}{
+		{100, 3},
+		{1000, 5},
+		{10000, 7},
+		{100000, 11},
+		{1000000, 13},
+		{10000000, 17},
+		{100000000, 19},
+		{1000000000, 23},
+		{10000000000, 29},
+		{100000000000, 31},
+		{1000000000000, 37},
+		{10000000000000, 41},
+		{100000000000000, 43},
+		{1000000000000000, 47},
+		{10000000000000000, 53},
+		{100000000000000000, 59},
+		{1000000000000000000, 61},
+	}
+
+	for _, tc := range testCases {
+		_, s := formatBits(nil, tc.u, tc.base, false, false)
+		if s == "" {
+			t.Errorf("formatBits(%d, %d, false, false) returned empty string", tc.u, tc.base)
+		}
+		// Verify it's a valid representation
+		if len(s) == 0 {
+			t.Errorf("formatBits(%d, %d, false, false) returned empty string", tc.u, tc.base)
+		}
+	}
+}
+
+func TestTryFromString_ReflectPath_AllKinds(t *testing.T) {
+	// Test tryFromString with reflect path for all kinds
+	// This tests the reflect.TypeOf(x).Kind() path at line 45
+	// We need to use custom types that will trigger the reflect path
+	
+	// Test with custom string type
+	type CustomString string
+	type CustomInt int
+	
+	// This should use the reflect path
+	result := TryFromString[CustomString, CustomInt]("42", 10, 0)
+	if result.IsErr() {
+		t.Logf("TryFromString returned error (may be expected): %v", result.UnwrapErr())
+	} else {
+		t.Logf("TryFromString returned: %v", result.Unwrap())
+	}
+	
+	// Test with standard types that will use reflect path
+	result2 := TryFromString[string, int]("42", 10, 0)
+	if result2.IsErr() {
+		t.Errorf("TryFromString[string, int]('42', 10, 0) should work, got error: %v", result2.UnwrapErr())
+	} else if result2.Unwrap() != 42 {
+		t.Errorf("TryFromString[string, int]('42', 10, 0) = %d, want 42", result2.Unwrap())
+	}
+	
+	// Test with uint
+	result3 := TryFromString[string, uint]("42", 10, 0)
+	if result3.IsErr() {
+		t.Errorf("TryFromString[string, uint]('42', 10, 0) should work, got error: %v", result3.UnwrapErr())
+	} else if result3.Unwrap() != 42 {
+		t.Errorf("TryFromString[string, uint]('42', 10, 0) = %d, want 42", result3.Unwrap())
+	}
+	
+	// Test with float32
+	result4 := TryFromString[string, float32]("3.14", 10, 32)
+	if result4.IsErr() {
+		t.Errorf("TryFromString[string, float32]('3.14', 10, 32) should work, got error: %v", result4.UnwrapErr())
+	}
+	
+	// Test with float64
+	result5 := TryFromString[string, float64]("3.14", 10, 64)
+	if result5.IsErr() {
+		t.Errorf("TryFromString[string, float64]('3.14', 10, 64) should work, got error: %v", result5.UnwrapErr())
 	}
 }

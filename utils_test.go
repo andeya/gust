@@ -78,6 +78,16 @@ func TestPanicValue_Error(t *testing.T) {
 	str := "test error"
 	pv3 := panicValue[string]{value: &str}
 	assert.Equal(t, "test error", pv3.Error())
+
+	// Test with struct
+	type S struct {
+		X int
+		Y string
+	}
+	s := S{X: 1, Y: "test"}
+	pv4 := panicValue[S]{value: &s}
+	assert.Contains(t, pv4.Error(), "1")
+	assert.Contains(t, pv4.Error(), "test")
 }
 
 func TestInitNilPtr(t *testing.T) {
@@ -184,4 +194,47 @@ func TestDefaultValuePtr(t *testing.T) {
 	ptr5 := defaultValuePtr[S]()
 	assert.NotNil(t, ptr5)
 	assert.Equal(t, S{}, *ptr5)
+}
+
+func TestInitNilPtr_MoreEdgeCases(t *testing.T) {
+	// Test with interface containing non-nil pointer
+	var iface interface{} = new(int)
+	*iface.(*int) = 42
+	v := reflect.ValueOf(&iface)
+	done := initNilPtr(v)
+	assert.True(t, done)
+
+	// Test with triple nested nil pointers
+	var tripleNil ***int
+	v2 := reflect.ValueOf(&tripleNil)
+	done2 := initNilPtr(v2)
+	assert.True(t, done2)
+	assert.NotNil(t, tripleNil)
+	assert.NotNil(t, **tripleNil)
+	assert.NotNil(t, *tripleNil)
+	assert.Equal(t, 0, ***tripleNil)
+
+	// Test with pointer to struct (initNilPtr only initializes the pointer chain, not struct fields)
+	type StructPtr struct {
+		Ptr *int
+	}
+	var structPtr *StructPtr
+	v3 := reflect.ValueOf(&structPtr)
+	done3 := initNilPtr(v3)
+	assert.True(t, done3)
+	assert.NotNil(t, structPtr)
+	// Note: initNilPtr doesn't recursively initialize struct fields, so structPtr.Ptr will be nil
+	assert.Nil(t, structPtr.Ptr) // Verify that struct fields are not initialized
+
+	// Test with double pointer to struct
+	type StructPtr2 struct {
+		Value int
+	}
+	var doublePtr **StructPtr2
+	v4 := reflect.ValueOf(&doublePtr)
+	done4 := initNilPtr(v4)
+	assert.True(t, done4)
+	assert.NotNil(t, doublePtr)
+	assert.NotNil(t, *doublePtr)
+	assert.Equal(t, 0, (*doublePtr).Value) // Verify the struct is initialized with zero value
 }

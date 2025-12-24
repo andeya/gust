@@ -7,6 +7,7 @@ package digit
 import (
 	"errors"
 	"fmt"
+	"math"
 	"reflect"
 	"strconv"
 	"testing"
@@ -1290,5 +1291,606 @@ func TestAs_AllTypes(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, tc.test)
+	}
+}
+
+func TestAtoi_EmptyString(t *testing.T) {
+	// Test empty string (should use slow path)
+	_, err := Atoi("")
+	if err == nil {
+		t.Error("Atoi('') should return error")
+	}
+}
+
+func TestAtoi_ZeroLength(t *testing.T) {
+	// Test zero length string (should use slow path)
+	_, err := Atoi("")
+	if err == nil {
+		t.Error("Atoi('') should return error")
+	}
+}
+
+func TestParseInt_ErrRangePropagation_NonRangeError(t *testing.T) {
+	// Test that non-ErrRange errors from parseUint are propagated correctly
+	// This tests the if branch at line 140-143
+	_, err := parseInt("abc", 10, 64) // This causes syntax error in parseUint
+	if err == nil {
+		t.Error("parseInt with syntax error should return error")
+	} else if nerr, ok := err.(*strconv.NumError); !ok || nerr.Err == strconv.ErrRange {
+		// Should be syntax error, not range error
+		if nerr.Err == strconv.ErrRange {
+			t.Errorf("parseInt with syntax error should not return ErrRange, got %v", err)
+		}
+	}
+}
+
+func TestParseInt_NegativeOverflowBoundary(t *testing.T) {
+	// Test negative overflow boundary case
+	// For 64-bit: cutoff = 1<<63, neg && un > cutoff
+	result := ParseInt("-9223372036854775809", 10, 64) // -2^63 - 1
+	assert.True(t, result.IsErr())
+}
+
+func TestParseInt_PositiveOverflowBoundary(t *testing.T) {
+	// Test positive overflow boundary case
+	// For 64-bit: cutoff = 1<<63, !neg && un >= cutoff
+	result := ParseInt("9223372036854775808", 10, 64) // 2^63
+	assert.True(t, result.IsErr())
+}
+
+func TestParseUint_OverflowBoundary(t *testing.T) {
+	// Test overflow boundary: n >= cutoff
+	result := ParseUint("18446744073709551615", 10, 64) // Max uint64
+	assert.False(t, result.IsErr())
+	assert.Equal(t, uint64(18446744073709551615), result.Unwrap())
+
+	// Test overflow: n >= cutoff
+	result2 := ParseUint("18446744073709551616", 10, 64) // Max uint64 + 1
+	assert.True(t, result2.IsErr())
+}
+
+func TestParseUint_N1Overflow(t *testing.T) {
+	// Test n1 overflow: n1 < n || n1 > maxVal
+	// This is hard to trigger, but we can try with very large numbers
+	result := ParseUint("18446744073709551615", 10, 64) // Max uint64
+	assert.False(t, result.IsErr())
+}
+
+func TestParseUint_Base37InvalidDigit(t *testing.T) {
+	// Test base 37 with invalid digit (digit >= base for base <= 36)
+	// But for base > 36, all digits 0-9, a-z, A-Z are valid
+	result := ParseUint("Z", 37, 64)
+	assert.False(t, result.IsErr())
+	assert.Equal(t, uint64(61), result.Unwrap()) // Z = 61 in base 37
+}
+
+func TestTryFromStrings_ErrorPropagation(t *testing.T) {
+	// Test error propagation in TryFromStrings
+	result := TryFromStrings[string, int]([]string{"42", "abc", "100"}, 10, 0)
+	assert.True(t, result.IsErr())
+}
+
+func TestTryFromStrings_EmptySlice(t *testing.T) {
+	// Test empty slice
+	result := TryFromStrings[string, int]([]string{}, 10, 0)
+	assert.False(t, result.IsErr())
+	assert.Equal(t, []int{}, result.Unwrap())
+}
+
+func TestSliceAs_ErrorPropagation(t *testing.T) {
+	// Test error propagation in SliceAs
+	result, err := SliceAs[int, int8]([]int{100, 200, 300})
+	assert.Error(t, err)
+	assert.Nil(t, result)
+}
+
+func TestFormatByDict_LargeNumber(t *testing.T) {
+	// Test FormatByDict with large number
+	dict := []byte("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
+	result := FormatByDict(dict, 1000000)
+	assert.NotEmpty(t, result)
+
+	// Verify round-trip
+	parsed := ParseByDict[uint64](dict, result)
+	assert.False(t, parsed.IsErr())
+	assert.Equal(t, uint64(1000000), parsed.Unwrap())
+}
+
+func TestFormatByDict_Zero(t *testing.T) {
+	// Test FormatByDict with zero
+	dict := []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	result := FormatByDict(dict, 0)
+	assert.NotEmpty(t, result)
+
+	// Verify round-trip
+	parsed := ParseByDict[uint64](dict, result)
+	assert.False(t, parsed.IsErr())
+	assert.Equal(t, uint64(0), parsed.Unwrap())
+}
+
+func TestParseByDict_EmptyString(t *testing.T) {
+	// Test ParseByDict with empty string
+	dict := []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	result := ParseByDict[uint64](dict, "")
+	assert.False(t, result.IsErr())
+	assert.Equal(t, uint64(0), result.Unwrap())
+}
+
+func TestParseByDict_LargeNumber(t *testing.T) {
+	// Test ParseByDict with large number
+	dict := []byte("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
+	numStr := FormatByDict(dict, 1000000)
+	result := ParseByDict[uint64](dict, numStr)
+	assert.False(t, result.IsErr())
+	assert.Equal(t, uint64(1000000), result.Unwrap())
+}
+
+func TestCheckedMul_EdgeCases(t *testing.T) {
+	// Test CheckedMul with edge cases
+	maxInt := Max[int]()
+
+	// Test a = Max/b exactly (boundary case)
+	result := CheckedMul(maxInt, 1)
+	assert.True(t, result.IsSome())
+	assert.Equal(t, maxInt, result.Unwrap())
+
+	// Test a = Max/b + 1 (should overflow)
+	result2 := CheckedMul(maxInt, 2)
+	assert.True(t, result2.IsNone())
+
+	// Test with zero (should work)
+	result3 := CheckedMul(0, maxInt)
+	assert.True(t, result3.IsSome())
+	assert.Equal(t, 0, result3.Unwrap())
+
+	// Test with one (should work)
+	result4 := CheckedMul(1, maxInt)
+	assert.True(t, result4.IsSome())
+	assert.Equal(t, maxInt, result4.Unwrap())
+}
+
+func TestCheckedAdd_EdgeCases(t *testing.T) {
+	// Test CheckedAdd with edge cases
+	maxInt := Max[int]()
+
+	// Test a = Max - b exactly (boundary case)
+	result := CheckedAdd(maxInt-1, 1)
+	assert.True(t, result.IsSome())
+	assert.Equal(t, maxInt, result.Unwrap())
+
+	// Test a = Max - b + 1 (should overflow)
+	result2 := CheckedAdd(maxInt, 1)
+	assert.True(t, result2.IsNone())
+
+	// Test with zero (should work)
+	result3 := CheckedAdd(0, maxInt)
+	assert.True(t, result3.IsSome())
+	assert.Equal(t, maxInt, result3.Unwrap())
+}
+
+func TestSaturatingAdd_EdgeCases(t *testing.T) {
+	// Test SaturatingAdd with edge cases
+	maxInt := Max[int]()
+
+	// Test a = Max - b exactly (boundary case)
+	result := SaturatingAdd(maxInt-1, 1)
+	assert.Equal(t, maxInt, result)
+
+	// Test a = Max - b + 1 (should saturate)
+	result2 := SaturatingAdd(maxInt, 1)
+	assert.Equal(t, maxInt, result2)
+
+	// Test with zero (should work)
+	result3 := SaturatingAdd(0, maxInt)
+	assert.Equal(t, maxInt, result3)
+}
+
+func TestSaturatingSub_EdgeCases(t *testing.T) {
+	// Test SaturatingSub with edge cases
+	// Test a = b exactly (boundary case)
+	result := SaturatingSub(5, 5)
+	assert.Equal(t, 0, result)
+
+	// Test a < b (should return 0)
+	result2 := SaturatingSub(3, 5)
+	assert.Equal(t, 0, result2)
+
+	// Test with floats
+	result3 := SaturatingSub(5.5, 3.0)
+	assert.Equal(t, 2.5, result3)
+
+	result4 := SaturatingSub(3.0, 5.5)
+	assert.Equal(t, 0.0, result4)
+}
+
+func TestAtoi_FastPathBoundary(t *testing.T) {
+	// Test fast path boundary cases
+	// For 64-bit: length < 19 uses fast path
+	// For 32-bit: length < 10 uses fast path
+
+	// Test length 18 (64-bit fast path boundary)
+	if strconv.IntSize == 64 {
+		got, err := Atoi("123456789012345678") // 18 digits
+		if err != nil {
+			t.Errorf("Atoi with 18 digits should work, got error: %v", err)
+		}
+		if got == 0 {
+			t.Error("Atoi with 18 digits should return non-zero")
+		}
+
+		// Test length 19 (should use slow path)
+		got2, err2 := Atoi("1234567890123456789") // 19 digits
+		if err2 != nil {
+			t.Errorf("Atoi with 19 digits should work, got error: %v", err2)
+		}
+		if got2 == 0 {
+			t.Error("Atoi with 19 digits should return non-zero")
+		}
+	}
+
+	// Test length 9 (32-bit fast path boundary)
+	if strconv.IntSize == 32 {
+		got, err := Atoi("123456789") // 9 digits
+		if err != nil {
+			t.Errorf("Atoi with 9 digits should work, got error: %v", err)
+		}
+		if got == 0 {
+			t.Error("Atoi with 9 digits should return non-zero")
+		}
+
+		// Test length 10 (should use slow path)
+		got2, err2 := Atoi("1234567890") // 10 digits
+		if err2 != nil {
+			t.Errorf("Atoi with 10 digits should work, got error: %v", err2)
+		}
+		if got2 == 0 {
+			t.Error("Atoi with 10 digits should return non-zero")
+		}
+	}
+}
+
+func TestParseUint_BitSizeBoundary(t *testing.T) {
+	// Test bitSize boundary cases
+	// bitSize < 0 should return error
+	_, err := parseUint("123", 10, -1)
+	if err == nil {
+		t.Error("parseUint with bitSize -1 should return error")
+	}
+
+	// bitSize > 64 should return error
+	_, err2 := parseUint("123", 10, 65)
+	if err2 == nil {
+		t.Error("parseUint with bitSize 65 should return error")
+	}
+
+	// bitSize == 64 should work
+	got, err3 := parseUint("123", 10, 64)
+	if err3 != nil {
+		t.Errorf("parseUint with bitSize 64 should work, got error: %v", err3)
+	} else if got != 123 {
+		t.Errorf("parseUint('123', 10, 64) = %d, want 123", got)
+	}
+}
+
+func TestParseInt_BitSizeBoundary(t *testing.T) {
+	// Test bitSize boundary cases in parseInt
+	// bitSize < 0 should return error (through parseUint)
+	_, err := parseInt("123", 10, -1)
+	if err == nil {
+		t.Error("parseInt with bitSize -1 should return error")
+	}
+
+	// bitSize > 64 should return error (through parseUint)
+	_, err2 := parseInt("123", 10, 65)
+	if err2 == nil {
+		t.Error("parseInt with bitSize 65 should return error")
+	}
+}
+
+func TestParseUint_OverflowBoundary2(t *testing.T) {
+	// Test overflow boundary cases (internal parseUint function)
+	// n >= cutoff case
+	maxUint64 := "18446744073709551615" // max uint64
+	got, err := parseUint(maxUint64, 10, 64)
+	if err != nil {
+		t.Errorf("parseUint with max uint64 should work, got error: %v", err)
+	} else if got != math.MaxUint64 {
+		t.Errorf("parseUint('%s', 10, 64) = %d, want %d", maxUint64, got, uint64(math.MaxUint64))
+	}
+
+	// n >= cutoff case (should overflow)
+	overflow := "18446744073709551616" // max uint64 + 1
+	got2, err2 := parseUint(overflow, 10, 64)
+	if err2 == nil {
+		t.Error("parseUint with overflow should return error")
+	} else if got2 != math.MaxUint64 {
+		t.Errorf("parseUint('%s', 10, 64) should return max uint64 on overflow, got %d", overflow, got2)
+	}
+
+	// n1 < n case (n+v overflows)
+	// This is harder to trigger, but we can try with a large number in a small base
+	largeBase10 := "9999999999999999999" // Very large number
+	got3, err3 := parseUint(largeBase10, 10, 64)
+	if err3 == nil && got3 == 0 {
+		t.Error("parseUint with very large number should either return error or non-zero value")
+	}
+}
+
+func TestParseInt_PositiveOverflowBoundary2(t *testing.T) {
+	// Test positive overflow boundary (!neg && un >= cutoff) - internal parseInt function
+	maxInt64 := "9223372036854775807" // max int64
+	got, err := parseInt(maxInt64, 10, 64)
+	if err != nil {
+		t.Errorf("parseInt with max int64 should work, got error: %v", err)
+	} else if got != math.MaxInt64 {
+		t.Errorf("parseInt('%s', 10, 64) = %d, want %d", maxInt64, got, int64(math.MaxInt64))
+	}
+
+	// Test overflow (un >= cutoff)
+	overflow := "9223372036854775808" // max int64 + 1
+	got2, err2 := parseInt(overflow, 10, 64)
+	if err2 == nil {
+		t.Error("parseInt with overflow should return error")
+	} else if got2 != math.MaxInt64 {
+		t.Errorf("parseInt('%s', 10, 64) should return max int64 on overflow, got %d", overflow, got2)
+	}
+}
+
+func TestParseInt_NegativeOverflowBoundary2(t *testing.T) {
+	// Test negative overflow boundary (neg && un > cutoff)
+	minInt64 := "-9223372036854775808" // min int64
+	got, err := parseInt(minInt64, 10, 64)
+	if err != nil {
+		t.Errorf("parseInt with min int64 should work, got error: %v", err)
+	} else if got != math.MinInt64 {
+		t.Errorf("parseInt('%s', 10, 64) = %d, want %d", minInt64, got, math.MinInt64)
+	}
+
+	// Test overflow (un > cutoff)
+	overflow := "-9223372036854775809" // min int64 - 1
+	got2, err2 := parseInt(overflow, 10, 64)
+	if err2 == nil {
+		t.Error("parseInt with negative overflow should return error")
+	} else if got2 != math.MinInt64 {
+		t.Errorf("parseInt('%s', 10, 64) should return min int64 on overflow, got %d", overflow, got2)
+	}
+}
+
+func TestUnderscoreOK_EdgeCases(t *testing.T) {
+	// Test underscoreOK with various edge cases
+	// Test with base prefix and underscore
+	assert.True(t, underscoreOK("0x_123"))
+	assert.True(t, underscoreOK("0b_101"))
+	assert.True(t, underscoreOK("0o_377"))
+
+	// Test with underscore after base prefix
+	// Base prefix counts as a digit, so underscore immediately after prefix is OK
+	assert.True(t, underscoreOK("0x1_23"))
+	assert.True(t, underscoreOK("0x_1_23")) // underscore immediately after prefix is OK because prefix counts as digit
+
+	// Test with multiple underscores
+	assert.True(t, underscoreOK("1_2_3_4"))
+	assert.False(t, underscoreOK("_1_2_3")) // underscore at start (before any digit)
+	assert.True(t, underscoreOK("1_2_3_"))  // underscore at end is OK (follows a digit)
+
+	// Test with sign and underscore
+	assert.True(t, underscoreOK("+1_2_3"))
+	assert.True(t, underscoreOK("-1_2_3"))
+	assert.False(t, underscoreOK("+_1_2_3")) // underscore after sign (before any digit)
+	assert.False(t, underscoreOK("-_1_2_3")) // underscore after sign (before any digit)
+}
+
+func TestParseUint_AllBases(t *testing.T) {
+	// Test parseUint with all valid bases (2-62)
+	for base := 2; base <= 62; base++ {
+		// Test with valid digit for this base
+		var testStr string
+		if base <= 10 {
+			// For base <= 10, use a digit that's valid for all bases (e.g., "1")
+			testStr = "1"
+		} else if base <= 36 {
+			// For base 11-36, use "a" which is valid (represents 10)
+			testStr = "a"
+		} else {
+			// For base > 36, use "A" which is valid (represents 36)
+			testStr = "A"
+		}
+		got, err := parseUint(testStr, base, 64)
+		if err != nil {
+			t.Errorf("parseUint('%s', %d, 64) should work, got error: %v", testStr, base, err)
+		} else if got == 0 && testStr != "0" {
+			t.Errorf("parseUint('%s', %d, 64) = %d, should be non-zero", testStr, base, got)
+		}
+	}
+}
+
+func TestParseUint_BaseErrors(t *testing.T) {
+	// Test base error cases
+	// Note: base 0 is handled by strconv.ParseUint (base <= 36 path), so it won't error
+	// unless the string is invalid. We test base 0 with an invalid string.
+	_, err := parseUint("invalid", 0, 64)
+	if err == nil {
+		t.Error("parseUint with base 0 and invalid string should return error")
+	}
+
+	// base 1 is invalid
+	_, err2 := parseUint("123", 1, 64)
+	if err2 == nil {
+		t.Error("parseUint with base 1 should return error")
+	}
+
+	// base > 62 should return error (enters base > 36 path)
+	_, err3 := parseUint("123", 63, 64)
+	if err3 == nil {
+		t.Error("parseUint with base 63 should return error")
+	}
+
+	_, err4 := parseUint("123", 100, 64)
+	if err4 == nil {
+		t.Error("parseUint with base 100 should return error")
+	}
+}
+
+func TestParseUint_EmptyString(t *testing.T) {
+	// Test empty string
+	_, err := parseUint("", 37, 64)
+	if err == nil {
+		t.Error("parseUint with empty string should return error")
+	}
+}
+
+func TestParseUint_InvalidCharacters(t *testing.T) {
+	// Test invalid characters
+	_, err := parseUint("12@34", 37, 64)
+	if err == nil {
+		t.Error("parseUint with invalid character @ should return error")
+	}
+
+	_, err2 := parseUint("12#34", 37, 64)
+	if err2 == nil {
+		t.Error("parseUint with invalid character # should return error")
+	}
+
+	_, err3 := parseUint("12 34", 37, 64)
+	if err3 == nil {
+		t.Error("parseUint with space should return error")
+	}
+}
+
+func TestParseUint_OverflowCases(t *testing.T) {
+	// Test various overflow cases
+	// n >= cutoff case
+	maxUint64Str := "18446744073709551615"
+	got, err := parseUint(maxUint64Str, 10, 64)
+	if err != nil {
+		t.Errorf("parseUint with max uint64 should work, got error: %v", err)
+	} else if got != math.MaxUint64 {
+		t.Errorf("parseUint('%s', 10, 64) = %d, want %d", maxUint64Str, got, uint64(math.MaxUint64))
+	}
+
+	// Test n1 < n case (n+v overflows)
+	overflowStr := "18446744073709551616"
+	got2, err2 := parseUint(overflowStr, 10, 64)
+	if err2 == nil {
+		t.Error("parseUint with overflow should return error")
+	} else if got2 != math.MaxUint64 {
+		t.Errorf("parseUint('%s', 10, 64) should return max uint64 on overflow, got %d", overflowStr, got2)
+	}
+}
+
+func TestParseInt_OnlySign(t *testing.T) {
+	// Test with only sign
+	_, err := parseInt("+", 37, 64)
+	if err == nil {
+		t.Error("parseInt with only '+' should return error")
+	}
+
+	_, err2 := parseInt("-", 37, 64)
+	if err2 == nil {
+		t.Error("parseInt with only '-' should return error")
+	}
+}
+
+func TestAtoi_EdgeCases(t *testing.T) {
+	// Test Atoi with various edge cases
+	// Test with zero
+	got, err := Atoi("0")
+	if err != nil {
+		t.Errorf("Atoi('0') should work, got error: %v", err)
+	} else if got != 0 {
+		t.Errorf("Atoi('0') = %d, want 0", got)
+	}
+
+	// Test with single digit
+	got2, err2 := Atoi("5")
+	if err2 != nil {
+		t.Errorf("Atoi('5') should work, got error: %v", err2)
+	} else if got2 != 5 {
+		t.Errorf("Atoi('5') = %d, want 5", got2)
+	}
+
+	// Test with negative zero (edge case)
+	got3, err3 := Atoi("-0")
+	if err3 != nil {
+		t.Errorf("Atoi('-0') should work, got error: %v", err3)
+	} else if got3 != 0 {
+		t.Errorf("Atoi('-0') = %d, want 0", got3)
+	}
+}
+
+func TestAtoi_InvalidInput(t *testing.T) {
+	// Test Atoi with invalid input
+	_, err := Atoi("")
+	if err == nil {
+		t.Error("Atoi with empty string should return error")
+	}
+
+	_, err2 := Atoi("abc")
+	if err2 == nil {
+		t.Error("Atoi with non-numeric string should return error")
+	}
+
+	_, err3 := Atoi("12.34")
+	if err3 == nil {
+		t.Error("Atoi with decimal should return error")
+	}
+}
+
+// Note: baseError, bitSizeError, rangeError, syntaxError are unexported functions
+// They are tested indirectly through ParseUint and ParseInt functions
+
+func TestLower(t *testing.T) {
+	// Test lower function
+	if lower('A') != 'a' {
+		t.Errorf("lower('A') = %c, want 'a'", lower('A'))
+	}
+	if lower('Z') != 'z' {
+		t.Errorf("lower('Z') = %c, want 'z'", lower('Z'))
+	}
+	if lower('a') != 'a' {
+		t.Errorf("lower('a') = %c, want 'a'", lower('a'))
+	}
+	if lower('0') != '0' {
+		t.Errorf("lower('0') = %c, want '0'", lower('0'))
+	}
+}
+
+func TestParseInt_NonErrRangeError(t *testing.T) {
+	// Test parseInt with non-ErrRange error (syntax error)
+	// This tests the nerr.Err != strconv.ErrRange branch at line 140
+	// We need to trigger a syntax error (not range error) in parseUint
+	// For base > 36, parseUint will call syntaxError for invalid characters
+	// Use a string with invalid character '#' to trigger syntax error
+	_, err := parseInt("12#34", 37, 64)
+	if err == nil {
+		t.Error("parseInt with invalid string should return error")
+	}
+	// Verify it's a syntax error, not a range error
+	if nerr, ok := err.(*strconv.NumError); ok {
+		if nerr.Err == strconv.ErrRange {
+			t.Error("parseInt should return syntax error, not range error")
+		}
+		if nerr.Func != "ParseInt" {
+			t.Errorf("parseInt error Func = %s, want ParseInt", nerr.Func)
+		}
+	}
+}
+
+func TestParseInt_NonErrRangeError2(t *testing.T) {
+	// Test parseInt with non-ErrRange error (syntax error) for base > 36
+	// This tests the nerr.Err != strconv.ErrRange branch at line 140
+	// Use a string with invalid character '@' to trigger syntax error
+	_, err := parseInt("+12@34", 37, 64)
+	if err == nil {
+		t.Error("parseInt with invalid string should return error")
+	}
+	// Verify it's a syntax error, not a range error
+	if nerr, ok := err.(*strconv.NumError); ok {
+		if nerr.Err == strconv.ErrRange {
+			t.Error("parseInt should return syntax error, not range error")
+		}
+		if nerr.Func != "ParseInt" {
+			t.Errorf("parseInt error Func = %s, want ParseInt", nerr.Func)
+		}
 	}
 }

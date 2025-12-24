@@ -577,3 +577,523 @@ func TestOption_UnwrapOrThrow(t *testing.T) {
 	defer gust.CatchResult(&result2)
 	_ = opt2.UnwrapOrThrow("error message")
 }
+
+func TestOption_XOkOr(t *testing.T) {
+	{
+		var x = gust.Some("foo")
+		assert.Equal(t, gust.Ok[any]("foo"), x.XOkOr(0))
+	}
+	{
+		var x gust.Option[string]
+		assert.Equal(t, gust.Err[any](0), x.XOkOr(0))
+	}
+}
+
+func TestOption_XOkOrElse(t *testing.T) {
+	{
+		var x = gust.Some("foo")
+		assert.Equal(t, gust.Ok[any]("foo"), x.XOkOrElse(func() any { return 0 }))
+	}
+	{
+		var x gust.Option[string]
+		assert.Equal(t, gust.Err[any](0), x.XOkOrElse(func() any { return 0 }))
+	}
+}
+
+func TestOption_EnumOkOr(t *testing.T) {
+	{
+		var x = gust.Some("foo")
+		assert.Equal(t, gust.EnumOk[string, any]("foo"), x.EnumOkOr(0))
+	}
+	{
+		var x gust.Option[string]
+		assert.Equal(t, gust.EnumErr[string, any](0), x.EnumOkOr(0))
+	}
+}
+
+func TestOption_XEnumOkOr(t *testing.T) {
+	{
+		var x = gust.Some("foo")
+		assert.Equal(t, gust.EnumOk[any, any]("foo"), x.XEnumOkOr(0))
+	}
+	{
+		var x gust.Option[string]
+		assert.Equal(t, gust.EnumErr[any, any](0), x.XEnumOkOr(0))
+	}
+}
+
+func TestOption_EnumOkOrElse(t *testing.T) {
+	{
+		var x = gust.Some("foo")
+		assert.Equal(t, gust.EnumOk[string, any]("foo"), x.EnumOkOrElse(func() any { return 0 }))
+	}
+	{
+		var x gust.Option[string]
+		assert.Equal(t, gust.EnumErr[string, any](0), x.EnumOkOrElse(func() any { return 0 }))
+	}
+}
+
+func TestOption_XEnumOkOrElse(t *testing.T) {
+	{
+		var x = gust.Some("foo")
+		assert.Equal(t, gust.EnumOk[any, any]("foo"), x.XEnumOkOrElse(func() any { return 0 }))
+	}
+	{
+		var x gust.Option[string]
+		assert.Equal(t, gust.EnumErr[any, any](0), x.XEnumOkOrElse(func() any { return 0 }))
+	}
+}
+
+func TestOption_CtrlFlow(t *testing.T) {
+	{
+		var x = gust.Some("foo")
+		cf := x.CtrlFlow()
+		assert.True(t, cf.IsContinue())
+		assert.Equal(t, "foo", cf.UnwrapContinue())
+	}
+	{
+		var x gust.Option[string]
+		cf := x.CtrlFlow()
+		assert.True(t, cf.IsBreak())
+		assert.Equal(t, gust.Void(nil), cf.UnwrapBreak())
+	}
+}
+
+func TestOption_ToErrable(t *testing.T) {
+	{
+		var x = gust.Some("foo")
+		errable := x.ToErrable()
+		assert.True(t, errable.IsErr())
+		assert.Equal(t, "foo", errable.UnwrapErr())
+	}
+	{
+		var x gust.Option[string]
+		errable := x.ToErrable()
+		assert.False(t, errable.IsErr())
+	}
+}
+
+func TestOption_Iterator(t *testing.T) {
+	// Test Next
+	{
+		var x = gust.Some("foo")
+		opt := x.Next()
+		assert.Equal(t, gust.Some("foo"), opt)
+		assert.True(t, x.IsNone()) // Should consume the value
+	}
+	{
+		var x gust.Option[string]
+		opt := x.Next()
+		assert.True(t, opt.IsNone())
+	}
+	{
+		var nilOpt *gust.Option[string]
+		opt := nilOpt.Next()
+		assert.True(t, opt.IsNone())
+	}
+
+	// Test NextBack
+	{
+		var x = gust.Some("bar")
+		opt := x.NextBack()
+		assert.Equal(t, gust.Some("bar"), opt)
+		assert.True(t, x.IsNone())
+	}
+
+	// Test Remaining
+	{
+		var x = gust.Some("baz")
+		assert.Equal(t, uint(1), x.Remaining())
+		x.Next()
+		assert.Equal(t, uint(0), x.Remaining())
+	}
+	{
+		var x gust.Option[string]
+		assert.Equal(t, uint(0), x.Remaining())
+	}
+	{
+		var nilOpt *gust.Option[string]
+		assert.Equal(t, uint(0), nilOpt.Remaining())
+	}
+}
+
+func TestOption_InsertNil(t *testing.T) {
+	var nilOpt *gust.Option[int]
+	val := nilOpt.Insert(42)
+	assert.Nil(t, val)
+}
+
+func TestOption_GetOrInsertNil(t *testing.T) {
+	var nilOpt *gust.Option[int]
+	val := nilOpt.GetOrInsert(42)
+	assert.Nil(t, val)
+}
+
+func TestOption_GetOrInsertWithNil(t *testing.T) {
+	var nilOpt *gust.Option[int]
+	val := nilOpt.GetOrInsertWith(func() int { return 42 })
+	assert.Nil(t, val)
+}
+
+func TestOption_GetOrInsertDefaultNil(t *testing.T) {
+	var nilOpt *gust.Option[int]
+	val := nilOpt.GetOrInsertDefault()
+	assert.Nil(t, val)
+}
+
+func TestOption_Ref(t *testing.T) {
+	opt := gust.Some(42)
+	ref := opt.Ref()
+	assert.Equal(t, gust.Some(42), *ref)
+	ref.Unwrap() // Should not panic
+}
+
+func TestOption_Split(t *testing.T) {
+	{
+		var x = gust.Some("foo")
+		val, ok := x.Split()
+		assert.True(t, ok)
+		assert.Equal(t, "foo", val)
+	}
+	{
+		var x gust.Option[string]
+		val, ok := x.Split()
+		assert.False(t, ok)
+		assert.Equal(t, "", val)
+	}
+}
+
+func TestOption_ToX(t *testing.T) {
+	{
+		var x = gust.Some("foo")
+		xOpt := x.ToX()
+		assert.True(t, xOpt.IsSome())
+		assert.Equal(t, "foo", xOpt.Unwrap())
+	}
+	{
+		var x gust.Option[string]
+		xOpt := x.ToX()
+		assert.True(t, xOpt.IsNone())
+	}
+}
+
+func TestOption_UnmarshalJSON_NilReceiver(t *testing.T) {
+	// Test UnmarshalJSON with nil receiver
+	var nilOpt *gust.Option[int]
+	err := nilOpt.UnmarshalJSON([]byte("42"))
+	assert.Error(t, err)
+	assert.IsType(t, &json.InvalidUnmarshalError{}, err)
+}
+
+func TestOption_UnmarshalJSON_ErrorPath(t *testing.T) {
+	// Test UnmarshalJSON with invalid JSON (error path)
+	var opt gust.Option[int]
+	err := opt.UnmarshalJSON([]byte("invalid json"))
+	assert.Error(t, err)
+	assert.True(t, opt.IsNone()) // Should remain None on error
+}
+
+func TestOption_UnmarshalJSON_ValidAfterError(t *testing.T) {
+	// Test UnmarshalJSON with error first, then valid JSON
+	var opt gust.Option[int]
+	// First attempt with invalid JSON
+	_ = opt.UnmarshalJSON([]byte("invalid"))
+	assert.True(t, opt.IsNone())
+	
+	// Then with valid JSON
+	err := opt.UnmarshalJSON([]byte("42"))
+	assert.NoError(t, err)
+	assert.True(t, opt.IsSome())
+	assert.Equal(t, 42, opt.Unwrap())
+}
+
+func TestOption_UnmarshalJSON_NullString(t *testing.T) {
+	// Test UnmarshalJSON with "null" string (unsafe.Pointer path)
+	var opt gust.Option[int]
+	err := opt.UnmarshalJSON([]byte("null"))
+	assert.NoError(t, err)
+	assert.True(t, opt.IsNone())
+}
+
+func TestOption_UnmarshalJSON_Struct(t *testing.T) {
+	type S struct {
+		X int
+		Y string
+	}
+	var opt gust.Option[S]
+	err := opt.UnmarshalJSON([]byte(`{"X":10,"Y":"test"}`))
+	assert.NoError(t, err)
+	assert.True(t, opt.IsSome())
+	assert.Equal(t, S{X: 10, Y: "test"}, opt.Unwrap())
+}
+
+func TestOption_UnmarshalJSON_Array(t *testing.T) {
+	var opt gust.Option[[]int]
+	err := opt.UnmarshalJSON([]byte("[1,2,3]"))
+	assert.NoError(t, err)
+	assert.True(t, opt.IsSome())
+	assert.Equal(t, []int{1, 2, 3}, opt.Unwrap())
+}
+
+func TestOption_UnmarshalJSON_Map(t *testing.T) {
+	var opt gust.Option[map[string]int]
+	err := opt.UnmarshalJSON([]byte(`{"a":1,"b":2}`))
+	assert.NoError(t, err)
+	assert.True(t, opt.IsSome())
+	assert.Equal(t, map[string]int{"a": 1, "b": 2}, opt.Unwrap())
+}
+
+func TestPtrOpt_EdgeCases(t *testing.T) {
+	// Test PtrOpt with nil pointer
+	var nilPtr *int
+	opt1 := gust.PtrOpt(nilPtr)
+	assert.True(t, opt1.IsNone())
+
+	// Test PtrOpt with non-nil pointer
+	val := 42
+	opt2 := gust.PtrOpt(&val)
+	assert.True(t, opt2.IsSome())
+	assert.Equal(t, &val, opt2.Unwrap())
+
+	// Test PtrOpt with nested pointer
+	var nilPtr2 **int
+	opt3 := gust.PtrOpt(nilPtr2)
+	assert.True(t, opt3.IsNone())
+
+	val2 := 100
+	ptr2 := &val2
+	opt4 := gust.PtrOpt(&ptr2)
+	assert.True(t, opt4.IsSome())
+	assert.Equal(t, &ptr2, opt4.Unwrap())
+}
+
+func TestElemOpt_EdgeCases(t *testing.T) {
+	// Test ElemOpt with nil pointer
+	var nilPtr *int
+	opt1 := gust.ElemOpt(nilPtr)
+	assert.True(t, opt1.IsNone())
+
+	// Test ElemOpt with non-nil pointer
+	val := 42
+	opt2 := gust.ElemOpt(&val)
+	assert.True(t, opt2.IsSome())
+	assert.Equal(t, 42, opt2.Unwrap())
+
+	// Test ElemOpt with struct pointer
+	type S struct {
+		X int
+		Y string
+	}
+	var nilStruct *S
+	opt3 := gust.ElemOpt(nilStruct)
+	assert.True(t, opt3.IsNone())
+
+	s := &S{X: 10, Y: "test"}
+	opt4 := gust.ElemOpt(s)
+	assert.True(t, opt4.IsSome())
+	assert.Equal(t, S{X: 10, Y: "test"}, opt4.Unwrap())
+}
+
+func TestBoolAssertOpt_EdgeCases(t *testing.T) {
+	// Test BoolAssertOpt with ok=false
+	opt1 := gust.BoolAssertOpt[int](42, false)
+	assert.True(t, opt1.IsNone())
+
+	// Test BoolAssertOpt with ok=true and valid type
+	opt2 := gust.BoolAssertOpt[int](42, true)
+	assert.True(t, opt2.IsSome())
+	assert.Equal(t, 42, opt2.Unwrap())
+
+	// Test BoolAssertOpt with ok=true but invalid type
+	opt3 := gust.BoolAssertOpt[int]("string", true)
+	assert.True(t, opt3.IsNone())
+
+	// Test BoolAssertOpt with ok=true and valid string type
+	opt4 := gust.BoolAssertOpt[string]("test", true)
+	assert.True(t, opt4.IsSome())
+	assert.Equal(t, "test", opt4.Unwrap())
+}
+
+func TestOption_MarshalJSON_EdgeCases(t *testing.T) {
+	// Test MarshalJSON with None
+	opt1 := gust.None[int]()
+	b1, err1 := opt1.MarshalJSON()
+	assert.NoError(t, err1)
+	assert.Equal(t, []byte("null"), b1)
+
+	// Test MarshalJSON with Some containing zero value
+	opt2 := gust.Some(0)
+	b2, err2 := opt2.MarshalJSON()
+	assert.NoError(t, err2)
+	assert.Equal(t, []byte("0"), b2)
+
+	// Test MarshalJSON with Some containing struct
+	type S struct {
+		X int
+		Y string
+	}
+	opt3 := gust.Some(S{X: 10, Y: "test"})
+	b3, err3 := opt3.MarshalJSON()
+	assert.NoError(t, err3)
+	assert.Contains(t, string(b3), "X")
+	assert.Contains(t, string(b3), "Y")
+}
+
+func TestOption_AndThen_EdgeCases(t *testing.T) {
+	// Test AndThen with None
+	opt1 := gust.None[int]()
+	opt2 := opt1.AndThen(func(x int) gust.Option[int] {
+		return gust.Some(x * 2)
+	})
+	assert.True(t, opt2.IsNone())
+
+	// Test AndThen with Some that returns None
+	opt3 := gust.Some(42)
+	opt4 := opt3.AndThen(func(x int) gust.Option[int] {
+		return gust.None[int]()
+	})
+	assert.True(t, opt4.IsNone())
+
+	// Test AndThen with Some that returns Some
+	opt5 := gust.Some(21)
+	opt6 := opt5.AndThen(func(x int) gust.Option[int] {
+		return gust.Some(x * 2)
+	})
+	assert.True(t, opt6.IsSome())
+	assert.Equal(t, 42, opt6.Unwrap())
+}
+
+func TestOption_Or_EdgeCases(t *testing.T) {
+	// Test Or with None and None
+	opt1 := gust.None[int]()
+	opt2 := gust.None[int]()
+	opt3 := opt1.Or(opt2)
+	assert.True(t, opt3.IsNone())
+
+	// Test Or with None and Some
+	opt4 := gust.None[int]()
+	opt5 := gust.Some(42)
+	opt6 := opt4.Or(opt5)
+	assert.True(t, opt6.IsSome())
+	assert.Equal(t, 42, opt6.Unwrap())
+
+	// Test Or with Some and None
+	opt7 := gust.Some(10)
+	opt8 := gust.None[int]()
+	opt9 := opt7.Or(opt8)
+	assert.True(t, opt9.IsSome())
+	assert.Equal(t, 10, opt9.Unwrap())
+
+	// Test Or with Some and Some
+	opt10 := gust.Some(10)
+	opt11 := gust.Some(20)
+	opt12 := opt10.Or(opt11)
+	assert.True(t, opt12.IsSome())
+	assert.Equal(t, 10, opt12.Unwrap())
+}
+
+func TestOption_MapOrElse_EdgeCases(t *testing.T) {
+	// Test MapOrElse with None
+	opt1 := gust.None[int]()
+	result1 := opt1.MapOrElse(func() int {
+		return 100
+	}, func(x int) int {
+		return x * 2
+	})
+	assert.Equal(t, 100, result1)
+
+	// Test MapOrElse with Some
+	opt2 := gust.Some(21)
+	result2 := opt2.MapOrElse(func() int {
+		return 100
+	}, func(x int) int {
+		return x * 2
+	})
+	assert.Equal(t, 42, result2)
+}
+
+func TestOption_MapOr_EdgeCases(t *testing.T) {
+	// Test MapOr with None
+	opt1 := gust.None[int]()
+	result1 := opt1.MapOr(100, func(x int) int {
+		return x * 2
+	})
+	assert.Equal(t, 100, result1)
+
+	// Test MapOr with Some
+	opt2 := gust.Some(21)
+	result2 := opt2.MapOr(100, func(x int) int {
+		return x * 2
+	})
+	assert.Equal(t, 42, result2)
+}
+
+func TestOption_Map_EdgeCases(t *testing.T) {
+	// Test Map with None
+	opt1 := gust.None[int]()
+	opt2 := opt1.Map(func(x int) int {
+		return x * 2
+	})
+	assert.True(t, opt2.IsNone())
+
+	// Test Map with Some
+	opt3 := gust.Some(21)
+	opt4 := opt3.Map(func(x int) int {
+		return x * 2
+	})
+	assert.True(t, opt4.IsSome())
+	assert.Equal(t, 42, opt4.Unwrap())
+}
+
+func TestOption_XMap_EdgeCases(t *testing.T) {
+	// Test XMap with None
+	opt1 := gust.None[int]()
+	opt2 := opt1.XMap(func(x int) any {
+		return x * 2
+	})
+	assert.True(t, opt2.IsNone())
+
+	// Test XMap with Some
+	opt3 := gust.Some(21)
+	opt4 := opt3.XMap(func(x int) any {
+		return x * 2
+	})
+	assert.True(t, opt4.IsSome())
+	assert.Equal(t, 42, opt4.Unwrap())
+}
+
+func TestOption_XMapOr_EdgeCases(t *testing.T) {
+	// Test XMapOr with None
+	opt1 := gust.None[int]()
+	result1 := opt1.XMapOr(100, func(x int) any {
+		return x * 2
+	})
+	assert.Equal(t, 100, result1)
+
+	// Test XMapOr with Some
+	opt2 := gust.Some(21)
+	result2 := opt2.XMapOr(100, func(x int) any {
+		return x * 2
+	})
+	assert.Equal(t, 42, result2)
+}
+
+func TestOption_XMapOrElse_EdgeCases(t *testing.T) {
+	// Test XMapOrElse with None
+	opt1 := gust.None[int]()
+	result1 := opt1.XMapOrElse(func() any {
+		return 100
+	}, func(x int) any {
+		return x * 2
+	})
+	assert.Equal(t, 100, result1)
+
+	// Test XMapOrElse with Some
+	opt2 := gust.Some(21)
+	result2 := opt2.XMapOrElse(func() any {
+		return 100
+	}, func(x int) any {
+		return x * 2
+	})
+	assert.Equal(t, 42, result2)
+}

@@ -91,6 +91,12 @@ func TestErrBox_Unwrap(t *testing.T) {
 	// Test with non-error value
 	eb4 := &ErrBox{val: 42}
 	assert.Nil(t, eb4.Unwrap())
+
+	// Test with error that doesn't implement Unwrap
+	se := simpleError("simple")
+	eb5 := &ErrBox{val: se}
+	unwrapped5 := eb5.Unwrap()
+	assert.Equal(t, se, unwrapped5)
 }
 
 type wrappedError struct {
@@ -103,6 +109,12 @@ func (w *wrappedError) Error() string {
 
 func (w *wrappedError) Unwrap() error {
 	return w.err
+}
+
+type simpleError string
+
+func (e simpleError) Error() string {
+	return string(e)
 }
 
 func TestErrBox_Is(t *testing.T) {
@@ -128,6 +140,21 @@ func TestErrBox_Is(t *testing.T) {
 	// Test with different error
 	err2 := errors.New("different error")
 	assert.False(t, eb4.Is(err2))
+
+	// Test with nil ErrBox and nil target
+	// Note: Is method checks if target is *ErrBox, nil is not *ErrBox type
+	// So nilEb2.Is(nil) will go to default case and return false
+	var nilEb2 *ErrBox
+	var nilTarget *ErrBox
+	assert.True(t, nilEb2.Is(nilTarget))
+
+	// Test with non-nil ErrBox and nil target
+	assert.False(t, eb1.Is(nil))
+
+	// Test with wrapped error that has Unwrap
+	wrappedErr := &wrappedError{err: err}
+	eb5 := &ErrBox{val: wrappedErr}
+	assert.True(t, eb5.Is(err))
 }
 
 func TestErrBox_As(t *testing.T) {
@@ -157,4 +184,26 @@ func TestErrBox_As(t *testing.T) {
 	eb3 := &ErrBox{val: 42}
 	var targetErr2 error
 	assert.False(t, eb3.As(&targetErr2))
+}
+
+// TestToError tests the toError function indirectly through Errable.ToError
+func TestToError(t *testing.T) {
+	// Test toError with error type (through Errable.ToError)
+	err := errors.New("test error")
+	errable := ToErrable[error](err)
+	resultErr := errable.ToError()
+	assert.NotNil(t, resultErr)
+	assert.Equal(t, "test error", resultErr.Error())
+
+	// Test toError with non-error type (through Errable.ToError)
+	errable2 := ToErrable[string]("test error")
+	resultErr2 := errable2.ToError()
+	assert.NotNil(t, resultErr2)
+	assert.Equal(t, "test error", resultErr2.Error())
+
+	// Test toError with int (through Errable.ToError)
+	errable3 := ToErrable[int](42)
+	resultErr3 := errable3.ToError()
+	assert.NotNil(t, resultErr3)
+	assert.Equal(t, "42", resultErr3.Error())
 }

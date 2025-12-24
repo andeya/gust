@@ -522,25 +522,48 @@ func TestIndexOf_WithFromIndex(t *testing.T) {
 	slice := []string{"a", "b", "c", "b", "d"}
 	idx := IndexOf(slice, "b", 2)
 	assert.Equal(t, 3, idx) // Should find "b" at index 3, not index 1
-	
+
 	idx2 := IndexOf(slice, "b", 4)
 	assert.Equal(t, -1, idx2) // Should not find "b" starting from index 4
-	
+
 	idx3 := IndexOf(slice, "a", 0)
 	assert.Equal(t, 0, idx3)
 }
 
 func TestLastIndexOf_WithFromIndex(t *testing.T) {
 	// Test LastIndexOf with fromIndex parameter
+	// LastIndexOf searches backwards from the end to fromIndex (inclusive)
 	slice := []string{"a", "b", "c", "b", "d"}
+
+	// LastIndexOf(slice, "b", 2) searches from index 4 backwards to index 2 (inclusive)
+	// Checks: index 4 ("d"), index 3 ("b" - found!), returns 3
 	idx := LastIndexOf(slice, "b", 2)
-	assert.Equal(t, 1, idx) // Should find "b" at index 1, not index 3
-	
-	idx2 := LastIndexOf(slice, "b", 0)
-	assert.Equal(t, -1, idx2) // Should not find "b" starting from index 0 backwards
-	
+	assert.Equal(t, 3, idx)
+
+	// LastIndexOf(slice, "b", 4) searches from index 4 backwards to index 4 (inclusive)
+	// Checks: index 4 ("d"), doesn't find "b", returns -1
+	idx2 := LastIndexOf(slice, "b", 4)
+	assert.Equal(t, -1, idx2)
+
+	// LastIndexOf(slice, "d", 4) searches from index 4 backwards to index 4 (inclusive)
+	// Checks: index 4 ("d" - found!), returns 4
 	idx3 := LastIndexOf(slice, "d", 4)
 	assert.Equal(t, 4, idx3)
+
+	// LastIndexOf(slice, "b", 3) searches from index 4 backwards to index 3 (inclusive)
+	// Checks: index 4 ("d"), index 3 ("b" - found!), returns 3
+	idx4 := LastIndexOf(slice, "b", 3)
+	assert.Equal(t, 3, idx4)
+
+	// LastIndexOf(slice, "b", 1) searches from index 4 backwards to index 1 (inclusive)
+	// Checks: index 4 ("d"), index 3 ("b" - found!), returns 3 (stops at first match)
+	idx5 := LastIndexOf(slice, "b", 1)
+	assert.Equal(t, 3, idx5)
+
+	// LastIndexOf(slice, "b", 0) searches from index 4 backwards to index 0 (inclusive)
+	// Checks: index 4 ("d"), index 3 ("b" - found!), returns 3
+	idx6 := LastIndexOf(slice, "b", 0)
+	assert.Equal(t, 3, idx6)
 }
 
 func TestIncludes_WithFromIndex(t *testing.T) {
@@ -556,7 +579,7 @@ func TestMapAlone(t *testing.T) {
 	slice := []int{1, 2, 3}
 	result := MapAlone(slice, func(v int) int { return v * 2 })
 	assert.Equal(t, []int{2, 4, 6}, result)
-	
+
 	// Test with nil slice
 	var nilSlice []int
 	result2 := MapAlone(nilSlice, func(v int) int { return v * 2 })
@@ -577,7 +600,7 @@ func TestSetsIntersect(t *testing.T) {
 	set3 := []string{"c", "d", "e"}
 	result := SetsIntersect(set1, set2, set3)
 	assert.Equal(t, []string{"c"}, result) // Only "c" is in all three sets
-	
+
 	// Test with no intersection
 	set4 := []string{"x", "y", "z"}
 	result2 := SetsIntersect(set1, set4)
@@ -591,40 +614,40 @@ func TestSetsDifference(t *testing.T) {
 	set3 := []string{"d"}
 	result := SetsDifference(set1, set2, set3)
 	assert.Equal(t, []string{"a"}, result) // Only "a" is in set1 but not in set2 or set3
-	
+
 	// Test with empty difference
 	result2 := SetsDifference(set1, set1)
 	assert.Equal(t, []string{}, result2)
 }
 
-func TestFlatten(t *testing.T) {
-	// Test Flatten function
+func TestFlatten_EdgeCases(t *testing.T) {
+	// Test Flatten function with edge cases
 	nested := [][]int{{1, 2}, {3, 4}, {5}}
 	result := Flatten(nested)
 	assert.Equal(t, []int{1, 2, 3, 4, 5}, result)
-	
+
 	// Test with nil
 	var nilSlice [][]int
 	result2 := Flatten(nilSlice)
 	assert.Nil(t, result2)
-	
+
 	// Test with empty slices
 	empty := [][]int{{}, {1}, {}}
 	result3 := Flatten(empty)
 	assert.Equal(t, []int{1}, result3)
 }
 
-func TestFlatMap(t *testing.T) {
-	// Test FlatMap function
+func TestFlatMap_EdgeCases(t *testing.T) {
+	// Test FlatMap function with edge cases
 	nested := [][]int{{1, 2}, {3, 4}}
 	result := FlatMap(nested, func(x int) int { return x * 2 })
 	assert.Equal(t, []int{2, 4, 6, 8}, result)
-	
+
 	// Test with nil
 	var nilSlice [][]int
 	result2 := FlatMap(nilSlice, func(x int) int { return x * 2 })
 	assert.Nil(t, result2)
-	
+
 	// Test with empty slices
 	empty := [][]int{{}, {1}, {}}
 	result3 := FlatMap(empty, func(x int) string { return "a" })

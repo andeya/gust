@@ -506,3 +506,352 @@ func TestResult_UnwrapUnchecked(t *testing.T) {
 		assert.Equal(t, "foo", r.UnwrapUnchecked())
 	}
 }
+
+func TestResult_XOk(t *testing.T) {
+	{
+		var x = gust.Ok[int](2)
+		assert.Equal(t, gust.Some[any](2), x.XOk())
+	}
+	{
+		var x = gust.Err[int]("some error message")
+		assert.Equal(t, gust.None[any](), x.XOk())
+	}
+}
+
+func TestResult_ErrVal(t *testing.T) {
+	{
+		var x = gust.Ok[int](2)
+		assert.Nil(t, x.ErrVal())
+	}
+	{
+		var x = gust.Err[int]("some error message")
+		assert.Equal(t, "some error message", x.ErrVal())
+	}
+	{
+		var x = gust.Err[int](gust.ToErrBox("boxed error"))
+		assert.Equal(t, "boxed error", x.ErrVal())
+	}
+	{
+		var x = gust.Err[int](errors.New("std error"))
+		assert.NotNil(t, x.ErrVal())
+	}
+}
+
+func TestResult_ToX(t *testing.T) {
+	{
+		var x = gust.Ok[int](42)
+		xResult := x.ToX()
+		assert.True(t, xResult.IsOk())
+		assert.Equal(t, 42, xResult.Unwrap())
+	}
+	{
+		var x = gust.Err[int]("error")
+		xResult := x.ToX()
+		assert.True(t, xResult.IsErr())
+		assert.Equal(t, "error", xResult.Err().Error())
+	}
+}
+
+func TestResult_XMap(t *testing.T) {
+	{
+		var x = gust.Ok[int](2)
+		result := x.XMap(func(i int) any { return i * 2 })
+		assert.True(t, result.IsOk())
+		assert.Equal(t, 4, result.Unwrap())
+	}
+	{
+		var x = gust.Err[int]("error")
+		result := x.XMap(func(i int) any { return i * 2 })
+		assert.True(t, result.IsErr())
+	}
+}
+
+func TestResult_XMapOr(t *testing.T) {
+	{
+		var x = gust.Ok[int](2)
+		result := x.XMapOr("default", func(i int) any { return i * 2 })
+		assert.Equal(t, 4, result)
+	}
+	{
+		var x = gust.Err[int]("error")
+		result := x.XMapOr("default", func(i int) any { return i * 2 })
+		assert.Equal(t, "default", result)
+	}
+}
+
+func TestResult_XMapOrElse(t *testing.T) {
+	{
+		var x = gust.Ok[int](2)
+		result := x.XMapOrElse(func(error) any { return "default" }, func(i int) any { return i * 2 })
+		assert.Equal(t, 4, result)
+	}
+	{
+		var x = gust.Err[int]("error")
+		result := x.XMapOrElse(func(error) any { return "default" }, func(i int) any { return i * 2 })
+		assert.Equal(t, "default", result)
+	}
+}
+
+func TestResult_ContainsErr(t *testing.T) {
+	{
+		var x = gust.Ok[int](2)
+		assert.False(t, x.ContainsErr(errors.New("test")))
+	}
+	{
+		// Use same error instance for comparison
+		testErr := errors.New("test error")
+		var x = gust.Err[int](testErr)
+		assert.True(t, x.ContainsErr(testErr))
+		assert.False(t, x.ContainsErr(errors.New("different error")))
+	}
+	{
+		err1 := errors.New("wrapped")
+		err2 := fmt.Errorf("outer: %w", err1)
+		var x = gust.Err[int](err2)
+		assert.True(t, x.ContainsErr(err1))
+	}
+}
+
+func TestResult_Iterator(t *testing.T) {
+	// Test Next
+	{
+		var x = gust.Ok("foo")
+		opt := x.Next()
+		assert.Equal(t, gust.Some("foo"), opt)
+		// Next() consumes the value, so Ok() should return None after Next()
+		assert.True(t, x.Ok().IsNone())
+	}
+	{
+		var x = gust.Err[string]("error")
+		opt := x.Next()
+		assert.True(t, opt.IsNone())
+	}
+	{
+		var nilResult *gust.Result[string]
+		opt := nilResult.Next()
+		assert.True(t, opt.IsNone())
+	}
+
+	// Test NextBack
+	{
+		var x = gust.Ok("bar")
+		opt := x.NextBack()
+		assert.Equal(t, gust.Some("bar"), opt)
+		// NextBack() also consumes the value
+		assert.True(t, x.Ok().IsNone())
+	}
+
+	// Test Remaining
+	{
+		var x = gust.Ok("baz")
+		assert.Equal(t, uint(1), x.Remaining())
+		x.Next() // Consume the value
+		assert.Equal(t, uint(0), x.Remaining())
+	}
+	{
+		var x = gust.Err[string]("error")
+		assert.Equal(t, uint(0), x.Remaining())
+	}
+	{
+		var nilResult *gust.Result[string]
+		assert.Equal(t, uint(0), nilResult.Remaining())
+	}
+}
+
+func TestResult_CtrlFlow(t *testing.T) {
+	{
+		var x = gust.Ok("foo")
+		cf := x.CtrlFlow()
+		assert.True(t, cf.IsContinue())
+		assert.Equal(t, "foo", cf.UnwrapContinue())
+	}
+	{
+		var x = gust.Err[string](errors.New("error"))
+		cf := x.CtrlFlow()
+		assert.True(t, cf.IsBreak())
+		assert.NotNil(t, cf.UnwrapBreak())
+	}
+}
+
+func TestResult_Ref(t *testing.T) {
+	result := gust.Ok(42)
+	ref := result.Ref()
+	assert.Equal(t, gust.Ok(42), *ref)
+	ref.Unwrap() // Should not panic
+}
+
+func TestResult_EnumResult(t *testing.T) {
+	{
+		var x = gust.Ok("foo")
+		er := x.EnumResult()
+		assert.True(t, er.IsOk())
+		assert.Equal(t, "foo", er.Unwrap())
+	}
+	{
+		var x = gust.Err[string](errors.New("error"))
+		er := x.EnumResult()
+		assert.True(t, er.IsErr())
+	}
+}
+
+func TestResult_Errable(t *testing.T) {
+	{
+		var x = gust.Ok[string]("foo")
+		errable := x.Errable()
+		assert.False(t, errable.IsErr())
+	}
+	{
+		var x = gust.Err[string](errors.New("error"))
+		errable := x.Errable()
+		assert.True(t, errable.IsErr())
+	}
+}
+
+func TestResult_Split(t *testing.T) {
+	{
+		var x = gust.Ok("foo")
+		val, err := x.Split()
+		assert.NoError(t, err)
+		assert.Equal(t, "foo", val)
+	}
+	{
+		var x = gust.Err[string](errors.New("error"))
+		val, err := x.Split()
+		assert.Error(t, err)
+		assert.Equal(t, "", val)
+	}
+}
+
+func TestResult_UnmarshalJSON_NilReceiver(t *testing.T) {
+	// Test UnmarshalJSON with nil receiver
+	var nilResult *gust.Result[int]
+	err := nilResult.UnmarshalJSON([]byte("42"))
+	assert.Error(t, err)
+	assert.IsType(t, &json.InvalidUnmarshalError{}, err)
+}
+
+func TestResult_UnmarshalJSON_ErrorPath(t *testing.T) {
+	// Test UnmarshalJSON with invalid JSON (error path)
+	var result gust.Result[int]
+	err := result.UnmarshalJSON([]byte("invalid json"))
+	assert.Error(t, err)
+	assert.True(t, result.IsErr()) // Should be Err on error
+}
+
+func TestResult_UnmarshalJSON_ValidAfterError(t *testing.T) {
+	// Test UnmarshalJSON with error first, then valid JSON
+	var result gust.Result[int]
+	// First attempt with invalid JSON
+	_ = result.UnmarshalJSON([]byte("invalid"))
+	assert.True(t, result.IsErr())
+	
+	// Then with valid JSON
+	err := result.UnmarshalJSON([]byte("42"))
+	assert.NoError(t, err)
+	assert.True(t, result.IsOk())
+	assert.Equal(t, 42, result.Unwrap())
+}
+
+func TestResult_UnmarshalJSON_Struct(t *testing.T) {
+	type S struct {
+		X int
+		Y string
+	}
+	var result gust.Result[S]
+	err := result.UnmarshalJSON([]byte(`{"X":10,"Y":"test"}`))
+	assert.NoError(t, err)
+	assert.True(t, result.IsOk())
+	assert.Equal(t, S{X: 10, Y: "test"}, result.Unwrap())
+}
+
+func TestResult_UnmarshalJSON_Array(t *testing.T) {
+	var result gust.Result[[]int]
+	err := result.UnmarshalJSON([]byte("[1,2,3]"))
+	assert.NoError(t, err)
+	assert.True(t, result.IsOk())
+	assert.Equal(t, []int{1, 2, 3}, result.Unwrap())
+}
+
+func TestResult_UnmarshalJSON_Map(t *testing.T) {
+	var result gust.Result[map[string]int]
+	err := result.UnmarshalJSON([]byte(`{"a":1,"b":2}`))
+	assert.NoError(t, err)
+	assert.True(t, result.IsOk())
+	assert.Equal(t, map[string]int{"a": 1, "b": 2}, result.Unwrap())
+}
+
+func TestResult_Catch_NilReceiver(t *testing.T) {
+	// Test Catch with nil receiver
+	defer func() {
+		assert.NotNil(t, recover())
+	}()
+	var nilResult *gust.Result[int]
+	defer nilResult.Catch()
+	gust.Err[int]("test error").UnwrapOrThrow()
+}
+
+func TestCatchResult_NilReceiver(t *testing.T) {
+	// Test CatchResult with nil receiver
+	defer func() {
+		assert.NotNil(t, recover())
+	}()
+	defer gust.CatchResult[int](nil)
+	gust.Err[int]("test error").UnwrapOrThrow()
+}
+
+func TestResult_Catch_NonPanicValue(t *testing.T) {
+	// Test Catch with non-panicValue panic
+	defer func() {
+		assert.Equal(t, "regular panic", recover())
+	}()
+	var result gust.Result[int]
+	defer result.Catch()
+	panic("regular panic")
+}
+
+func TestCatchResult_NonPanicValue(t *testing.T) {
+	// Test CatchResult with non-panicValue panic
+	defer func() {
+		assert.Equal(t, "regular panic", recover())
+	}()
+	var result gust.Result[int]
+	defer gust.CatchResult(&result)
+	panic("regular panic")
+}
+
+func TestResult_Catch_OkValue(t *testing.T) {
+	// Test Catch when result already has Ok value
+	var result gust.Result[int] = gust.Ok(42)
+	defer result.Catch()
+	gust.Err[string]("test error").UnwrapOrThrow()
+	// Result should be updated to Err
+	assert.True(t, result.IsErr())
+}
+
+func TestCatchResult_OkValue(t *testing.T) {
+	// Test CatchResult when result already has Ok value
+	var result gust.Result[int] = gust.Ok(42)
+	defer gust.CatchResult(&result)
+	gust.Err[string]("test error").UnwrapOrThrow()
+	// Result should be updated to Err
+	assert.True(t, result.IsErr())
+}
+
+func TestResult_XAndThen_ErrorPath(t *testing.T) {
+	// Test XAndThen with error path
+	result := gust.Ok[int](42)
+	result2 := result.XAndThen(func(i int) gust.Result[any] {
+		return gust.Err[any]("error")
+	})
+	assert.True(t, result2.IsErr())
+}
+
+func TestResult_XAndThen_OkPath(t *testing.T) {
+	// Test XAndThen with Ok path
+	result := gust.Ok[int](42)
+	result2 := result.XAndThen(func(i int) gust.Result[any] {
+		return gust.Ok[any](i * 2)
+	})
+	assert.True(t, result2.IsOk())
+	assert.Equal(t, 84, result2.Unwrap())
+}
