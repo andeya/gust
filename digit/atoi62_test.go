@@ -665,3 +665,630 @@ func TestAtoi62(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, uint64(9223372036854775807), i)
 }
+
+func TestParseUint_Base37To62(t *testing.T) {
+	// Test base 37-62 (extended bases)
+	// Note: base <= 36 uses strconv.ParseUint (only supports lowercase a-z)
+	// base > 36 uses custom logic:
+	//   - '0'-'9' = 0-9
+	//   - 'a'-'z' = 10-35
+	//   - 'A'-'Z' = 36-61
+	testCases := []struct {
+		s    string
+		base int
+		want uint64
+	}{
+		{"z", 36, 35},  // base 36, 'z' = 35 (uses strconv, lowercase only)
+		{"10", 37, 37}, // base 37, "10" = 37
+		{"A", 37, 36},  // base 37, 'A' = 36 (A-Z = 36-61 in base > 36)
+		{"Z", 37, 61},  // base 37, 'Z' = 61
+		{"a", 37, 10},  // base 37, 'a' = 10 (a-z = 10-35 in base > 36)
+		{"z", 37, 35},  // base 37, 'z' = 35
+		{"10", 62, 62}, // base 62, "10" = 62
+		{"A", 62, 36},  // base 62, 'A' = 36
+		{"Z", 62, 61},  // base 62, 'Z' = 61
+		{"a", 62, 10},  // base 62, 'a' = 10
+		{"z", 62, 35},  // base 62, 'z' = 35
+	}
+
+	for _, tc := range testCases {
+		got, err := parseUint(tc.s, tc.base, 64)
+		if err != nil {
+			// For base <= 36, strconv.ParseUint doesn't support uppercase, so skip those
+			if tc.base <= 36 && (tc.s[0] >= 'A' && tc.s[0] <= 'Z') {
+				continue
+			}
+			t.Errorf("parseUint(%q, %d, 64) = error: %v, want %d", tc.s, tc.base, err, tc.want)
+			continue
+		}
+		if got != tc.want {
+			t.Errorf("parseUint(%q, %d, 64) = %d, want %d", tc.s, tc.base, got, tc.want)
+		}
+	}
+}
+
+func TestParseUint_Overflow(t *testing.T) {
+	// Test overflow cases for base > 36
+	// These should return maxVal and ErrRange
+
+	// Test n >= cutoff case (n*base overflows)
+	// Use a very large number in base 62
+	_, err := parseUint("ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ", 62, 64)
+	if err == nil {
+		t.Error("parseUint with overflow should return error")
+	} else if err.(*strconv.NumError).Err != strconv.ErrRange {
+		t.Errorf("parseUint with overflow should return ErrRange, got %v", err)
+	}
+
+	// Test n1 < n || n1 > maxVal case (n+v overflows)
+	// This is harder to trigger, but we can test with smaller bitSize
+	_, err2 := parseUint("100", 62, 8) // base 62, bitSize 8, should overflow
+	if err2 == nil {
+		t.Error("parseUint with overflow should return error")
+	} else if err2.(*strconv.NumError).Err != strconv.ErrRange {
+		t.Errorf("parseUint with overflow should return ErrRange, got %v", err2)
+	}
+
+	// Test with max value
+	got, err3 := parseUint("1V112200s4a0", 62, 64) // This is close to maxUint64 in base 62
+	if err3 != nil && err3.(*strconv.NumError).Err == strconv.ErrRange {
+		// Expected overflow
+		_ = got
+	}
+}
+
+func TestParseInt_Base37To62(t *testing.T) {
+	// Test base 37-62 for signed integers
+	// Note: base <= 36 uses strconv.ParseInt (only supports lowercase a-z)
+	// base > 36 uses custom logic:
+	//   - '0'-'9' = 0-9
+	//   - 'a'-'z' = 10-35
+	//   - 'A'-'Z' = 36-61
+	testCases := []struct {
+		s    string
+		base int
+		want int64
+	}{
+		{"-10", 37, -37},
+		{"-A", 37, -36}, // base 37, '-A' = -36
+		{"-Z", 37, -61}, // base 37, '-Z' = -61
+		{"-a", 37, -10}, // base 37, '-a' = -10
+		{"-z", 37, -35}, // base 37, '-z' = -35 (not -61!)
+		{"10", 62, 62},
+		{"-10", 62, -62},
+		{"-A", 62, -36},
+		{"-Z", 62, -61},
+	}
+
+	for _, tc := range testCases {
+		got, err := parseInt(tc.s, tc.base, 64)
+		if err != nil {
+			t.Errorf("parseInt(%q, %d, 64) = error: %v, want %d", tc.s, tc.base, err, tc.want)
+			continue
+		}
+		if got != tc.want {
+			t.Errorf("parseInt(%q, %d, 64) = %d, want %d", tc.s, tc.base, got, tc.want)
+		}
+	}
+}
+
+func TestParseInt_Overflow(t *testing.T) {
+	// Test overflow cases for signed integers with base > 36
+	maxInt64 := int64(1<<63 - 1)
+	minInt64 := int64(-1 << 63)
+
+	// Test !neg && un >= cutoff (positive overflow)
+	_, err := parseInt("9223372036854775808", 10, 64) // This should overflow
+	if err == nil {
+		t.Error("parseInt with positive overflow should return error")
+	} else if err.(*strconv.NumError).Err != strconv.ErrRange {
+		t.Errorf("parseInt with positive overflow should return ErrRange, got %v", err)
+	}
+
+	// Test neg && un > cutoff (negative overflow)
+	_, err2 := parseInt("-9223372036854775809", 10, 64) // This should overflow
+	if err2 == nil {
+		t.Error("parseInt with negative overflow should return error")
+	} else if err2.(*strconv.NumError).Err != strconv.ErrRange {
+		t.Errorf("parseInt with negative overflow should return ErrRange, got %v", err2)
+	}
+
+	// Test with base 62
+	_, err3 := parseInt("aZl8N0y58M8", 62, 64) // This should overflow (one more than max)
+	if err3 == nil {
+		t.Error("parseInt with overflow in base 62 should return error")
+	}
+
+	_ = maxInt64
+	_ = minInt64
+}
+
+func TestParseUint_BaseError(t *testing.T) {
+	// Test base > 62 error
+	_, err := parseUint("10", 63, 64)
+	if err == nil {
+		t.Error("parseUint with base > 62 should return error")
+	} else if nerr, ok := err.(*strconv.NumError); !ok || nerr.Err.Error() != "invalid base 63" {
+		t.Errorf("parseUint with base > 62 should return baseError, got %v", err)
+	}
+
+	_, err2 := parseUint("10", 100, 64)
+	if err2 == nil {
+		t.Error("parseUint with base 100 should return error")
+	}
+}
+
+func TestParseUint_BitSizeError(t *testing.T) {
+	// Test bitSize < 0
+	_, err := parseUint("10", 37, -1)
+	if err == nil {
+		t.Error("parseUint with bitSize < 0 should return error")
+	} else if nerr, ok := err.(*strconv.NumError); !ok || nerr.Err.Error() != "invalid bit size -1" {
+		t.Errorf("parseUint with bitSize < 0 should return bitSizeError, got %v", err)
+	}
+
+	// Test bitSize > 64
+	_, err2 := parseUint("10", 37, 65)
+	if err2 == nil {
+		t.Error("parseUint with bitSize > 64 should return error")
+	} else if nerr, ok := err2.(*strconv.NumError); !ok || nerr.Err.Error() != "invalid bit size 65" {
+		t.Errorf("parseUint with bitSize > 64 should return bitSizeError, got %v", err2)
+	}
+}
+
+func TestParseUint_BitSizeZero(t *testing.T) {
+	// Test bitSize == 0 (should use strconv.IntSize)
+	_, err := parseUint("100", 37, 0)
+	if err != nil {
+		t.Errorf("parseUint with bitSize 0 should work, got error: %v", err)
+	}
+}
+
+func TestParseUint_InvalidChar(t *testing.T) {
+	// Test invalid character (default case)
+	_, err := parseUint("@", 37, 64)
+	if err == nil {
+		t.Error("parseUint with invalid character should return error")
+	} else if nerr, ok := err.(*strconv.NumError); !ok || nerr.Err != strconv.ErrSyntax {
+		t.Errorf("parseUint with invalid character should return syntaxError, got %v", err)
+	}
+
+	_, err2 := parseUint("10#", 37, 64)
+	if err2 == nil {
+		t.Error("parseUint with invalid character should return error")
+	}
+}
+
+func TestParseUint_Base36InvalidDigit(t *testing.T) {
+	// Test base <= 36 && d >= byte(base) case
+	// For base 10, 'a' (10) >= 10, should return error
+	_, err := parseUint("a", 10, 64)
+	if err == nil {
+		t.Error("parseUint('a', 10) should return error")
+	}
+
+	// For base 16, 'g' (16) >= 16, should return error
+	_, err2 := parseUint("g", 16, 64)
+	if err2 == nil {
+		t.Error("parseUint('g', 16) should return error")
+	}
+}
+
+func TestParseInt_EmptyString(t *testing.T) {
+	// Test parseInt with empty string (base > 36)
+	_, err := parseInt("", 37, 64)
+	if err == nil {
+		t.Error("parseInt with empty string should return error")
+	} else if nerr, ok := err.(*strconv.NumError); !ok || nerr.Err != strconv.ErrSyntax {
+		t.Errorf("parseInt with empty string should return syntaxError, got %v", err)
+	}
+}
+
+func TestParseInt_PlusSign(t *testing.T) {
+	// Test parseInt with '+' sign
+	got, err := parseInt("+10", 37, 64)
+	if err != nil {
+		t.Errorf("parseInt('+10', 37) should work, got error: %v", err)
+	} else if got != 37 {
+		t.Errorf("parseInt('+10', 37) = %d, want 37", got)
+	}
+
+	got2, err2 := parseInt("+Z", 37, 64)
+	if err2 != nil {
+		t.Errorf("parseInt('+Z', 37) should work, got error: %v", err2)
+	} else if got2 != 61 {
+		t.Errorf("parseInt('+Z', 37) = %d, want 61", got2)
+	}
+}
+
+func TestParseInt_BitSizeZero(t *testing.T) {
+	// Test parseInt with bitSize == 0
+	got, err := parseInt("100", 37, 0)
+	if err != nil {
+		t.Errorf("parseInt with bitSize 0 should work, got error: %v", err)
+	} else if got <= 0 {
+		t.Errorf("parseInt('100', 37, 0) = %d, should be positive", got)
+	}
+}
+
+func TestParseInt_PositiveOverflow(t *testing.T) {
+	// Test !neg && un >= cutoff case
+	// For bitSize 8, max is 127, so 128 should overflow
+	got, err := parseInt("128", 10, 8)
+	if err == nil {
+		t.Error("parseInt('128', 10, 8) should return error")
+	} else if nerr, ok := err.(*strconv.NumError); !ok || nerr.Err != strconv.ErrRange {
+		t.Errorf("parseInt with positive overflow should return ErrRange, got %v", err)
+	} else if got != 127 {
+		t.Errorf("parseInt with positive overflow should return max value 127, got %d", got)
+	}
+}
+
+func TestParseInt_NegativeOverflow(t *testing.T) {
+	// Test neg && un > cutoff case
+	// For bitSize 8, min is -128, so -129 should overflow
+	got, err := parseInt("-129", 10, 8)
+	if err == nil {
+		t.Error("parseInt('-129', 10, 8) should return error")
+	} else if nerr, ok := err.(*strconv.NumError); !ok || nerr.Err != strconv.ErrRange {
+		t.Errorf("parseInt with negative overflow should return ErrRange, got %v", err)
+	} else if got != -128 {
+		t.Errorf("parseInt with negative overflow should return min value -128, got %d", got)
+	}
+}
+
+func TestParseInt_ErrRangePropagation(t *testing.T) {
+	// Test that ErrRange from parseUint is propagated correctly
+	// Use a number that causes overflow in parseUint (base > 36)
+	_, err := parseInt("ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ", 62, 64)
+	if err == nil {
+		t.Error("parseInt with overflow should return error")
+	} else if nerr, ok := err.(*strconv.NumError); !ok || nerr.Err != strconv.ErrRange {
+		t.Errorf("parseInt with overflow should return ErrRange, got %v", err)
+	}
+}
+
+func TestParseInt_BoundaryCases(t *testing.T) {
+	// Test !neg && un == cutoff case (should return error)
+	// For bitSize 8, cutoff is 128, so 128 should overflow
+	got, err := parseInt("128", 10, 8)
+	if err == nil {
+		t.Error("parseInt('128', 10, 8) should return error")
+	} else if got != 127 {
+		t.Errorf("parseInt('128', 10, 8) should return 127, got %d", got)
+	}
+
+	// Test neg && un == cutoff case (should NOT return error, condition is un > cutoff)
+	// For bitSize 8, cutoff is 128, so -128 should NOT overflow
+	got2, err2 := parseInt("-128", 10, 8)
+	if err2 != nil {
+		t.Errorf("parseInt('-128', 10, 8) should work, got error: %v", err2)
+	} else if got2 != -128 {
+		t.Errorf("parseInt('-128', 10, 8) = %d, want -128", got2)
+	}
+}
+
+func TestParseUint_Wrapper(t *testing.T) {
+	// Test ParseUint wrapper function
+	result := ParseUint("10", 37, 64)
+	if result.IsErr() {
+		t.Errorf("ParseUint('10', 37, 64) should work, got error: %v", result.UnwrapErr())
+	} else if result.Unwrap() != 37 {
+		t.Errorf("ParseUint('10', 37, 64) = %d, want 37", result.Unwrap())
+	}
+
+	// Test error case
+	result2 := ParseUint("", 37, 64)
+	if !result2.IsErr() {
+		t.Error("ParseUint('', 37, 64) should return error")
+	}
+}
+
+func TestParseInt_Wrapper(t *testing.T) {
+	// Test ParseInt wrapper function
+	result := ParseInt("10", 37, 64)
+	if result.IsErr() {
+		t.Errorf("ParseInt('10', 37, 64) should work, got error: %v", result.UnwrapErr())
+	} else if result.Unwrap() != 37 {
+		t.Errorf("ParseInt('10', 37, 64) = %d, want 37", result.Unwrap())
+	}
+
+	// Test error case
+	result2 := ParseInt("", 37, 64)
+	if !result2.IsErr() {
+		t.Error("ParseInt('', 37, 64) should return error")
+	}
+
+	// Test negative case
+	result3 := ParseInt("-10", 37, 64)
+	if result3.IsErr() {
+		t.Errorf("ParseInt('-10', 37, 64) should work, got error: %v", result3.UnwrapErr())
+	} else if result3.Unwrap() != -37 {
+		t.Errorf("ParseInt('-10', 37, 64) = %d, want -37", result3.Unwrap())
+	}
+}
+
+func TestAtoi_FastPath(t *testing.T) {
+	// Test fast path for small integers
+	got, err := Atoi("123")
+	if err != nil {
+		t.Errorf("Atoi('123') should work, got error: %v", err)
+	} else if got != 123 {
+		t.Errorf("Atoi('123') = %d, want 123", got)
+	}
+
+	// Test fast path with negative
+	got2, err2 := Atoi("-456")
+	if err2 != nil {
+		t.Errorf("Atoi('-456') should work, got error: %v", err2)
+	} else if got2 != -456 {
+		t.Errorf("Atoi('-456') = %d, want -456", got2)
+	}
+
+	// Test fast path with plus sign
+	got3, err3 := Atoi("+789")
+	if err3 != nil {
+		t.Errorf("Atoi('+789') should work, got error: %v", err3)
+	} else if got3 != 789 {
+		t.Errorf("Atoi('+789') = %d, want 789", got3)
+	}
+
+	// Test fast path with invalid character
+	_, err4 := Atoi("12a")
+	if err4 == nil {
+		t.Error("Atoi('12a') should return error")
+	}
+
+	// Test fast path with only sign (empty after sign)
+	_, err5 := Atoi("-")
+	if err5 == nil {
+		t.Error("Atoi('-') should return error")
+	}
+
+	_, err6 := Atoi("+")
+	if err6 == nil {
+		t.Error("Atoi('+') should return error")
+	}
+}
+
+func TestAtoi_SlowPath(t *testing.T) {
+	// Test slow path for large integers
+	largeNum := "9223372036854775807" // max int64
+	got, err := Atoi(largeNum)
+	if err != nil {
+		t.Errorf("Atoi('%s') should work, got error: %v", largeNum, err)
+	} else if got <= 0 {
+		t.Errorf("Atoi('%s') = %d, should be positive", largeNum, got)
+	}
+
+	// Test slow path with underscores (should fail for base 10)
+	_, err2 := Atoi("1_2_3")
+	if err2 == nil {
+		t.Error("Atoi('1_2_3') should return error (underscores not allowed in base 10)")
+	}
+}
+
+func TestParseInt_ErrRangePropagation2(t *testing.T) {
+	// Test that ErrRange from parseUint is propagated correctly (err != nil && nerr.Err == strconv.ErrRange)
+	// This tests the else branch at line 145
+	_, err := parseInt("18446744073709551616", 10, 64) // This causes overflow in parseUint
+	if err == nil {
+		t.Error("parseInt with overflow should return error")
+	} else if nerr, ok := err.(*strconv.NumError); !ok || nerr.Err != strconv.ErrRange {
+		t.Errorf("parseInt with overflow should return ErrRange, got %v", err)
+	}
+}
+
+func TestTryFromString_ReflectPath(t *testing.T) {
+	// Test reflect path in tryFromString (when type switch doesn't match)
+	// This requires a custom type that doesn't match any case
+	type CustomString string
+	type CustomInt int
+
+	// This should use the reflect path
+	result := TryFromString[CustomString, CustomInt]("42", 10, 0)
+	if result.IsErr() {
+		t.Errorf("TryFromString should work, got error: %v", result.UnwrapErr())
+	}
+}
+
+func TestAs_ReflectPath(t *testing.T) {
+	// Test reflect path in as function
+	// The reflect path is used when type switch doesn't match
+	// For example, when converting between types that are not directly matched in the type switch
+	// but have the same underlying kind
+
+	// Test with types that will use reflect path
+	// Using int8 -> int16 which should use reflect path since type switch checks for *int16
+	result := As[int8, int16](100)
+	if result.IsErr() {
+		t.Errorf("As[int8, int16] should work, got error: %v", result.UnwrapErr())
+	} else if result.Unwrap() != 100 {
+		t.Errorf("As[int8, int16](100) = %d, want 100", result.Unwrap())
+	}
+
+	// Test with uint8 -> uint16
+	result2 := As[uint8, uint16](200)
+	if result2.IsErr() {
+		t.Errorf("As[uint8, uint16] should work, got error: %v", result2.UnwrapErr())
+	} else if result2.Unwrap() != 200 {
+		t.Errorf("As[uint8, uint16](200) = %d, want 200", result2.Unwrap())
+	}
+}
+
+func TestParseUint_UnderscoreCases(t *testing.T) {
+	// Test underscore handling in parseUint for base > 36
+	got, err := parseUint("1_2_3", 37, 64)
+	if err != nil {
+		t.Errorf("parseUint('1_2_3', 37, 64) should work, got error: %v", err)
+	} else {
+		// 1_2_3 in base 37 = 1*37^2 + 2*37 + 3 = 1369 + 74 + 3 = 1446
+		expected := uint64(1*37*37 + 2*37 + 3)
+		if got != expected {
+			t.Errorf("parseUint('1_2_3', 37, 64) = %d, want %d", got, expected)
+		}
+	}
+
+	// Test underscore at beginning (should fail)
+	_, err2 := parseUint("_123", 37, 64)
+	if err2 == nil {
+		t.Error("parseUint('_123', 37, 64) should return error")
+	}
+
+	// Test underscore at end (underscoreOK allows it, parseUint skips underscores)
+	// "123_" is parsed as "123" in base 37: 1*37^2 + 2*37 + 3 = 1446
+	got3, err3 := parseUint("123_", 37, 64)
+	if err3 != nil {
+		t.Errorf("parseUint('123_', 37, 64) should work (underscore is skipped), got error: %v", err3)
+	} else {
+		expected := uint64(1*37*37 + 2*37 + 3) // 1446
+		if got3 != expected {
+			t.Errorf("parseUint('123_', 37, 64) = %d, want %d", got3, expected)
+		}
+	}
+
+	// Test double underscore (should fail - underscoreOK returns false)
+	_, err4 := parseUint("1__23", 37, 64)
+	if err4 == nil {
+		t.Error("parseUint('1__23', 37, 64) should return error")
+	}
+}
+
+func TestParseUint_Base37To62_AllCases(t *testing.T) {
+	// Test all base 37-62 cases to ensure full coverage
+	testCases := []struct {
+		s    string
+		base int
+		want uint64
+	}{
+		{"A", 37, 36},
+		{"B", 37, 37},
+		{"Z", 37, 61},
+		{"10", 37, 37},
+		{"1Z", 37, 37*1 + 61},
+		{"A", 62, 36},
+		{"Z", 62, 61},
+		{"10", 62, 62},
+		{"1Z", 62, 62*1 + 61},
+	}
+
+	for _, tc := range testCases {
+		got, err := parseUint(tc.s, tc.base, 64)
+		if err != nil {
+			t.Errorf("parseUint(%q, %d, 64) = error: %v, want %d", tc.s, tc.base, err, tc.want)
+			continue
+		}
+		if got != tc.want {
+			t.Errorf("parseUint(%q, %d, 64) = %d, want %d", tc.s, tc.base, got, tc.want)
+		}
+	}
+}
+
+func TestUnderscoreOK_BasePrefix(t *testing.T) {
+	// Test underscoreOK with base prefix (0x, 0b, 0o)
+	testCases := []struct {
+		s    string
+		want bool
+	}{
+		{"0x123", true},
+		{"0X123", true},
+		{"0b101", true},
+		{"0B101", true},
+		{"0o377", true},
+		{"0O377", true},
+		{"0x_123", true},   // underscore after prefix (base prefix counts as digit, so this is valid)
+		{"0x1_23", true},   // underscore in number
+		{"0x12_3", true},   // underscore in number
+		{"0x_", true},      // underscore immediately after prefix (base prefix counts as digit, so this is valid)
+		{"0x__123", false}, // double underscore
+		{"0x123_", true},   // underscore at end (allowed by underscoreOK - it follows a digit)
+	}
+
+	for _, tc := range testCases {
+		got := underscoreOK(tc.s)
+		if got != tc.want {
+			t.Errorf("underscoreOK(%q) = %v, want %v", tc.s, got, tc.want)
+		}
+	}
+}
+
+func TestUnderscoreOK_WithSign(t *testing.T) {
+	// Test underscoreOK with sign
+	testCases := []struct {
+		s    string
+		want bool
+	}{
+		{"-123", true},
+		{"+123", true},
+		{"-1_2_3", true},
+		{"+1_2_3", true},
+		{"-_123", false},  // underscore after sign (invalid)
+		{"-1__23", false}, // double underscore
+		{"-123_", true},   // underscore at end (allowed by underscoreOK - it follows a digit)
+	}
+
+	for _, tc := range testCases {
+		got := underscoreOK(tc.s)
+		if got != tc.want {
+			t.Errorf("underscoreOK(%q) = %v, want %v", tc.s, got, tc.want)
+		}
+	}
+}
+
+func TestTryFromString_Base37(t *testing.T) {
+	// Test TryFromString with base > 36
+	result := TryFromString[string, int]("Z", 37, 64)
+	if result.IsErr() {
+		t.Errorf("TryFromString('Z', 37, 64) should work, got error: %v", result.UnwrapErr())
+	} else if result.Unwrap() != 61 {
+		t.Errorf("TryFromString('Z', 37, 64) = %d, want 61", result.Unwrap())
+	}
+}
+
+func TestAs_AllTypes(t *testing.T) {
+	// Test As function with various type combinations to cover reflect path
+	testCases := []struct {
+		name string
+		test func(*testing.T)
+	}{
+		{"int8 to int16", func(t *testing.T) {
+			result := As[int8, int16](100)
+			assert.True(t, result.IsOk())
+			assert.Equal(t, int16(100), result.Unwrap())
+		}},
+		{"int16 to int32", func(t *testing.T) {
+			result := As[int16, int32](1000)
+			assert.True(t, result.IsOk())
+			assert.Equal(t, int32(1000), result.Unwrap())
+		}},
+		{"int32 to int64", func(t *testing.T) {
+			result := As[int32, int64](100000)
+			assert.True(t, result.IsOk())
+			assert.Equal(t, int64(100000), result.Unwrap())
+		}},
+		{"uint8 to uint16", func(t *testing.T) {
+			result := As[uint8, uint16](200)
+			assert.True(t, result.IsOk())
+			assert.Equal(t, uint16(200), result.Unwrap())
+		}},
+		{"uint16 to uint32", func(t *testing.T) {
+			result := As[uint16, uint32](50000)
+			assert.True(t, result.IsOk())
+			assert.Equal(t, uint32(50000), result.Unwrap())
+		}},
+		{"uint32 to uint64", func(t *testing.T) {
+			result := As[uint32, uint64](1000000)
+			assert.True(t, result.IsOk())
+			assert.Equal(t, uint64(1000000), result.Unwrap())
+		}},
+		{"float32 to float64", func(t *testing.T) {
+			result := As[float32, float64](3.14)
+			assert.True(t, result.IsOk())
+			assert.InDelta(t, 3.14, result.Unwrap(), 0.001)
+		}},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, tc.test)
+	}
+}

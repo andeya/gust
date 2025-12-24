@@ -142,3 +142,19 @@ func TestFlatten(t *testing.T) {
 	assert.True(t, result3.IsErr())
 	assert.Equal(t, "outer error", result3.Err().Error())
 }
+
+func TestAssert_TypeAssertionError(t *testing.T) {
+	// Test Assert with type assertion error
+	r1 := gust.Ok[any](42)
+	result1 := ret.Assert[any, string](r1)
+	assert.True(t, result1.IsErr())
+	assert.Contains(t, result1.Err().Error(), "type assert error")
+}
+
+func TestXAssert_TypeAssertionError(t *testing.T) {
+	// Test XAssert with type assertion error
+	r1 := gust.Ok[any](42)
+	result1 := ret.XAssert[string](r1)
+	assert.True(t, result1.IsErr())
+	assert.Contains(t, result1.Err().Error(), "type assert error")
+}

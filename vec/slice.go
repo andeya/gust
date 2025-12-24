@@ -361,26 +361,26 @@ func Splice[T any](s *[]T, start, deleteCount int, items ...T) {
 	if deleteCount < 0 {
 		deleteCount = 0
 	}
-	start, end, _ := fixRange(len(a), start, start+1+deleteCount)
-	deleteCount = end - start - 1
+	delStart, delEnd, _ := fixRange(len(a), start, start+deleteCount)
+	deleteCount = delEnd - delStart
 	for i := 0; i < len(items); i++ {
 		if deleteCount > 0 {
 			// replace
-			a[start] = items[i]
+			a[delStart] = items[i]
 			deleteCount--
-			start++
+			delStart++
 		} else {
 			// insert
-			lastSlice := Copy[T](a[start:])
+			lastSlice := Copy[T](a[delStart:])
 			items = items[i:]
-			a = append(a[:start], items...)
-			a = append(a[:start+len(items)], lastSlice...)
+			a = append(a[:delStart], items...)
+			a = append(a[:delStart+len(items)], lastSlice...)
 			*s = a[:len(a):len(a)]
 			return
 		}
 	}
 	if deleteCount > 0 {
-		a = append(a[:start], a[start+1+deleteCount:]...)
+		a = append(a[:delStart], a[delStart+deleteCount:]...)
 	}
 	*s = a[:len(a):len(a)]
 }

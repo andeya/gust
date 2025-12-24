@@ -225,3 +225,19 @@ func TestEnumOkOrElse(t *testing.T) {
 	assert.True(t, result2.IsErr())
 	assert.Equal(t, "error", result2.UnwrapErr())
 }
+
+func TestSafeAssert_TypeAssertionError(t *testing.T) {
+	// Test SafeAssert with type assertion error message
+	opt1 := gust.Some(42)
+	result1 := opt.SafeAssert[int, string](opt1)
+	assert.True(t, result1.IsErr())
+	assert.Contains(t, result1.Err().Error(), "type assert error")
+}
+
+func TestXSafeAssert_TypeAssertionError(t *testing.T) {
+	// Test XSafeAssert with type assertion error message
+	opt1 := gust.Some[any](42)
+	result1 := opt.XSafeAssert[string](opt1)
+	assert.True(t, result1.IsErr())
+	assert.Contains(t, result1.Err().Error(), "type assert error")
+}

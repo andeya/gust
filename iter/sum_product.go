@@ -64,15 +64,32 @@ func Product[T gust.Digit](iter Iterator[T]) T {
 func getProductIdentity[T gust.Digit]() T {
 	var zero T
 	switch any(zero).(type) {
-	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
-		return any(1).(T)
+	case int:
+		return T(1)
+	case int8:
+		return T(int8(1))
+	case int16:
+		return T(int16(1))
+	case int32:
+		return T(int32(1))
+	case int64:
+		return T(int64(1))
+	case uint:
+		return T(uint(1))
+	case uint8:
+		return T(uint8(1))
+	case uint16:
+		return T(uint16(1))
+	case uint32:
+		return T(uint32(1))
+	case uint64:
+		return T(uint64(1))
 	case float32:
-		return any(float32(1.0)).(T)
+		return T(float32(1.0))
 	case float64:
-		return any(1.0).(T)
+		return T(1.0)
 	default:
 		// For unknown types, return zero (this shouldn't happen for gust.Digit)
-		var zero T
 		return zero
 	}
 }

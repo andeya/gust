@@ -557,3 +557,23 @@ func TestOption_UnwrapUnchecked(t *testing.T) {
 		assert.Equal(t, "foo", r.Ok().UnwrapUnchecked())
 	}
 }
+
+func TestOption_UnwrapOrThrow(t *testing.T) {
+	// Test with Some value
+	var opt1 = gust.Some("value")
+	var result gust.Result[string]
+	defer gust.CatchResult(&result)
+	val := opt1.UnwrapOrThrow("error message")
+	assert.Equal(t, "value", val)
+	assert.True(t, result.IsOk())
+
+	// Test with None (should panic)
+	var opt2 = gust.None[string]()
+	var result2 gust.Result[int]
+	defer func() {
+		assert.True(t, result2.IsErr())
+		assert.Equal(t, "error message", result2.Err().Error())
+	}()
+	defer gust.CatchResult(&result2)
+	_ = opt2.UnwrapOrThrow("error message")
+}

@@ -345,3 +345,288 @@ func TestSliceSegment(t *testing.T) {
 	assert.Equal(t, [][]string(nil), segments6)
 	assert.Equal(t, x, SliceSegment(a, 2))
 }
+
+func TestCopyWithin_EdgeCases(t *testing.T) {
+	// Test CopyWithin with target == len(s) (should return early)
+	slice := []string{"a", "b", "c"}
+	CopyWithin(slice, 3, 0)
+	assert.Equal(t, []string{"a", "b", "c"}, slice) // Should not change
+
+	// Test CopyWithin with negative indices
+	slice2 := []string{"a", "b", "c", "d", "e"}
+	CopyWithin(slice2, -2, -3, -1)
+	// target = fixIndex(5, -2, true) = 3
+	// start = fixIndex(5, -3, true) = 2
+	// end = fixIndex(5, -1, true) = 4
+	// sub = Slice(slice2, 2, 4) = slice2[2:4] = {"c", "d"}
+	// Copy to target=3: slice2[3] = "c", slice2[4] = "d"
+	assert.Equal(t, []string{"a", "b", "c", "c", "d"}, slice2)
+}
+
+func TestFill_EdgeCases(t *testing.T) {
+	// Test Fill with invalid range (should return early)
+	slice := []string{"a", "b", "c"}
+	Fill(slice, "x", 5, 10)                         // Invalid range
+	assert.Equal(t, []string{"a", "b", "c"}, slice) // Should not change
+
+	// Test Fill with negative indices
+	slice2 := []string{"a", "b", "c", "d"}
+	Fill(slice2, "x", -2, -1)
+	assert.Equal(t, []string{"a", "b", "x", "d"}, slice2)
+}
+
+func TestSplice_ReplaceMode(t *testing.T) {
+	// Test Splice with replace mode (deleteCount > 0)
+	slice := []string{"a", "b", "c", "d"}
+	Splice(&slice, 1, 2, "x", "y")
+	assert.Equal(t, []string{"a", "x", "y", "d"}, slice)
+}
+
+func TestSplice_InsertMode(t *testing.T) {
+	// Test Splice with insert mode (deleteCount == 0)
+	slice := []string{"a", "b", "c"}
+	Splice(&slice, 1, 0, "x", "y")
+	assert.Equal(t, []string{"a", "x", "y", "b", "c"}, slice)
+}
+
+func TestSplice_DeleteOnly(t *testing.T) {
+	// Test Splice with delete only (no items)
+	slice := []string{"a", "b", "c", "d"}
+	Splice(&slice, 1, 2)
+	assert.Equal(t, []string{"a", "d"}, slice)
+}
+
+func TestSplice_NegativeDeleteCount(t *testing.T) {
+	// Test Splice with negative deleteCount (should be set to 0)
+	slice := []string{"a", "b", "c"}
+	Splice(&slice, 1, -1, "x")
+	assert.Equal(t, []string{"a", "x", "b", "c"}, slice)
+}
+
+func TestForEachSegment_Error(t *testing.T) {
+	// Test ForEachSegment with callback error
+	slice := []string{"a", "b", "c", "d"}
+	err := ForEachSegment(slice, 2, func(slice []string) error {
+		return assert.AnError
+	})
+	assert.Error(t, err)
+}
+
+func TestForEachSegment_Clone(t *testing.T) {
+	// Test ForEachSegment with clone = true
+	slice := []string{"a", "b", "c", "d"}
+	var segments [][]string
+	err := ForEachSegment(slice, 2, func(s []string) error {
+		segments = append(segments, s)
+		return nil
+	}, true)
+	assert.NoError(t, err)
+	assert.Len(t, segments, 2)
+}
+
+func TestForEachSegment_NegativeLength(t *testing.T) {
+	// Test ForEachSegment with negative maxSegmentLength
+	slice := []string{"a", "b", "c"}
+	var segments [][]string
+	err := ForEachSegment(slice, -1, func(s []string) error {
+		segments = append(segments, s)
+		return nil
+	})
+	assert.NoError(t, err)
+	assert.Len(t, segments, 1)
+	assert.Len(t, segments[0], 3)
+}
+
+func TestSliceSegment_EdgeCases(t *testing.T) {
+	// Test SliceSegment with maxSegmentLength = 0
+	slice := []string{"a", "b", "c"}
+	result := SliceSegment(slice, 0)
+	assert.Nil(t, result)
+
+	// Test SliceSegment with negative maxSegmentLength
+	result2 := SliceSegment(slice, -1)
+	assert.Len(t, result2, 1)
+	assert.Len(t, result2[0], 3)
+}
+
+func TestDistinct_ChangeSlice(t *testing.T) {
+	// Test Distinct with changeSlice = true
+	slice := []string{"a", "b", "a", "c", "b"}
+	count := Distinct(&slice, true)
+	assert.Equal(t, map[string]int{"a": 2, "b": 2, "c": 1}, count)
+	assert.Len(t, slice, 3)
+}
+
+func TestDistinctBy_WithWhoToKeep(t *testing.T) {
+	// Test DistinctBy with whoToKeep function
+	slice := []int{1, 2, 3, 2, 4}
+	DistinctBy(&slice, func(k int, v int) int { return v }, func(a, b int) int {
+		if a > b {
+			return a
+		}
+		return b
+	})
+	assert.Len(t, slice, 4)
+}
+
+func TestIntersect_EmptySlice(t *testing.T) {
+	// Test Intersect with empty slice
+	result := Intersect([]string{}, []string{"a"})
+	assert.Nil(t, result)
+
+	result2 := Intersect([]string{"a"}, []string{})
+	assert.Nil(t, result2)
+}
+
+func TestIntersect_NoArgs(t *testing.T) {
+	// Test Intersect with no arguments
+	result := Intersect[string]()
+	assert.Nil(t, result)
+}
+
+func TestSetsDifference_MultipleOthers(t *testing.T) {
+	// Test SetsDifference with multiple others
+	set1 := []string{"a", "b", "c", "d"}
+	set2 := []string{"b", "c"}
+	set3 := []string{"c", "e"}
+	result := SetsDifference(set1, set2, set3)
+	assert.Equal(t, []string{"a", "d"}, result)
+}
+
+func TestUnshiftDistinct_EmptyElement(t *testing.T) {
+	// Test UnshiftDistinct with empty element slice
+	slice := []string{"a", "b"}
+	length := UnshiftDistinct(&slice)
+	assert.Equal(t, 2, length)
+	assert.Equal(t, []string{"a", "b"}, slice)
+}
+
+func TestRemoveFirst_DuplicateElements(t *testing.T) {
+	// Test RemoveFirst with duplicate elements in elements slice
+	slice := []string{"a", "b", "c", "d"}
+	length := RemoveFirst(&slice, "b", "b", "c")
+	assert.Equal(t, 2, length)
+	assert.Equal(t, []string{"a", "d"}, slice)
+}
+
+func TestRemoveEvery_DuplicateElements(t *testing.T) {
+	// Test RemoveEvery with duplicate elements in elements slice
+	slice := []string{"a", "b", "b", "c", "b"}
+	length := RemoveEvery(&slice, "b", "b")
+	assert.Equal(t, 2, length)
+	assert.Equal(t, []string{"a", "c"}, slice)
+}
+
+func TestIndexOf_WithFromIndex(t *testing.T) {
+	// Test IndexOf with fromIndex parameter
+	slice := []string{"a", "b", "c", "b", "d"}
+	idx := IndexOf(slice, "b", 2)
+	assert.Equal(t, 3, idx) // Should find "b" at index 3, not index 1
+	
+	idx2 := IndexOf(slice, "b", 4)
+	assert.Equal(t, -1, idx2) // Should not find "b" starting from index 4
+	
+	idx3 := IndexOf(slice, "a", 0)
+	assert.Equal(t, 0, idx3)
+}
+
+func TestLastIndexOf_WithFromIndex(t *testing.T) {
+	// Test LastIndexOf with fromIndex parameter
+	slice := []string{"a", "b", "c", "b", "d"}
+	idx := LastIndexOf(slice, "b", 2)
+	assert.Equal(t, 1, idx) // Should find "b" at index 1, not index 3
+	
+	idx2 := LastIndexOf(slice, "b", 0)
+	assert.Equal(t, -1, idx2) // Should not find "b" starting from index 0 backwards
+	
+	idx3 := LastIndexOf(slice, "d", 4)
+	assert.Equal(t, 4, idx3)
+}
+
+func TestIncludes_WithFromIndex(t *testing.T) {
+	// Test Includes with fromIndex parameter
+	slice := []string{"a", "b", "c", "b", "d"}
+	assert.True(t, Includes(slice, "b", 2))
+	assert.False(t, Includes(slice, "b", 4))
+	assert.True(t, Includes(slice, "a", 0))
+}
+
+func TestMapAlone(t *testing.T) {
+	// Test MapAlone function
+	slice := []int{1, 2, 3}
+	result := MapAlone(slice, func(v int) int { return v * 2 })
+	assert.Equal(t, []int{2, 4, 6}, result)
+	
+	// Test with nil slice
+	var nilSlice []int
+	result2 := MapAlone(nilSlice, func(v int) int { return v * 2 })
+	assert.Nil(t, result2)
+}
+
+func TestPushDistinctBy(t *testing.T) {
+	// Test PushDistinctBy function
+	slice := []int{1, 2, 3}
+	result := PushDistinctBy(slice, func(a, b int) bool { return a == b }, 2, 4, 3)
+	assert.Equal(t, []int{1, 2, 3, 4}, result) // 2 and 3 already exist, only 4 is added
+}
+
+func TestSetsIntersect(t *testing.T) {
+	// Test SetsIntersect function
+	set1 := []string{"a", "b", "c"}
+	set2 := []string{"b", "c", "d"}
+	set3 := []string{"c", "d", "e"}
+	result := SetsIntersect(set1, set2, set3)
+	assert.Equal(t, []string{"c"}, result) // Only "c" is in all three sets
+	
+	// Test with no intersection
+	set4 := []string{"x", "y", "z"}
+	result2 := SetsIntersect(set1, set4)
+	assert.Equal(t, []string{}, result2)
+}
+
+func TestSetsDifference(t *testing.T) {
+	// Test SetsDifference function
+	set1 := []string{"a", "b", "c", "d"}
+	set2 := []string{"b", "c"}
+	set3 := []string{"d"}
+	result := SetsDifference(set1, set2, set3)
+	assert.Equal(t, []string{"a"}, result) // Only "a" is in set1 but not in set2 or set3
+	
+	// Test with empty difference
+	result2 := SetsDifference(set1, set1)
+	assert.Equal(t, []string{}, result2)
+}
+
+func TestFlatten(t *testing.T) {
+	// Test Flatten function
+	nested := [][]int{{1, 2}, {3, 4}, {5}}
+	result := Flatten(nested)
+	assert.Equal(t, []int{1, 2, 3, 4, 5}, result)
+	
+	// Test with nil
+	var nilSlice [][]int
+	result2 := Flatten(nilSlice)
+	assert.Nil(t, result2)
+	
+	// Test with empty slices
+	empty := [][]int{{}, {1}, {}}
+	result3 := Flatten(empty)
+	assert.Equal(t, []int{1}, result3)
+}
+
+func TestFlatMap(t *testing.T) {
+	// Test FlatMap function
+	nested := [][]int{{1, 2}, {3, 4}}
+	result := FlatMap(nested, func(x int) int { return x * 2 })
+	assert.Equal(t, []int{2, 4, 6, 8}, result)
+	
+	// Test with nil
+	var nilSlice [][]int
+	result2 := FlatMap(nilSlice, func(x int) int { return x * 2 })
+	assert.Nil(t, result2)
+	
+	// Test with empty slices
+	empty := [][]int{{}, {1}, {}}
+	result3 := FlatMap(empty, func(x int) string { return "a" })
+	assert.Equal(t, []string{"a"}, result3)
+}

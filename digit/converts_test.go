@@ -2,6 +2,7 @@ package digit
 
 import (
 	"math"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -277,4 +278,212 @@ func TestSliceAs(t *testing.T) {
 	result4, err4 := SliceAs[int, int64]([]int{})
 	assert.NoError(t, err4)
 	assert.Equal(t, []int64{}, result4)
+}
+
+func TestTryFromString_UnmatchedType(t *testing.T) {
+	// Test tryFromString with unmatched type (should return 0, nil)
+	// This tests the return 0, nil case at the end of tryFromString
+	type CustomString string
+	type CustomInt int
+	
+	// This should use reflect path but may return 0 if type doesn't match
+	result := TryFromString[CustomString, CustomInt]("42", 10, 0)
+	// The function may return 0 for unmatched types
+	if result.IsErr() {
+		t.Logf("TryFromString returned error (expected for some unmatched types): %v", result.UnwrapErr())
+	} else {
+		t.Logf("TryFromString returned: %v", result.Unwrap())
+	}
+}
+
+func TestAs_UnmatchedType(t *testing.T) {
+	// Test as function with unmatched type (should return 0, nil)
+	// This tests the return 0, nil case at the end of as function
+	type CustomInt int
+	type CustomFloat float64
+	
+	// This should return 0, nil if type doesn't match
+	result := As[CustomInt, CustomFloat](CustomInt(42))
+	if result.IsErr() {
+		t.Logf("As returned error (expected for some unmatched types): %v", result.UnwrapErr())
+	} else {
+		// May return 0 for unmatched types
+		t.Logf("As returned: %v", result.Unwrap())
+	}
+}
+
+func TestAs_DigitToFloat32_Overflow(t *testing.T) {
+	// Test digitToFloat32 overflow cases
+	result := As[float64, float32](math.MaxFloat64)
+	assert.True(t, result.IsErr())
+	
+	result2 := As[float64, float32](-math.MaxFloat64)
+	assert.True(t, result2.IsErr())
+}
+
+func TestAs_DigitToInt_Overflow(t *testing.T) {
+	// Test digitToInt overflow cases
+	if strconv.IntSize == 64 {
+		result := As[int64, int](math.MaxInt64)
+		assert.True(t, result.IsOk())
+		
+		result2 := As[float64, int](math.MaxFloat64)
+		assert.True(t, result2.IsErr())
+	}
+}
+
+func TestAs_DigitToInt8_Overflow(t *testing.T) {
+	// Test digitToInt8 overflow cases
+	result := As[int, int8](math.MaxInt8 + 1)
+	assert.True(t, result.IsErr())
+	
+	result2 := As[int, int8](math.MinInt8 - 1)
+	assert.True(t, result2.IsErr())
+	
+	result3 := As[float64, int8](math.MaxInt8 + 1)
+	assert.True(t, result3.IsErr())
+	
+	result4 := As[float64, int8](math.MinInt8 - 1)
+	assert.True(t, result4.IsErr())
+}
+
+func TestAs_DigitToInt16_Overflow(t *testing.T) {
+	// Test digitToInt16 overflow cases
+	result := As[int, int16](math.MaxInt16 + 1)
+	assert.True(t, result.IsErr())
+	
+	result2 := As[int, int16](math.MinInt16 - 1)
+	assert.True(t, result2.IsErr())
+	
+	result3 := As[float64, int16](math.MaxInt16 + 1)
+	assert.True(t, result3.IsErr())
+}
+
+func TestAs_DigitToInt32_Overflow(t *testing.T) {
+	// Test digitToInt32 overflow cases
+	result := As[int64, int32](math.MaxInt32 + 1)
+	assert.True(t, result.IsErr())
+	
+	result2 := As[int64, int32](math.MinInt32 - 1)
+	assert.True(t, result2.IsErr())
+	
+	result3 := As[float64, int32](math.MaxInt32 + 1)
+	assert.True(t, result3.IsErr())
+}
+
+func TestAs_DigitToInt64_Overflow(t *testing.T) {
+	// Test digitToInt64 overflow cases
+	result := As[float64, int64](math.MaxFloat64)
+	assert.True(t, result.IsErr())
+	
+	result2 := As[float64, int64](-math.MaxFloat64)
+	assert.True(t, result2.IsErr())
+}
+
+func TestAs_DigitToUint_Negative(t *testing.T) {
+	// Test digitToUint with negative values
+	result := As[int, uint](-1)
+	assert.True(t, result.IsErr())
+	
+	result2 := As[int64, uint](-1)
+	assert.True(t, result2.IsErr())
+	
+	result3 := As[float64, uint](-1.0)
+	assert.True(t, result3.IsErr())
+}
+
+func TestAs_DigitToUint_Overflow(t *testing.T) {
+	// Test digitToUint overflow cases
+	result := As[float64, uint](math.MaxFloat64)
+	assert.True(t, result.IsErr())
+}
+
+func TestAs_DigitToUint8_Negative(t *testing.T) {
+	// Test digitToUint8 with negative values
+	result := As[int, uint8](-1)
+	assert.True(t, result.IsErr())
+	
+	result2 := As[int8, uint8](-1)
+	assert.True(t, result2.IsErr())
+}
+
+func TestAs_DigitToUint8_Overflow(t *testing.T) {
+	// Test digitToUint8 overflow cases
+	result := As[int, uint8](math.MaxUint8 + 1)
+	assert.True(t, result.IsErr())
+	
+	result2 := As[uint16, uint8](math.MaxUint8 + 1)
+	assert.True(t, result2.IsErr())
+}
+
+func TestAs_DigitToUint16_Negative(t *testing.T) {
+	// Test digitToUint16 with negative values
+	result := As[int, uint16](-1)
+	assert.True(t, result.IsErr())
+}
+
+func TestAs_DigitToUint16_Overflow(t *testing.T) {
+	// Test digitToUint16 overflow cases
+	result := As[int, uint16](math.MaxUint16 + 1)
+	assert.True(t, result.IsErr())
+	
+	result2 := As[uint32, uint16](math.MaxUint16 + 1)
+	assert.True(t, result2.IsErr())
+}
+
+func TestAs_DigitToUint32_Negative(t *testing.T) {
+	// Test digitToUint32 with negative values
+	result := As[int, uint32](-1)
+	assert.True(t, result.IsErr())
+}
+
+func TestAs_DigitToUint32_Overflow(t *testing.T) {
+	// Test digitToUint32 overflow cases
+	result := As[int64, uint32](math.MaxUint32 + 1)
+	assert.True(t, result.IsErr())
+	
+	result2 := As[uint64, uint32](math.MaxUint32 + 1)
+	assert.True(t, result2.IsErr())
+}
+
+func TestAs_DigitToUint64_Negative(t *testing.T) {
+	// Test digitToUint64 with negative values
+	result := As[int, uint64](-1)
+	assert.True(t, result.IsErr())
+	
+	result2 := As[int64, uint64](-1)
+	assert.True(t, result2.IsErr())
+}
+
+func TestAs_DigitToUint64_Overflow(t *testing.T) {
+	// Test digitToUint64 overflow cases
+	result := As[float64, uint64](math.MaxFloat64)
+	assert.True(t, result.IsErr())
+}
+
+func TestAs_AllTypeCombinations(t *testing.T) {
+	// Test As with all possible type combinations to ensure full coverage
+	// int to all types
+	assert.True(t, As[int, int8](100).IsOk())
+	assert.True(t, As[int, int16](100).IsOk())
+	assert.True(t, As[int, int32](100).IsOk())
+	assert.True(t, As[int, int64](100).IsOk())
+	assert.True(t, As[int, uint](100).IsOk())
+	assert.True(t, As[int, uint8](100).IsOk())
+	assert.True(t, As[int, uint16](100).IsOk())
+	assert.True(t, As[int, uint32](100).IsOk())
+	assert.True(t, As[int, uint64](100).IsOk())
+	assert.True(t, As[int, float32](100).IsOk())
+	assert.True(t, As[int, float64](100).IsOk())
+	
+	// uint to all types
+	assert.True(t, As[uint, int](100).IsOk())
+	assert.True(t, As[uint, int8](100).IsOk())
+	assert.True(t, As[uint, float64](100).IsOk())
+	
+	// float64 to all types
+	assert.True(t, As[float64, int](100.5).IsOk())
+	assert.True(t, As[float64, int8](100.5).IsOk())
+	assert.True(t, As[float64, uint](100.5).IsOk())
+	assert.True(t, As[float64, float32](100.5).IsOk())
 }

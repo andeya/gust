@@ -190,3 +190,91 @@ func TestRefSliceValue(t *testing.T) {
 	assert.Equal(t, 2, ret3[1])
 }
 
+func TestRefType_NegativePtrDepth_NotEnoughPointers(t *testing.T) {
+	// Test RefType with negative ptrDepth but not enough pointers
+	typ := reflect.TypeOf(42)
+	result := RefType(typ, -2) // More negative than available pointers
+	assert.Equal(t, typ, result)
+}
+
+func TestRefValue_NegativePtrDepth_NotEnoughPointers(t *testing.T) {
+	// Test RefValue with negative ptrDepth but not enough pointers
+	val := reflect.ValueOf(42)
+	result := RefValue(val, -2) // More negative than available pointers
+	assert.Equal(t, 42, result.Interface())
+}
+
+func TestDerefSliceValue_EmptySlice(t *testing.T) {
+	// Test DerefSliceValue with empty slice (m < 0)
+	emptySlice := []*int{}
+	val := reflect.ValueOf(emptySlice)
+	result := DerefSliceValue(val)
+	assert.Equal(t, reflect.Slice, result.Kind())
+	assert.Equal(t, 0, result.Len())
+}
+
+func TestRefSliceValue_EmptySlice(t *testing.T) {
+	// Test RefSliceValue with empty slice (m < 0)
+	emptySlice := []int{}
+	val := reflect.ValueOf(emptySlice)
+	result := RefSliceValue(val, 1)
+	assert.Equal(t, reflect.Slice, result.Kind())
+	assert.Equal(t, 0, result.Len())
+}
+
+func TestDerefValue_MultiplePointers(t *testing.T) {
+	// Test DerefValue with multiple levels of pointers
+	x := 42
+	ptr := &x
+	ptrPtr := &ptr
+	val := reflect.ValueOf(ptrPtr)
+	result := DerefValue(val)
+	assert.Equal(t, 42, result.Interface())
+}
+
+func TestDerefValue_InterfaceWithPointer(t *testing.T) {
+	// Test DerefValue with interface containing pointer
+	x := 42
+	var iface interface{} = &x
+	val := reflect.ValueOf(iface)
+	result := DerefValue(val)
+	assert.Equal(t, 42, result.Interface())
+}
+
+func TestDerefPtrValue_MultiplePointers(t *testing.T) {
+	// Test DerefPtrValue with multiple levels of pointers
+	x := 42
+	ptr := &x
+	ptrPtr := &ptr
+	val := reflect.ValueOf(ptrPtr)
+	result := DerefPtrValue(val)
+	assert.Equal(t, 42, result.Interface())
+}
+
+func TestRefType_MultipleLevels(t *testing.T) {
+	// Test RefType with multiple positive ptrDepth
+	typ := reflect.TypeOf(42)
+	result := RefType(typ, 3)
+	expected := reflect.PtrTo(reflect.PtrTo(reflect.PtrTo(typ)))
+	assert.Equal(t, expected, result)
+}
+
+func TestRefValue_MultipleLevels(t *testing.T) {
+	// Test RefValue with multiple positive ptrDepth
+	val := reflect.ValueOf(42)
+	result := RefValue(val, 3)
+	assert.Equal(t, reflect.Ptr, result.Kind())
+	assert.Equal(t, 42, result.Elem().Elem().Elem().Interface())
+}
+
+func TestRefSliceValue_MultipleLevels(t *testing.T) {
+	// Test RefSliceValue with multiple positive ptrDepth
+	slice := []int{1, 2}
+	val := reflect.ValueOf(slice)
+	result := RefSliceValue(val, 2)
+	ret := result.Interface().([]**int)
+	assert.Len(t, ret, 2)
+	assert.Equal(t, 1, **ret[0])
+	assert.Equal(t, 2, **ret[1])
+}
+

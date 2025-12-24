@@ -298,6 +298,10 @@ func TestLazyValueNewFunctions(t *testing.T) {
 
 	// Test SetInitFunc on initialized (should not change)
 	lv6 := gust.NewLazyValueWithValue("original")
+	// First call to TryGetValue initializes it
+	assert.Equal(t, gust.Some("original"), lv6.TryGetValue().Ok())
+	assert.True(t, lv6.IsInitialized())
+	// Now SetInitFunc should not change the value since it's already initialized
 	lv6.SetInitFunc(func() gust.Result[string] {
 		return gust.Ok("new")
 	})

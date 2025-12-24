@@ -60,7 +60,9 @@ func parseUint(s string, base int, bitSize int) (uint64, error) {
 			return 0, syntaxError(fnParseUint, s)
 		}
 
-		if d >= byte(base) {
+		// For base > 36, we allow all 62 symbols (0-9, a-z, A-Z), so d can be up to 61
+		// For base <= 36, d must be < base
+		if base <= 36 && d >= byte(base) {
 			return 0, syntaxError(fnParseUint, s)
 		}
 
@@ -134,9 +136,12 @@ func parseInt(s string, base int, bitSize int) (i int64, err error) {
 	// Convert unsigned and check range.
 	var un uint64
 	un, err = parseUint(s, base, bitSize)
-	if err != nil && err.(*strconv.NumError).Err != strconv.ErrRange {
-		err.(*strconv.NumError).Func = fnParseInt
-		err.(*strconv.NumError).Num = s0
+	if err != nil {
+		if nerr, ok := err.(*strconv.NumError); ok && nerr.Err != strconv.ErrRange {
+			nerr.Func = fnParseInt
+			nerr.Num = s0
+			return 0, nerr
+		}
 		return 0, err
 	}
 
@@ -184,7 +189,7 @@ func underscoreOK(s string) bool {
 	// Number proper.
 	for ; i < len(s); i++ {
 		// Digits are always okay.
-		if '0' <= s[i] && s[i] <= '9' || 'a' <= lower(s[i]) && lower(s[i]) <= 'z' {
+		if ('0' <= s[i] && s[i] <= '9') || ('a' <= lower(s[i]) && lower(s[i]) <= 'z') {
 			saw = '0'
 			continue
 		}

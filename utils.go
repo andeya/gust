@@ -69,5 +69,8 @@ func (p panicValue[T]) GoString() string {
 }
 
 func (p panicValue[T]) Error() string {
-	return fmt.Sprintf("%v", p.value)
+	if p.value == nil {
+		return fmt.Sprintf("%v", p.value)
+	}
+	return fmt.Sprintf("%v", *p.value)
 }

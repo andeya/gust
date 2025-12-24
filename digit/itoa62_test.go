@@ -232,3 +232,302 @@ func BenchmarkAppendUintVarlen(b *testing.B) {
 }
 
 var BenchSink int // make sure compiler cannot optimize away benchmarks
+
+func TestFormatBits_Panic(t *testing.T) {
+	// Test panic cases for formatBits
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("formatBits should panic for base < 2")
+		}
+	}()
+	FormatUint(100, 1) // base < 2 should panic
+}
+
+func TestFormatBits_Panic2(t *testing.T) {
+	// Test panic cases for formatBits
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("formatBits should panic for base > 62")
+		}
+	}()
+	FormatUint(100, 63) // base > 62 should panic
+}
+
+func TestFormatBits_SingleDigit(t *testing.T) {
+	// Test formatBits with single digit results (us < 10 in base 10)
+	testCases := []struct {
+		in   uint64
+		base int
+		want string
+	}{
+		{0, 10, "0"},
+		{1, 10, "1"},
+		{2, 10, "2"},
+		{3, 10, "3"},
+		{4, 10, "4"},
+		{5, 10, "5"},
+		{6, 10, "6"},
+		{7, 10, "7"},
+		{8, 10, "8"},
+		{9, 10, "9"},
+	}
+
+	for _, tc := range testCases {
+		got := FormatUint(tc.in, tc.base)
+		if got != tc.want {
+			t.Errorf("FormatUint(%d, %d) = %q, want %q", tc.in, tc.base, got, tc.want)
+		}
+	}
+}
+
+func TestFormatBits_NonPowerOfTwoBase(t *testing.T) {
+	// Test formatBits with bases that are not powers of 2 (general case)
+	testCases := []struct {
+		in   uint64
+		base int
+		want string
+	}{
+		{10, 3, "101"},   // base 3
+		{10, 5, "20"},    // base 5
+		{10, 7, "13"},   // base 7
+		{10, 9, "11"},   // base 9
+		{10, 11, "a"},   // base 11
+		{10, 13, "a"},   // base 13
+		{10, 15, "a"},   // base 15
+		{10, 17, "a"},   // base 17
+		{10, 19, "a"},   // base 19
+		{10, 21, "a"},   // base 21
+		{10, 23, "a"},   // base 23
+		{10, 25, "a"},   // base 25
+		{10, 27, "a"},   // base 27
+		{10, 29, "a"},   // base 29
+		{10, 31, "a"},   // base 31
+		{10, 33, "a"},   // base 33
+		{10, 35, "a"},   // base 35
+		{10, 37, "a"},   // base 37
+		{10, 39, "a"},   // base 39
+		{10, 41, "a"},   // base 41
+		{10, 43, "a"},   // base 43
+		{10, 45, "a"},   // base 45
+		{10, 47, "a"},   // base 47
+		{10, 49, "a"},   // base 49
+		{10, 51, "a"},   // base 51
+		{10, 53, "a"},   // base 53
+		{10, 55, "a"},   // base 55
+		{10, 57, "a"},   // base 57
+		{10, 59, "a"},   // base 59
+		{10, 61, "a"},   // base 61
+	}
+
+	for _, tc := range testCases {
+		got := FormatUint(tc.in, tc.base)
+		if got != tc.want {
+			t.Errorf("FormatUint(%d, %d) = %q, want %q", tc.in, tc.base, got, tc.want)
+		}
+	}
+}
+
+func TestFormatBits_AppendMode(t *testing.T) {
+	// Test formatBits with append_ = true
+	dst := []byte("prefix")
+	result := AppendUint(dst, 123, 10)
+	expected := "prefix123"
+	if string(result) != expected {
+		t.Errorf("AppendUint([]byte(\"prefix\"), 123, 10) = %q, want %q", string(result), expected)
+	}
+
+	dst2 := []byte("test")
+	result2 := AppendInt(dst2, -456, 10)
+	expected2 := "test-456"
+	if string(result2) != expected2 {
+		t.Errorf("AppendInt([]byte(\"test\"), -456, 10) = %q, want %q", string(result2), expected2)
+	}
+}
+
+func TestFormatBits_LargeNumbers(t *testing.T) {
+	// Test formatBits with very large numbers to cover Host32bit branch
+	// This will test the u >= 1e9 loop in Host32bit case
+	largeNum := uint64(1e9 + 1)
+	result := FormatUint(largeNum, 10)
+	expected := "1000000001"
+	if result != expected {
+		t.Errorf("FormatUint(%d, 10) = %q, want %q", largeNum, result, expected)
+	}
+
+	// Test with even larger number
+	veryLargeNum := uint64(1e18)
+	result2 := FormatUint(veryLargeNum, 10)
+	if len(result2) == 0 {
+		t.Error("FormatUint(1e18, 10) should return non-empty string")
+	}
+}
+
+func TestSmall_SingleDigit(t *testing.T) {
+	// Test small function with single digits (i < 10)
+	for i := 0; i < 10; i++ {
+		result := FormatUint(uint64(i), 10)
+		expected := string(rune('0' + i))
+		if result != expected {
+			t.Errorf("FormatUint(%d, 10) = %q, want %q", i, result, expected)
+		}
+	}
+}
+
+func TestFormatBits_Base10_EdgeCases(t *testing.T) {
+	// Test formatBits with base 10 edge cases
+	testCases := []struct {
+		in   uint64
+		want string
+	}{
+		{10, "10"},
+		{99, "99"},
+		{100, "100"},
+		{999, "999"},
+		{1000, "1000"},
+		{9999, "9999"},
+		{10000, "10000"},
+	}
+
+	for _, tc := range testCases {
+		got := FormatUint(tc.in, 10)
+		if got != tc.want {
+			t.Errorf("FormatUint(%d, 10) = %q, want %q", tc.in, got, tc.want)
+		}
+	}
+}
+
+func TestFormatBits_Base10_SingleDigit(t *testing.T) {
+	// Test formatBits with single digit case (us < 10)
+	// This covers the branch where us < 10 after the loop
+	for i := uint64(0); i < 10; i++ {
+		got := FormatUint(i, 10)
+		want := string(rune('0' + i))
+		if got != want {
+			t.Errorf("FormatUint(%d, 10) = %q, want %q", i, got, want)
+		}
+	}
+}
+
+func TestFormatBits_NegativeNumbers(t *testing.T) {
+	// Test formatBits with negative numbers (neg = true)
+	testCases := []struct {
+		in   int64
+		base int
+		want string
+	}{
+		{-1, 10, "-1"},
+		{-10, 10, "-10"},
+		{-100, 10, "-100"},
+		{-123, 10, "-123"},
+		{-1, 2, "-1"},
+		{-10, 16, "-a"},
+		{-255, 16, "-ff"},
+	}
+
+	for _, tc := range testCases {
+		got := FormatInt(tc.in, tc.base)
+		if got != tc.want {
+			t.Errorf("FormatInt(%d, %d) = %q, want %q", tc.in, tc.base, got, tc.want)
+		}
+	}
+}
+
+func TestFormatBits_PowerOfTwoBases(t *testing.T) {
+	// Test formatBits with power of two bases (2, 4, 8, 16, 32)
+	testCases := []struct {
+		in   uint64
+		base int
+		want string
+	}{
+		{15, 2, "1111"},
+		{15, 4, "33"},
+		{15, 8, "17"},
+		{15, 16, "f"},
+		{31, 32, "v"},
+		{255, 16, "ff"},
+		{1023, 32, "vv"},
+	}
+
+	for _, tc := range testCases {
+		got := FormatUint(tc.in, tc.base)
+		if got != tc.want {
+			t.Errorf("FormatUint(%d, %d) = %q, want %q", tc.in, tc.base, got, tc.want)
+		}
+	}
+}
+
+func TestFormatBits_Base10_SingleDigitResult(t *testing.T) {
+	// Test formatBits with base 10 where result is single digit (us < 10)
+	testCases := []struct {
+		in   uint64
+		want string
+	}{
+		{0, "0"},
+		{1, "1"},
+		{2, "2"},
+		{3, "3"},
+		{4, "4"},
+		{5, "5"},
+		{6, "6"},
+		{7, "7"},
+		{8, "8"},
+		{9, "9"},
+	}
+
+	for _, tc := range testCases {
+		got := FormatUint(tc.in, 10)
+		if got != tc.want {
+			t.Errorf("FormatUint(%d, 10) = %q, want %q", tc.in, got, tc.want)
+		}
+	}
+}
+
+func TestFormatBits_Base10_TwoDigitResult(t *testing.T) {
+	// Test formatBits with base 10 where result is two digits (us < 100 && us >= 10)
+	testCases := []struct {
+		in   uint64
+		want string
+	}{
+		{10, "10"},
+		{11, "11"},
+		{99, "99"},
+	}
+
+	for _, tc := range testCases {
+		got := FormatUint(tc.in, 10)
+		if got != tc.want {
+			t.Errorf("FormatUint(%d, 10) = %q, want %q", tc.in, got, tc.want)
+		}
+	}
+}
+
+func TestFormatBits_AppendInt_Negative(t *testing.T) {
+	// Test AppendInt with negative numbers
+	dst := []byte("prefix")
+	result := AppendInt(dst, -123, 10)
+	expected := "prefix-123"
+	if string(result) != expected {
+		t.Errorf("AppendInt([]byte(\"prefix\"), -123, 10) = %q, want %q", string(result), expected)
+	}
+}
+
+func TestFormatBits_AppendUint_AllBases(t *testing.T) {
+	// Test AppendUint with various bases
+	testCases := []struct {
+		dst  []byte
+		in   uint64
+		base int
+		want string
+	}{
+		{[]byte("test"), 255, 16, "testff"},
+		{[]byte(""), 15, 2, "1111"},
+		{[]byte("x"), 31, 32, "xv"},
+	}
+
+	for _, tc := range testCases {
+		got := AppendUint(tc.dst, tc.in, tc.base)
+		if string(got) != tc.want {
+			t.Errorf("AppendUint(%q, %d, %d) = %q, want %q", string(tc.dst), tc.in, tc.base, string(got), tc.want)
+		}
+	}
+}
