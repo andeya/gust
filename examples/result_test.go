@@ -121,20 +121,14 @@ func ExampleResult_fetchUserData() {
 
 	// Using gust.Result for elegant error handling
 	fetchUserData := func(userID int) gust.Result[string] {
-		return ret.AndThen(
-			gust.Ret(getUser(userID)),
-			func(user *User) gust.Result[string] {
-				if user == nil || user.Email == "" {
-					return gust.Err[string]("invalid user")
-				}
-				return ret.AndThen(
-					gust.Ret(getProfile(user.Email)),
-					func(profile *Profile) gust.Result[string] {
-						return gust.Ok(fmt.Sprintf("%s: %s", user.Name, profile.Bio))
-					},
-				)
-			},
-		)
+		return ret.AndThen(gust.Ret(getUser(userID)), func(user *User) gust.Result[string] {
+			if user == nil || user.Email == "" {
+				return gust.Err[string]("invalid user")
+			}
+			return ret.Map(gust.Ret(getProfile(user.Email)), func(profile *Profile) string {
+				return fmt.Sprintf("%s: %s", user.Name, profile.Bio)
+			})
+		})
 	}
 
 	result := fetchUserData(1)

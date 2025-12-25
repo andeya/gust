@@ -66,20 +66,14 @@ import "github.com/andeya/gust"
 import "github.com/andeya/gust/ret"
 
 func fetchUserData(userID int) gust.Result[string] {
-    return ret.AndThen(
-        gust.Ret(db.GetUser(userID)),
-        func(user *User) gust.Result[string] {
-            if user == nil || user.Email == "" {
-                return gust.Err[string]("invalid user")
-            }
-            return ret.AndThen(
-                gust.Ret(api.GetProfile(user.Email)),
-                func(profile *Profile) gust.Result[string] {
-                    return gust.Ok(fmt.Sprintf("%s: %s", user.Name, profile.Bio))
-                },
-            )
-        },
-    )
+    return ret.AndThen(gust.Ret(getUser(userID)), func(user *User) gust.Result[string] {
+        if user == nil || user.Email == "" {
+            return gust.Err[string]("invalid user")
+        }
+        return ret.Map(gust.Ret(getProfile(user.Email)), func(profile *Profile) string {
+            return fmt.Sprintf("%s: %s", user.Name, profile.Bio)
+        })
+    })
 }
 
 // See ExampleResult_fetchUserData in examples/ for a complete runnable example
