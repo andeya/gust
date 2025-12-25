@@ -73,6 +73,7 @@ func (a *ErrBox) Unwrap() error {
 	}
 }
 
+// Is reports whether any error in err's chain matches target.
 func (a *ErrBox) Is(target error) bool {
 	switch t := target.(type) {
 	case *ErrBox:
@@ -92,6 +93,8 @@ func (a *ErrBox) Is(target error) bool {
 	}
 }
 
+// As finds the first error in err's chain that matches target, and if so, sets
+// target to that error value and returns true. Otherwise, it returns false.
 func (a *ErrBox) As(target any) bool {
 	if target == nil {
 		panic("errors: target cannot be nil")

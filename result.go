@@ -446,10 +446,12 @@ func (r Result[T]) AsPtr() *T {
 	return r.inner.AsPtr()
 }
 
+// MarshalJSON implements the json.Marshaler interface.
 func (r Result[T]) MarshalJSON() ([]byte, error) {
 	return r.inner.MarshalJSON()
 }
 
+// UnmarshalJSON implements the json.Unmarshaler interface.
 func (r *Result[T]) UnmarshalJSON(b []byte) error {
 	if r == nil {
 		var t T
@@ -463,6 +465,7 @@ var (
 	_ DoubleEndedIterable[any] = new(Result[any])
 )
 
+// Next returns the next element of the iterator.
 func (r *Result[T]) Next() Option[T] {
 	if r == nil {
 		return None[T]()
@@ -470,11 +473,14 @@ func (r *Result[T]) Next() Option[T] {
 	return r.inner.Next()
 }
 
+// NextBack returns the next element from the back of the iterator.
+//
 //go:inline
 func (r *Result[T]) NextBack() Option[T] {
 	return r.Next()
 }
 
+// Remaining returns the number of remaining elements in the iterator.
 func (r *Result[T]) Remaining() uint {
 	if r == nil {
 		return 0

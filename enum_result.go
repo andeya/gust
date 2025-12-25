@@ -422,6 +422,7 @@ func (r EnumResult[T, E]) AsPtr() *T {
 	return r.t.AsPtr()
 }
 
+// MarshalJSON implements the json.Marshaler interface.
 func (r EnumResult[T, E]) MarshalJSON() ([]byte, error) {
 	if r.IsErr() {
 		return nil, toError(r.safeGetE())
@@ -429,6 +430,7 @@ func (r EnumResult[T, E]) MarshalJSON() ([]byte, error) {
 	return json.Marshal(r.safeGetT())
 }
 
+// UnmarshalJSON implements the json.Unmarshaler interface.
 func (r *EnumResult[T, E]) UnmarshalJSON(b []byte) error {
 	var t T
 	if r == nil {
@@ -459,6 +461,7 @@ var (
 	_ DoubleEndedIterable[any] = new(EnumResult[any, any])
 )
 
+// Next returns the next element of the iterator.
 func (r *EnumResult[T, E]) Next() Option[T] {
 	if r == nil {
 		return None[T]()
@@ -466,11 +469,14 @@ func (r *EnumResult[T, E]) Next() Option[T] {
 	return r.t.Next()
 }
 
+// NextBack returns the next element from the back of the iterator.
+//
 //go:inline
 func (r *EnumResult[T, E]) NextBack() Option[T] {
 	return r.Next()
 }
 
+// Remaining returns the number of remaining elements in the iterator.
 func (r *EnumResult[T, E]) Remaining() uint {
 	if r == nil {
 		return 0

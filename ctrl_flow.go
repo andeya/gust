@@ -193,6 +193,7 @@ func (c CtrlFlow[B, C]) Errable() Errable[B] {
 	return NonErrable[B]()
 }
 
+// ToX converts the `CtrlFlow[B, C]` to `AnyCtrlFlow`.
 func (c CtrlFlow[B, C]) ToX() AnyCtrlFlow {
 	return SigCtrlFlow[any]{
 		CtrlFlow: CtrlFlow[any, any]{
@@ -202,6 +203,7 @@ func (c CtrlFlow[B, C]) ToX() AnyCtrlFlow {
 	}
 }
 
+// ToXBreak converts the break type of `CtrlFlow[B, C]` to `any`.
 func (c CtrlFlow[B, C]) ToXBreak() CtrlFlow[any, C] {
 	return CtrlFlow[any, C]{
 		_break:    c._break.ToX(),
@@ -209,6 +211,7 @@ func (c CtrlFlow[B, C]) ToXBreak() CtrlFlow[any, C] {
 	}
 }
 
+// ToXContinue converts the continue type of `CtrlFlow[B, C]` to `any`.
 func (c CtrlFlow[B, C]) ToXContinue() CtrlFlow[B, any] {
 	return CtrlFlow[B, any]{
 		_break:    c._break,

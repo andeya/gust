@@ -542,6 +542,7 @@ func (o *Option[T]) Replace(some T) (old Option[T]) {
 
 const null = "null"
 
+// MarshalJSON implements the json.Marshaler interface.
 func (o Option[T]) MarshalJSON() ([]byte, error) {
 	if o.IsNone() {
 		return []byte(null), nil
@@ -549,6 +550,7 @@ func (o Option[T]) MarshalJSON() ([]byte, error) {
 	return json.Marshal(o.value)
 }
 
+// UnmarshalJSON implements the json.Unmarshaler interface.
 func (o *Option[T]) UnmarshalJSON(b []byte) error {
 	if o == nil {
 		var v T
@@ -571,6 +573,7 @@ var (
 	_ DoubleEndedIterable[any] = new(Option[any])
 )
 
+// Next returns the next element of the iterator.
 func (o *Option[T]) Next() Option[T] {
 	if o == nil || o.IsNone() {
 		return None[T]()
@@ -580,11 +583,14 @@ func (o *Option[T]) Next() Option[T] {
 	return Some(v)
 }
 
+// NextBack returns the next element from the back of the iterator.
+//
 //go:inline
 func (o *Option[T]) NextBack() Option[T] {
 	return o.Next()
 }
 
+// Remaining returns the number of remaining elements in the iterator.
 func (o *Option[T]) Remaining() uint {
 	if o == nil || o.IsNone() {
 		return 0
