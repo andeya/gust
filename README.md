@@ -21,6 +21,14 @@ Tired of writing `if err != nil` everywhere? Frustrated with nil pointer panics?
 - 🎯 **Cleaner** - Chain operations elegantly
 - 🚀 **More Expressive** - Write what you mean, not boilerplate
 
+### From Imperative to Declarative
+
+gust helps you shift from **imperative** (focusing on *how*) to **declarative** (focusing on *what*) programming:
+
+![Declarative vs Imperative](./doc/declarative_vs_imperative.jpg)
+
+With gust, you describe **what** you want to achieve, not **how** to achieve it step-by-step. This makes your code more readable, maintainable, and less error-prone.
+
 ### Before gust (Traditional Go)
 ```go
 func fetchUserData(userID int) (string, error) {
@@ -367,7 +375,7 @@ Every contribution makes gust better! Please feel free to submit a Pull Request 
 
 ## 📄 License
 
-This project is licensed under the same license as Go itself.
+This project is licensed under the MIT License.
 
 ---
 
