@@ -17,7 +17,8 @@ func TestExamples(t *testing.T) {
 	numbers := []string{"1", "2", "three", "4"}
 	results := iter.FilterMap(
 		iter.RetMap(iter.FromSlice(numbers), strconv.Atoi),
-		gust.Result[int].Ok).
+		gust.Result[int].Ok,
+	).
 		Collect()
 
 	assert.Equal(t, []int{1, 2, 4}, results)
