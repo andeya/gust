@@ -1,6 +1,10 @@
 
 BIN=go
 
+.PHONY: all build test lint coverage
+
+all: build test lint
+
 build:
 	${BIN} build -v ./...
 
@@ -15,7 +19,7 @@ watch-bench:
 	reflex -t 50ms -s -- sh -c 'go test -benchmem -count 3 -bench ./...'
 
 coverage:
-	${BIN} test -v -coverprofile=cover.out -covermode=atomic .
+	${BIN} test -v -coverprofile=cover.out -covermode=atomic ./...
 	${BIN} tool cover -html=cover.out -o cover.html
 
 # tools
