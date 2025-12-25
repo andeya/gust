@@ -29,8 +29,8 @@ func RefSlice[T any](a []T) []*T {
 		return nil
 	}
 	s := make([]*T, len(a))
-	for i, t := range a {
-		s[i] = &t
+	for i := range a {
+		s[i] = &a[i]
 	}
 	return s
 }
@@ -59,6 +59,7 @@ func RefMap[K comparable, V any](a map[K]V) map[K]*V {
 	}
 	s := make(map[K]*V, len(a))
 	for k, v := range a {
+		v := v // create a new variable for each iteration
 		s[k] = &v
 	}
 	return s
