@@ -12,6 +12,8 @@
 
 > 🎯 **零依赖** • 🚀 **生产就绪** • 📚 **文档完善** • ✨ **类型安全**
 
+**语言:** [English](./README.md) | [中文](./README_ZH.md)
+
 ## ✨ 为什么选择 gust？
 
 厌倦了到处写 `if err != nil`？受够了 nil 指针 panic？想要在 Go 中使用 Rust 风格的迭代器链？
@@ -358,6 +360,7 @@ fmt.Println(intSlice) // [1 2 3 4 5]
 
 - 📖 [完整文档](https://pkg.go.dev/github.com/andeya/gust) - 完整的 API 参考
 - 💡 [示例](./examples/) - 按功能组织的综合示例
+- 🌐 [English Documentation](./README.md) - English documentation
 - 🐛 [问题追踪](https://github.com/andeya/gust/issues) - 报告 bug 或请求功能
 - 💬 [讨论](https://github.com/andeya/gust/discussions) - 提问和分享想法
 

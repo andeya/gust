@@ -12,6 +12,8 @@
 
 > 🎯 **Zero dependencies** • 🚀 **Production ready** • 📚 **Well documented** • ✨ **Type-safe**
 
+**Languages:** [English](./README.md) | [中文](./README_ZH.md)
+
 ## ✨ Why gust?
 
 Tired of writing `if err != nil` everywhere? Frustrated with nil pointer panics? Want Rust-like iterator chains in Go?
@@ -356,6 +358,7 @@ fmt.Println(intSlice) // [1 2 3 4 5]
 
 - 📖 [Full Documentation](https://pkg.go.dev/github.com/andeya/gust) - Complete API reference
 - 💡 [Examples](./examples/) - Comprehensive examples organized by feature
+- 🌐 [中文文档](./README_ZH.md) - Chinese documentation
 - 🐛 [Issue Tracker](https://github.com/andeya/gust/issues) - Report bugs or request features
 - 💬 [Discussions](https://github.com/andeya/gust/discussions) - Ask questions and share ideas
 
