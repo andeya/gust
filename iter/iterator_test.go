@@ -573,16 +573,24 @@ func TestIteratorExtConsumerMethods(t *testing.T) {
 	})
 	assert.Equal(t, gust.Some(0), minByKey)
 
-	// Test TryForEach
+	// Test ForEach
 	iter12 := FromSlice([]int{1, 2, 3})
-	result := iter12.TryForEach(func(x int) gust.Result[int] {
+	var forEachResult []int
+	iter12.ForEach(func(x int) {
+		forEachResult = append(forEachResult, x)
+	})
+	assert.Equal(t, []int{1, 2, 3}, forEachResult)
+
+	// Test TryForEach
+	iter13 := FromSlice([]int{1, 2, 3})
+	result := iter13.TryForEach(func(x int) gust.Result[int] {
 		return gust.Ok(x)
 	})
 	assert.True(t, result.IsOk())
 
 	// Test TryReduce
-	iter13 := FromSlice([]int{10, 20, 5})
-	sumResult := iter13.TryReduce(func(x, y int) gust.Result[int] {
+	iter15 := FromSlice([]int{10, 20, 5})
+	sumResult := iter15.TryReduce(func(x, y int) gust.Result[int] {
 		if x+y > 100 {
 			return gust.Err[int](errors.New("overflow"))
 		}
@@ -593,8 +601,8 @@ func TestIteratorExtConsumerMethods(t *testing.T) {
 	assert.Equal(t, 35, sumResult.Unwrap().Unwrap())
 
 	// Test TryFind
-	iter14 := FromSlice([]string{"1", "2", "lol", "NaN", "5"})
-	findResult := iter14.TryFind(func(s string) gust.Result[bool] {
+	iter16 := FromSlice([]string{"1", "2", "lol", "NaN", "5"})
+	findResult := iter16.TryFind(func(s string) gust.Result[bool] {
 		if s == "lol" {
 			return gust.Err[bool](errors.New("invalid"))
 		}
@@ -617,6 +625,148 @@ func TestIteratorExtSkipTake(t *testing.T) {
 	result := taken.Collect()
 
 	assert.Equal(t, []int{3, 4}, result)
+}
+
+func TestForEach(t *testing.T) {
+	// Test basic ForEach functionality
+	iter := FromSlice([]int{1, 2, 3, 4, 5})
+	var result []int
+	iter.ForEach(func(x int) {
+		result = append(result, x)
+	})
+	assert.Equal(t, []int{1, 2, 3, 4, 5}, result)
+
+	// Test ForEach with empty iterator
+	emptyIter := Empty[int]()
+	var emptyResult []int
+	emptyIter.ForEach(func(x int) {
+		emptyResult = append(emptyResult, x)
+	})
+	assert.Nil(t, emptyResult)
+	assert.Len(t, emptyResult, 0)
+
+	// Test ForEach with filtered iterator
+	filteredIter := FromSlice([]int{1, 2, 3, 4, 5}).Filter(func(x int) bool { return x%2 == 0 })
+	var filteredResult []int
+	filteredIter.ForEach(func(x int) {
+		filteredResult = append(filteredResult, x)
+	})
+	assert.Equal(t, []int{2, 4}, filteredResult)
+
+	// Test ForEach with string iterator
+	strIter := FromSlice([]string{"hello", "world", "rust"})
+	var strResult []string
+	strIter.ForEach(func(s string) {
+		strResult = append(strResult, s)
+	})
+	assert.Equal(t, []string{"hello", "world", "rust"}, strResult)
+
+	// Test ForEach with mapped iterator
+	mappedIter := FromSlice([]int{1, 2, 3}).Map(func(x int) int { return x * 2 })
+	var mappedResult []int
+	mappedIter.ForEach(func(x int) {
+		mappedResult = append(mappedResult, x)
+	})
+	assert.Equal(t, []int{2, 4, 6}, mappedResult)
+
+	// Test ForEach consumes the iterator completely
+	consumedIter := FromSlice([]int{1, 2, 3})
+	consumedIter.ForEach(func(x int) {})
+	// After ForEach, iterator should be exhausted
+	assert.Equal(t, gust.None[int](), consumedIter.Next())
+
+	// Test ForEach with chained operations
+	chainedIter := FromSlice([]int{1, 2, 3, 4, 5}).
+		Filter(func(x int) bool { return x > 2 }).
+		Map(func(x int) int { return x * 2 })
+	var chainedResult []int
+	chainedIter.ForEach(func(x int) {
+		chainedResult = append(chainedResult, x)
+	})
+	assert.Equal(t, []int{6, 8, 10}, chainedResult)
+
+	// Test ForEach with Take (partial consumption)
+	takenIter := FromSlice([]int{1, 2, 3, 4, 5}).Take(3)
+	var takenResult []int
+	takenIter.ForEach(func(x int) {
+		takenResult = append(takenResult, x)
+	})
+	assert.Equal(t, []int{1, 2, 3}, takenResult)
+
+	// Test ForEach with Skip
+	skippedIter := FromSlice([]int{1, 2, 3, 4, 5}).Skip(2)
+	var skippedResult []int
+	skippedIter.ForEach(func(x int) {
+		skippedResult = append(skippedResult, x)
+	})
+	assert.Equal(t, []int{3, 4, 5}, skippedResult)
+
+	// Test ForEach with function that modifies external state
+	counter := 0
+	sum := 0
+	FromSlice([]int{10, 20, 30}).ForEach(func(x int) {
+		counter++
+		sum += x
+	})
+	assert.Equal(t, 3, counter)
+	assert.Equal(t, 60, sum)
+
+	// Test ForEach with single element iterator
+	singleIter := FromSlice([]int{42})
+	var singleResult []int
+	singleIter.ForEach(func(x int) {
+		singleResult = append(singleResult, x)
+	})
+	assert.Equal(t, []int{42}, singleResult)
+
+	// Test ForEach with custom iterable
+	customIter := FromIterable(&easyIterable{values: []int{100, 200}, index: 0})
+	var customResult []int
+	customIter.ForEach(func(x int) {
+		customResult = append(customResult, x)
+	})
+	assert.Equal(t, []int{100, 200}, customResult)
+}
+
+// TestForEachImplDirectly tests forEachImpl directly to ensure coverage of fold_reduce.go:86-92
+// This test ensures that the forEachImpl function is properly covered, especially
+// the loop with break condition and the function call path.
+func TestForEachImplDirectly(t *testing.T) {
+	// Test with non-empty iterator to cover the loop body (line 91: f(item.Unwrap()))
+	iter1 := FromSlice([]int{1, 2, 3})
+	var result1 []int
+	iter1.ForEach(func(x int) {
+		result1 = append(result1, x)
+	})
+	assert.Equal(t, []int{1, 2, 3}, result1)
+
+	// Test with empty iterator to cover the break path (line 88-89: if item.IsNone() { break })
+	iter2 := Empty[int]()
+	var result2 []int
+	iter2.ForEach(func(x int) {
+		result2 = append(result2, x)
+	})
+	assert.Nil(t, result2)
+	assert.Len(t, result2, 0)
+
+	// Test with iterator that becomes empty during iteration
+	// This ensures the loop condition (line 87: item := iter.Next()) and break (line 89) are both covered
+	iter3 := FromSlice([]int{42})
+	var result3 []int
+	iter3.ForEach(func(x int) {
+		result3 = append(result3, x)
+	})
+	assert.Equal(t, []int{42}, result3)
+	// After ForEach, iterator should be exhausted
+	assert.Equal(t, gust.None[int](), iter3.Next())
+
+	// Test with multiple elements to ensure the loop iterates correctly
+	iter4 := FromSlice([]int{10, 20, 30, 40, 50})
+	var callCount int
+	iter4.ForEach(func(x int) {
+		callCount++
+	})
+	assert.Equal(t, 5, callCount)
 }
 
 func TestIteratorExtZip(t *testing.T) {

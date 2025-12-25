@@ -403,6 +403,22 @@ func TestCycleSizeHint(t *testing.T) {
 	assert.True(t, upper.IsNone())
 }
 
+// TestCycleSizeHintWithCache tests Cycle SizeHint when cache has elements but not exhausted
+// This covers the branch: if len(c.cache) > 0 { return 0, gust.None[uint]() }
+func TestCycleSizeHintWithCache(t *testing.T) {
+	iter := FromSlice([]int{1, 2, 3}).Cycle()
+	// Call Next() once to populate cache (exhausted is still false)
+	opt := iter.Next()
+	assert.True(t, opt.IsSome())
+	assert.Equal(t, 1, opt.Unwrap())
+
+	// Now call SizeHint() - cache has elements but exhausted is false
+	// This should trigger the len(c.cache) > 0 branch
+	lower, upper := iter.SizeHint()
+	assert.Equal(t, uint(0), lower)
+	assert.True(t, upper.IsNone(), "SizeHint should return None when cache has elements")
+}
+
 // TestNextChunkZero tests NextChunk with zero size
 func TestNextChunkZero(t *testing.T) {
 	iter := FromSlice([]int{1, 2, 3})
