@@ -200,6 +200,68 @@ func TestResult_And(t *testing.T) {
 	}
 }
 
+func TestResult_And2(t *testing.T) {
+	// Test with Ok result and Ok value
+	{
+		x := gust.Ok(2)
+		result := x.And2(3, nil)
+		assert.True(t, result.IsOk())
+		assert.Equal(t, 3, result.Unwrap())
+	}
+	// Test with Ok result and Err value
+	{
+		x := gust.Ok(2)
+		result := x.And2(3, errors.New("late error"))
+		assert.True(t, result.IsErr())
+		assert.Equal(t, "late error", result.Err().Error())
+	}
+	// Test with Err result (should return original error)
+	{
+		x := gust.Err[int]("early error")
+		result := x.And2(3, nil)
+		assert.True(t, result.IsErr())
+		assert.Equal(t, "early error", result.Err().Error())
+	}
+	// Test with Err result and Err value (should return original error)
+	{
+		x := gust.Err[int]("early error")
+		result := x.And2(3, errors.New("late error"))
+		assert.True(t, result.IsErr())
+		assert.Equal(t, "early error", result.Err().Error())
+	}
+}
+
+func TestResult_XAnd2(t *testing.T) {
+	// Test with Ok result and Ok value
+	{
+		x := gust.Ok(2)
+		result := x.XAnd2("foo", nil)
+		assert.True(t, result.IsOk())
+		assert.Equal(t, "foo", result.Unwrap())
+	}
+	// Test with Ok result and Err value
+	{
+		x := gust.Ok(2)
+		result := x.XAnd2("foo", errors.New("late error"))
+		assert.True(t, result.IsErr())
+		assert.Equal(t, "late error", result.Err().Error())
+	}
+	// Test with Err result (should return original error)
+	{
+		x := gust.Err[int]("early error")
+		result := x.XAnd2("foo", nil)
+		assert.True(t, result.IsErr())
+		assert.Equal(t, "early error", result.Err().Error())
+	}
+	// Test with Err result and Err value (should return original error)
+	{
+		x := gust.Err[int]("early error")
+		result := x.XAnd2("foo", errors.New("late error"))
+		assert.True(t, result.IsErr())
+		assert.Equal(t, "early error", result.Err().Error())
+	}
+}
+
 func ExampleResult_AndThen() {
 	var divide = func(i, j float32) gust.Result[float32] {
 		if j == 0 {
@@ -854,4 +916,156 @@ func TestResult_XAndThen_OkPath(t *testing.T) {
 	})
 	assert.True(t, result2.IsOk())
 	assert.Equal(t, 84, result2.Unwrap())
+}
+
+func TestResult_AndThen2(t *testing.T) {
+	// Test with Ok result and successful operation
+	{
+		x := gust.Ok(2)
+		result := x.AndThen2(func(i int) (int, error) {
+			return i * 2, nil
+		})
+		assert.True(t, result.IsOk())
+		assert.Equal(t, 4, result.Unwrap())
+	}
+	// Test with Ok result and error operation
+	{
+		x := gust.Ok(2)
+		result := x.AndThen2(func(i int) (int, error) {
+			return 0, errors.New("operation error")
+		})
+		assert.True(t, result.IsErr())
+		assert.Equal(t, "operation error", result.Err().Error())
+	}
+	// Test with Err result (should return original error)
+	{
+		x := gust.Err[int]("early error")
+		result := x.AndThen2(func(i int) (int, error) {
+			return i * 2, nil
+		})
+		assert.True(t, result.IsErr())
+		assert.Equal(t, "early error", result.Err().Error())
+	}
+}
+
+func TestResult_XAndThen2(t *testing.T) {
+	// Test with Ok result and successful operation
+	{
+		x := gust.Ok(2)
+		result := x.XAndThen2(func(i int) (any, error) {
+			return i * 2, nil
+		})
+		assert.True(t, result.IsOk())
+		assert.Equal(t, 4, result.Unwrap())
+	}
+	// Test with Ok result and error operation
+	{
+		x := gust.Ok(2)
+		result := x.XAndThen2(func(i int) (any, error) {
+			return nil, errors.New("operation error")
+		})
+		assert.True(t, result.IsErr())
+		assert.Equal(t, "operation error", result.Err().Error())
+	}
+	// Test with Err result (should return original error)
+	{
+		x := gust.Err[int]("early error")
+		result := x.XAndThen2(func(i int) (any, error) {
+			return i * 2, nil
+		})
+		assert.True(t, result.IsErr())
+		assert.Equal(t, "early error", result.Err().Error())
+	}
+}
+
+func TestResult_Or2(t *testing.T) {
+	// Test with Ok result (should return original Ok)
+	{
+		x := gust.Ok(2)
+		result := x.Or2(3, nil)
+		assert.True(t, result.IsOk())
+		assert.Equal(t, 2, result.Unwrap())
+	}
+	// Test with Ok result and Err value (should return original Ok)
+	{
+		x := gust.Ok(2)
+		result := x.Or2(3, errors.New("late error"))
+		assert.True(t, result.IsOk())
+		assert.Equal(t, 2, result.Unwrap())
+	}
+	// Test with Err result and Ok value
+	{
+		x := gust.Err[int]("early error")
+		result := x.Or2(3, nil)
+		assert.True(t, result.IsOk())
+		assert.Equal(t, 3, result.Unwrap())
+	}
+	// Test with Err result and Err value
+	{
+		x := gust.Err[int]("early error")
+		result := x.Or2(3, errors.New("late error"))
+		assert.True(t, result.IsErr())
+		assert.Equal(t, "late error", result.Err().Error())
+	}
+}
+
+func TestResult_OrElse2(t *testing.T) {
+	// Test with Ok result (should return original Ok)
+	{
+		x := gust.Ok(2)
+		result := x.OrElse2(func(err error) (int, error) {
+			return 3, nil
+		})
+		assert.True(t, result.IsOk())
+		assert.Equal(t, 2, result.Unwrap())
+	}
+	// Test with Err result and successful operation
+	{
+		x := gust.Err[int]("early error")
+		result := x.OrElse2(func(err error) (int, error) {
+			return 3, nil
+		})
+		assert.True(t, result.IsOk())
+		assert.Equal(t, 3, result.Unwrap())
+	}
+	// Test with Err result and error operation
+	{
+		x := gust.Err[int]("early error")
+		result := x.OrElse2(func(err error) (int, error) {
+			return 0, errors.New("late error")
+		})
+		assert.True(t, result.IsErr())
+		assert.Equal(t, "late error", result.Err().Error())
+	}
+}
+
+func TestResult_Flatten(t *testing.T) {
+	// Test with Ok result and nil error (should return original Ok)
+	{
+		r := gust.Ok(42)
+		result := r.Flatten(nil)
+		assert.True(t, result.IsOk())
+		assert.Equal(t, 42, result.Unwrap())
+	}
+	// Test with Ok result and error (should return error)
+	{
+		r := gust.Ok(42)
+		result := r.Flatten(errors.New("test error"))
+		assert.True(t, result.IsErr())
+		assert.Equal(t, "test error", result.Err().Error())
+	}
+	// Test with Err result and nil error (should return original Err)
+	{
+		r := gust.Err[int]("original error")
+		result := r.Flatten(nil)
+		assert.True(t, result.IsErr())
+		assert.Equal(t, "original error", result.Err().Error())
+	}
+	// Test with Err result and error (should return the provided error)
+	{
+		r := gust.Err[int]("original error")
+		result := r.Flatten(errors.New("new error"))
+		assert.True(t, result.IsErr())
+		assert.Equal(t, "new error", result.Err().Error())
+	}
 }

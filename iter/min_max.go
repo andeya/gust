@@ -25,6 +25,8 @@ import (
 //	var b = []int{}
 //	assert.Equal(t, gust.Some(3), Max(FromSlice(a)))
 //	assert.Equal(t, gust.None[int](), Max(FromSlice(b)))
+//
+//go:inline
 func Max[T gust.Ord](iter Iterator[T]) gust.Option[T] {
 	return maxByImpl(iter, func(a, b T) int {
 		if a < b {
@@ -58,6 +60,8 @@ func Max[T gust.Ord](iter Iterator[T]) gust.Option[T] {
 //	var b = []int{}
 //	assert.Equal(t, gust.Some(1), Min(FromSlice(a)))
 //	assert.Equal(t, gust.None[int](), Min(FromSlice(b)))
+//
+//go:inline
 func Min[T gust.Ord](iter Iterator[T]) gust.Option[T] {
 	return minImpl(iter.iterable)
 }

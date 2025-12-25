@@ -465,6 +465,7 @@ func (it Iterator[T]) Partition(f func(T) bool) (truePart []T, falsePart []T) {
 //	assert.Equal(t, gust.Some(uint(1)), iter.Position(func(x int) bool { return x == 2 }))
 //
 //go:inline
+//go:inline
 func (it Iterator[T]) Position(predicate func(T) bool) gust.Option[uint] {
 	return positionImpl(it.iterable, predicate)
 }

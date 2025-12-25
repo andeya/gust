@@ -16,6 +16,8 @@ import (
 //	assert.Equal(t, gust.Some(2), iter.Next())
 //	assert.Equal(t, gust.Some(3), iter.Next())
 //	assert.Equal(t, gust.None[int](), iter.Next())
+//
+//go:inline
 func FromIterable[T any](data gust.Iterable[T]) Iterator[T] {
 	switch iter := data.(type) {
 	case Iterator[T]:
@@ -55,6 +57,8 @@ func (iter iterableWrapper[T]) SizeHint() (uint, gust.Option[uint]) {
 //	assert.Equal(t, gust.Some(1), deIter.Next())
 //	assert.Equal(t, gust.Some(6), deIter.NextBack())
 //	assert.Equal(t, gust.Some(5), deIter.NextBack())
+//
+//go:inline
 func FromSlice[T any](slice []T) Iterator[T] {
 	return Iterator[T]{iterable: &sliceIterable[T]{slice: slice, front: 0, back: len(slice)}}
 }
@@ -102,6 +106,8 @@ func (s *sliceIterable[T]) NextBack() gust.Option[T] {
 //	assert.Equal(t, gust.Some(2), iter.Next())
 //	assert.Equal(t, gust.Some(3), iter.Next())
 //	assert.Equal(t, gust.None[int](), iter.Next())
+//
+//go:inline
 func FromElements[T any](elems ...T) Iterator[T] {
 	return FromSlice(elems)
 }
@@ -119,6 +125,8 @@ func FromElements[T any](elems ...T) Iterator[T] {
 //	assert.Equal(t, gust.Some(3), iter.Next())
 //	assert.Equal(t, gust.Some(4), iter.Next())
 //	assert.Equal(t, gust.None[int](), iter.Next())
+//
+//go:inline
 func FromRange[T gust.Integer](start T, end T) Iterator[T] {
 	return Iterator[T]{iterable: &rangeIterable[T]{start: start, end: end, current: start}}
 }
@@ -181,6 +189,10 @@ func (f *funcIterable[T]) SizeHint() (uint, gust.Option[uint]) {
 }
 
 // Once creates an iterator that yields a single value.
+//
+// # Examples
+//
+// Once creates an iterator that yields a value exactly once.
 //
 // # Examples
 //

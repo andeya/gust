@@ -26,6 +26,8 @@ import (
 //	var b = []float64{}
 //	var sumFloat = Sum(FromSlice(b))
 //	assert.Equal(t, -0.0, sumFloat)
+//
+//go:inline
 func Sum[T gust.Digit](iter Iterator[T]) T {
 	var zero T
 	return Fold(iter, zero, func(acc T, x T) T { return acc + x })

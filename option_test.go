@@ -121,6 +121,111 @@ func TestBoolAssertOpt(t *testing.T) {
 	assert.True(t, opt3.IsNone())
 }
 
+func TestRetOpt(t *testing.T) {
+	// Test with err == nil, should return Some(value)
+	opt1 := gust.RetOpt(42, nil)
+	assert.True(t, opt1.IsSome())
+	assert.Equal(t, 42, opt1.Unwrap())
+
+	// Test with err != nil, should return None
+	err := fmt.Errorf("test error")
+	opt2 := gust.RetOpt(42, err)
+	assert.True(t, opt2.IsNone())
+
+	// Test with string value and err == nil
+	opt3 := gust.RetOpt("hello", nil)
+	assert.True(t, opt3.IsSome())
+	assert.Equal(t, "hello", opt3.Unwrap())
+
+	// Test with string value and err != nil
+	opt4 := gust.RetOpt("hello", err)
+	assert.True(t, opt4.IsNone())
+
+	// Test with zero value and err == nil
+	opt5 := gust.RetOpt(0, nil)
+	assert.True(t, opt5.IsSome())
+	assert.Equal(t, 0, opt5.Unwrap())
+
+	// Test with zero value and err != nil
+	opt6 := gust.RetOpt(0, err)
+	assert.True(t, opt6.IsNone())
+}
+
+func TestRetAnyOpt(t *testing.T) {
+	err := fmt.Errorf("test error")
+
+	// Test with err == nil and value != nil, should return Some(value)
+	opt1 := gust.RetAnyOpt[int](42, nil)
+	assert.True(t, opt1.IsSome())
+	assert.Equal(t, 42, opt1.Unwrap())
+
+	// Test with err != nil, should return None (even if value != nil)
+	opt2 := gust.RetAnyOpt[int](42, err)
+	assert.True(t, opt2.IsNone())
+
+	// Test with string value and err == nil
+	opt3 := gust.RetAnyOpt[string]("hello", nil)
+	assert.True(t, opt3.IsSome())
+	assert.Equal(t, "hello", opt3.Unwrap())
+
+	// Test with string value and err != nil
+	opt4 := gust.RetAnyOpt[string]("hello", err)
+	assert.True(t, opt4.IsNone())
+
+	// Test with different types - float64 and err == nil
+	opt5 := gust.RetAnyOpt[float64](3.14, nil)
+	assert.True(t, opt5.IsSome())
+	assert.Equal(t, 3.14, opt5.Unwrap())
+
+	// Test with different types - float64 and err != nil
+	opt6 := gust.RetAnyOpt[float64](3.14, err)
+	assert.True(t, opt6.IsNone())
+
+	// Test with nil value and err == nil, should return None (value == nil)
+	opt7 := gust.RetAnyOpt[*int](nil, nil)
+	assert.True(t, opt7.IsNone())
+
+	// Test with nil value and err != nil, should return None (both conditions)
+	opt8 := gust.RetAnyOpt[*int](nil, err)
+	assert.True(t, opt8.IsNone())
+
+	// Test with nil string and err == nil
+	opt9 := gust.RetAnyOpt[*string](nil, nil)
+	assert.True(t, opt9.IsNone())
+
+	// Test with nil string and err != nil
+	opt10 := gust.RetAnyOpt[*string](nil, err)
+	assert.True(t, opt10.IsNone())
+
+	// Test with struct value and err == nil
+	type TestStruct struct {
+		X int
+		Y string
+	}
+	testStruct := TestStruct{X: 1, Y: "test"}
+	opt11 := gust.RetAnyOpt[TestStruct](testStruct, nil)
+	assert.True(t, opt11.IsSome())
+	assert.Equal(t, testStruct, opt11.Unwrap())
+
+	// Test with struct value and err != nil
+	opt12 := gust.RetAnyOpt[TestStruct](testStruct, err)
+	assert.True(t, opt12.IsNone())
+
+	// Test with nil struct pointer and err == nil
+	opt13 := gust.RetAnyOpt[*TestStruct](nil, nil)
+	assert.True(t, opt13.IsNone())
+
+	// Test with zero value (non-nil) and err == nil
+	opt14 := gust.RetAnyOpt[int](0, nil)
+	assert.True(t, opt14.IsSome())
+	assert.Equal(t, 0, opt14.Unwrap())
+
+	// Test with empty string (non-nil) and err == nil
+	opt15 := gust.RetAnyOpt[string]("", nil)
+	assert.True(t, opt15.IsSome())
+	assert.Equal(t, "", opt15.Unwrap())
+}
+
 func TestZeroOpt(t *testing.T) {
 	// Test with non-zero value
 	opt1 := gust.ZeroOpt(42)

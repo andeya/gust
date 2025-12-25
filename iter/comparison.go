@@ -12,6 +12,8 @@ import (
 //	assert.Equal(t, gust.Less(), Cmp(FromSlice([]int{1}), FromSlice([]int{1})))
 //	assert.Equal(t, gust.Less(), Cmp(FromSlice([]int{1}), FromSlice([]int{1, 2})))
 //	assert.Equal(t, gust.Greater(), Cmp(FromSlice([]int{1, 2}), FromSlice([]int{1})))
+//
+//go:inline
 func Cmp[T gust.Ord](a Iterator[T], b Iterator[T]) gust.Ordering {
 	return CmpBy(a, b, func(x, y T) int {
 		if x < y {
@@ -151,6 +153,8 @@ func PartialCmpBy[T any, U any](a Iterator[T], b Iterator[U], partialCmp func(T,
 //
 //	assert.True(t, Eq(FromSlice([]int{1}), FromSlice([]int{1})))
 //	assert.False(t, Eq(FromSlice([]int{1}), FromSlice([]int{1, 2})))
+//
+//go:inline
 func Eq[T comparable](a Iterator[T], b Iterator[T]) bool {
 	return EqBy(a, b, func(x, y T) bool { return x == y })
 }
@@ -188,6 +192,8 @@ func EqBy[T any, U any](a Iterator[T], b Iterator[U], eq func(T, U) bool) bool {
 //
 //	assert.False(t, Ne(FromSlice([]int{1}), FromSlice([]int{1})))
 //	assert.True(t, Ne(FromSlice([]int{1}), FromSlice([]int{1, 2})))
+//
+//go:inline
 func Ne[T comparable](a Iterator[T], b Iterator[T]) bool {
 	return !Eq(a, b)
 }

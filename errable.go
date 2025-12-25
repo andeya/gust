@@ -1,3 +1,5 @@
+// Package gust provides Rust-inspired error handling, optional values, and iteration utilities for Go.
+// This file contains the Errable type for error handling.
 package gust
 
 import (
@@ -11,6 +13,8 @@ type Errable[E any] struct {
 }
 
 // NonErrable returns no error object.
+//
+//go:inline
 func NonErrable[E any]() Errable[E] {
 	return Errable[E]{}
 }
@@ -122,14 +126,22 @@ func TryThrow[E any](errVal E) {
 	ToErrable(errVal).TryThrow()
 }
 
+// IsErr returns true if the Errable contains an error.
+//
+//go:inline
 func (e Errable[E]) IsErr() bool {
 	return e.errVal != nil
 }
 
+// IsOk returns true if the Errable does not contain an error.
+//
+//go:inline
 func (e Errable[E]) IsOk() bool {
 	return e.errVal == nil
 }
 
+// ToError converts the Errable to a standard Go error.
+// Returns nil if IsOk() is true.
 func (e Errable[E]) ToError() error {
 	if e.IsOk() {
 		return nil
@@ -137,10 +149,17 @@ func (e Errable[E]) ToError() error {
 	return toError(e.UnwrapErr())
 }
 
+// UnwrapErr returns the contained error value.
+// Panics if IsOk() is true.
+//
+//go:inline
 func (e Errable[E]) UnwrapErr() E {
 	return *e.errVal
 }
 
+// UnwrapErrOr returns the contained error value or a provided default.
+//
+//go:inline
 func (e Errable[E]) UnwrapErrOr(def E) E {
 	if e.IsErr() {
 		return e.UnwrapErr()
@@ -148,6 +167,7 @@ func (e Errable[E]) UnwrapErrOr(def E) E {
 	return def
 }
 
+// EnumResult converts from Errable[E] to EnumResult[Void, E].
 func (e Errable[E]) EnumResult() EnumResult[Void, E] {
 	if e.IsErr() {
 		return EnumErr[Void, E](e.UnwrapErr())
@@ -155,6 +175,7 @@ func (e Errable[E]) EnumResult() EnumResult[Void, E] {
 	return EnumOk[Void, E](nil)
 }
 
+// Result converts from Errable[E] to Result[Void].
 func (e Errable[E]) Result() Result[Void] {
 	if e.IsErr() {
 		return Err[Void](e.UnwrapErr())
@@ -162,6 +183,7 @@ func (e Errable[E]) Result() Result[Void] {
 	return Ok[Void](nil)
 }
 
+// Option converts from Errable[E] to Option[E].
 func (e Errable[E]) Option() Option[E] {
 	if e.IsErr() {
 		return Some[E](e.UnwrapErr())
@@ -177,6 +199,7 @@ func (e Errable[E]) CtrlFlow() CtrlFlow[E, Void] {
 	return Continue[E, Void](nil)
 }
 
+// InspectErr calls the provided closure with a reference to the contained error (if error).
 func (e Errable[E]) InspectErr(f func(err E)) Errable[E] {
 	if e.IsErr() {
 		f(e.UnwrapErr())
@@ -184,6 +207,7 @@ func (e Errable[E]) InspectErr(f func(err E)) Errable[E] {
 	return e
 }
 
+// Inspect calls the provided closure if the Errable is Ok.
 func (e Errable[E]) Inspect(f func()) Errable[E] {
 	if e.IsOk() {
 		f()

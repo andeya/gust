@@ -15,10 +15,9 @@ func ExampleResult() {
 	numbers := []string{"1", "2", "three", "4", "five"}
 
 	results := iter.FilterMap(
-		iter.Map(iter.FromSlice(numbers), func(s string) gust.Result[int] {
-			return gust.Ret(strconv.Atoi(s))
-		}),
-		gust.Result[int].Ok).
+		iter.RetMap(iter.FromSlice(numbers), strconv.Atoi),
+		gust.Result[int].Ok,
+	).
 		Collect()
 
 	fmt.Println("Parsed numbers:", results)
@@ -48,13 +47,9 @@ func ExampleResult_AndThen() {
 
 // ExampleAndThen demonstrates elegant error handling patterns.
 func ExampleAndThen() {
-	parseInt := func(s string) gust.Result[int] {
-		return gust.Ret(strconv.Atoi(s))
-	}
-
 	// Handle multiple operations with automatic error propagation
 	result := ret.AndThen(
-		parseInt("42"),
+		gust.Ret(strconv.Atoi("42")),
 		func(n int) gust.Result[string] {
 			return gust.Ok(fmt.Sprintf("Number: %d", n))
 		},

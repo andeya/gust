@@ -8,6 +8,8 @@ import (
 )
 
 // Ret wraps a result.
+//
+//go:inline
 func Ret[T any](some T, err error) Result[T] {
 	if err != nil {
 		return Err[T](err)
@@ -16,11 +18,15 @@ func Ret[T any](some T, err error) Result[T] {
 }
 
 // Ok wraps a successful result.
+//
+//go:inline
 func Ok[T any](ok T) Result[T] {
 	return Result[T]{inner: EnumOk[T, error](ok)}
 }
 
 // Err wraps a failure result.
+//
+//go:inline
 func Err[T any](err any) Result[T] {
 	return Result[T]{inner: EnumErr[T, error](toError(err))}
 }
@@ -60,11 +66,15 @@ func (r *Result[T]) IsValid() bool {
 }
 
 // IsErr returns true if the result is error.
+//
+//go:inline
 func (r Result[T]) IsErr() bool {
 	return r.inner.IsErr()
 }
 
 // IsOk returns true if the result is Ok.
+//
+//go:inline
 func (r Result[T]) IsOk() bool {
 	return !r.IsErr()
 }
@@ -80,11 +90,15 @@ func (r Result[T]) Split() (T, error) {
 }
 
 // EnumResult returns the inner EnumResult[T, error].
+//
+//go:inline
 func (r Result[T]) EnumResult() EnumResult[T, error] {
 	return r.inner
 }
 
 // Errable converts from `Result[T]` to `Errable[error]`.
+//
+//go:inline
 func (r Result[T]) Errable() Errable[error] {
 	if r.IsErr() {
 		return ToErrable[error](r.inner.safeGetE())
@@ -136,6 +150,8 @@ func (r Result[T]) ErrVal() any {
 }
 
 // ToX converts from `Result[T]` to Result[any].
+//
+//go:inline
 func (r Result[T]) ToX() Result[any] {
 	return Result[any]{inner: r.inner.ToXOk()}
 }
@@ -262,20 +278,44 @@ func (r Result[T]) UnwrapErr() error {
 	panic(ToErrBox(fmt.Sprintf("called `Result.UnwrapErr()` on an `ok` value: %v", r.inner.safeGetT())))
 }
 
-// And returns res if the result is Ok, otherwise returns the error of self.
-func (r Result[T]) And(res Result[T]) Result[T] {
+// And returns `r` if `r` is `Err`, otherwise returns `r2`.
+//
+//go:inline
+func (r Result[T]) And(r2 Result[T]) Result[T] {
 	if r.IsErr() {
 		return r
 	}
-	return res
+	return r2
+}
+
+// And2 returns `r` if `r` is `Err`, otherwise returns `Ret(v2, err2)`.
+//
+//go:inline
+func (r Result[T]) And2(v2 T, err2 error) Result[T] {
+	if r.IsErr() {
+		return r
+	}
+	return Ret(v2, err2)
 }
 
 // XAnd returns res if the result is Ok, otherwise returns the error of self.
+//
+//go:inline
 func (r Result[T]) XAnd(res Result[any]) Result[any] {
 	if r.IsErr() {
 		return Err[any](r.inner.safeGetE())
 	}
 	return res
+}
+
+// XAnd2 returns `r` if `r` is `Err`, otherwise returns `Ret(v2, err2)`.
+//
+//go:inline
+func (r Result[T]) XAnd2(v2 any, err2 error) Result[any] {
+	if r.IsErr() {
+		return Err[any](r.Err())
+	}
+	return Ret[any](v2, err2)
 }
 
 // AndThen calls op if the result is Ok, otherwise returns the error of self.
@@ -287,6 +327,15 @@ func (r Result[T]) AndThen(op func(T) Result[T]) Result[T] {
 	return op(r.inner.safeGetT())
 }
 
+// AndThen2 calls op if the result is Ok, otherwise returns the error of self.
+// This function can be used for control flow based on Result values.
+func (r Result[T]) AndThen2(op func(T) (T, error)) Result[T] {
+	if r.IsErr() {
+		return r
+	}
+	return Ret[T](op(r.inner.safeGetT()))
+}
+
 // XAndThen calls op if the result is Ok, otherwise returns the error of self.
 // This function can be used for control flow based on Result values.
 func (r Result[T]) XAndThen(op func(T) Result[any]) Result[any] {
@@ -296,11 +345,32 @@ func (r Result[T]) XAndThen(op func(T) Result[any]) Result[any] {
 	return op(r.inner.safeGetT())
 }
 
-// Or returns res if the result is Err, otherwise returns the Ok value of r.
-// Arguments passed to or are eagerly evaluated; if you are passing the result of a function call, it is recommended to use OrElse, which is lazily evaluated.
-func (r Result[T]) Or(res Result[T]) Result[T] {
+// XAndThen2 calls op if the result is Ok, otherwise returns the error of self.
+// This function can be used for control flow based on Result values.
+func (r Result[T]) XAndThen2(op func(T) (any, error)) Result[any] {
 	if r.IsErr() {
-		return res
+		return Err[any](r.Err())
+	}
+	return Ret[any](op(r.inner.safeGetT()))
+}
+
+// Or returns `r2` if `r` is `Err`, otherwise returns `r`.
+// Arguments passed to or are eagerly evaluated; if you are passing the result of a function call, it is recommended to use OrElse, which is lazily evaluated.
+//
+//go:inline
+func (r Result[T]) Or(r2 Result[T]) Result[T] {
+	if r.IsErr() {
+		return r2
+	}
+	return r
+}
+
+// Or2 returns `Ret(v2, err2)` if `r` is `Err`, otherwise returns `r`.
+//
+//go:inline
+func (r Result[T]) Or2(v2 T, err2 error) Result[T] {
+	if r.IsErr() {
+		return Ret[T](v2, err2)
 	}
 	return r
 }
@@ -310,6 +380,15 @@ func (r Result[T]) Or(res Result[T]) Result[T] {
 func (r Result[T]) OrElse(op func(error) Result[T]) Result[T] {
 	if r.IsErr() {
 		return op(r.inner.safeGetE())
+	}
+	return r
+}
+
+// OrElse2 calls op if the result is Err, otherwise returns the Ok value of self.
+// This function can be used for control flow based on result values.
+func (r Result[T]) OrElse2(op func(error) (T, error)) Result[T] {
+	if r.IsErr() {
+		return Ret[T](op(r.inner.safeGetE()))
 	}
 	return r
 }
@@ -333,7 +412,36 @@ func (r Result[T]) ContainsErr(err any) bool {
 	return errors.Is(r.inner.safeGetE(), toError(err))
 }
 
+// Flatten converts from `(gust.Result[T], error)` to gust.Result[T].
+//
+// # Examples
+//
+//	var r1 = gust.Ok(1)
+//	var err1 = nil
+//	var result1 = r1.Flatten(err1)
+//	assert.Equal(t, gust.Ok[int](1), result1)
+//
+//	var r2 = gust.Ok(1)
+//	var err2 = errors.New("error")
+//	var result2 = r2.Flatten(err2)
+//	assert.Equal(t, "error", result2.Err().Error())
+//
+// var r3 = gust.Err(errors.New("error"))
+// var err3 = nil
+// var result3 = r3.Flatten(err3)
+// assert.Equal(t, "error", result3.Err().Error())
+//
+//go:inline
+func (r Result[T]) Flatten(err error) Result[T] {
+	if err != nil {
+		return Err[T](err)
+	}
+	return r
+}
+
 // AsPtr returns its pointer or nil.
+//
+//go:inline
 func (r Result[T]) AsPtr() *T {
 	return r.inner.AsPtr()
 }

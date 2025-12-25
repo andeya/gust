@@ -102,10 +102,7 @@ func ExampleFindMap() {
 
 	result := iter.FromSlice(numbers).
 		XFilterMap(func(s string) gust.Option[any] {
-			if v, err := strconv.Atoi(s); err == nil {
-				return gust.Some[any](v)
-			}
-			return gust.None[any]()
+			return gust.RetAnyOpt[int](strconv.Atoi(s))
 		}).
 		Take(1).
 		Collect()

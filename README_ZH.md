@@ -232,9 +232,7 @@ import "strconv"
 numbers := []string{"1", "2", "three", "4", "five"}
 
 results := iter.FilterMap(
-    iter.Map(iter.FromSlice(numbers), func(s string) gust.Result[int] {
-        return gust.Ret(strconv.Atoi(s))
-    }),
+    iter.RetMap(iter.FromSlice(numbers), strconv.Atoi),
     gust.Result[int].Ok).
     Collect()
 
@@ -249,9 +247,7 @@ fmt.Println("Parsed numbers:", results)
 input := []string{"10", "20", "invalid", "30", "0", "40"}
 
 results := iter.FilterMap(
-    iter.Map(iter.FromSlice(input), func(s string) gust.Result[int] {
-        return gust.Ret(strconv.Atoi(s))
-    }),
+    iter.RetMap(iter.FromSlice(input), strconv.Atoi),
     gust.Result[int].Ok).
     Filter(func(x int) bool { return x > 0 }).
     Map(func(x int) int { return x * 2 }).

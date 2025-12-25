@@ -14,9 +14,7 @@ func Example_realWorld() {
 	input := []string{"10", "20", "invalid", "30", "0", "40"}
 
 	results := iter.FilterMap(
-		iter.Map(iter.FromSlice(input), func(s string) gust.Result[int] {
-			return gust.Ret(strconv.Atoi(s))
-		}),
+		iter.RetMap(iter.FromSlice(input), strconv.Atoi),
 		gust.Result[int].Ok).
 		Filter(func(x int) bool { return x > 0 }).
 		Map(func(x int) int { return x * 2 }).
@@ -35,9 +33,7 @@ func Example_dataProcessing() {
 
 	// Parse strings to integers, filter out errors, validate, and transform
 	results := iter.FilterMap(
-		iter.Map(iter.FromSlice(input), func(s string) gust.Result[int] {
-			return gust.Ret(strconv.Atoi(s))
-		}),
+		iter.RetMap(iter.FromSlice(input), strconv.Atoi),
 		gust.Result[int].Ok).
 		Filter(func(x int) bool { return x > 0 }).
 		Map(func(x int) int { return x * x }).
@@ -52,9 +48,7 @@ func Example_errorHandling() {
 	// Simulate processing data that might fail at various stages
 	processData := func(input []string) gust.Result[[]int] {
 		results := iter.FilterMap(
-			iter.Map(iter.FromSlice(input), func(s string) gust.Result[int] {
-				return gust.Ret(strconv.Atoi(s))
-			}),
+			iter.RetMap(iter.FromSlice(input), strconv.Atoi),
 			gust.Result[int].Ok).
 			Collect()
 

@@ -79,11 +79,41 @@ func ZeroOpt[T comparable](value T) Option[T] {
 	return Option[T]{value: &value}
 }
 
+// RetOpt wraps a value as an `Option[T]`.
+// NOTE:
+//
+//	`err != nil` is wrapped as None,
+//	and `err == nil` is wrapped as Some.
+//
+//go:inline
+func RetOpt[T any](value T, err error) Option[T] {
+	if err != nil {
+		return None[T]()
+	}
+	return Some[T](value)
+}
+
+// RetAnyOpt wraps a value as an `Option[any]`.
+// NOTE:
+//
+//	`err != nil` or `value`==nil is wrapped as None,
+//	and `err == nil` and `value != nil` is wrapped as Some.
+//
+//go:inline
+func RetAnyOpt[T any](value any, err error) Option[any] {
+	if err != nil || value == nil {
+		return None[any]()
+	}
+	return Some[any](value)
+}
+
 // Some wraps a non-none value.
 // NOTE:
 //
 //	Option[T].IsSome() returns true.
 //	and Option[T].IsNone() returns false.
+//
+//go:inline
 func Some[T any](value T) Option[T] {
 	return Option[T]{value: &value}
 }
@@ -93,6 +123,8 @@ func Some[T any](value T) Option[T] {
 //
 //	Option[T].IsNone() returns true,
 //	and Option[T].IsSome() returns false.
+//
+//go:inline
 func None[T any]() Option[T] {
 	return Option[T]{value: nil}
 }
@@ -138,6 +170,8 @@ func (o Option[T]) ToX() Option[any] {
 }
 
 // IsSome returns `true` if the option has value.
+//
+//go:inline
 func (o Option[T]) IsSome() bool {
 	return !o.IsNone()
 }
@@ -151,6 +185,8 @@ func (o Option[T]) IsSomeAnd(f func(T) bool) bool {
 }
 
 // IsNone returns `true` if the option is none.
+//
+//go:inline
 func (o Option[T]) IsNone() bool {
 	return o.value == nil
 }
@@ -175,6 +211,8 @@ func (o Option[T]) Unwrap() T {
 }
 
 // UnwrapOr returns the contained value or a provided fallback value.
+//
+//go:inline
 func (o Option[T]) UnwrapOr(fallbackValue T) T {
 	if o.IsSome() {
 		return o.UnwrapUnchecked()
@@ -209,6 +247,8 @@ func (o *Option[T]) Take() Option[T] {
 }
 
 // UnwrapUnchecked returns the contained value.
+//
+//go:inline
 func (o Option[T]) UnwrapUnchecked() T {
 	if o.value == nil {
 		var t T
@@ -393,6 +433,8 @@ func (o Option[T]) Filter(predicate func(T) bool) Option[T] {
 }
 
 // And returns [`None`] if the option is [`None`], otherwise returns `optb`.
+//
+//go:inline
 func (o Option[T]) And(optb Option[T]) Option[T] {
 	if o.IsSome() {
 		return optb
@@ -401,6 +443,8 @@ func (o Option[T]) And(optb Option[T]) Option[T] {
 }
 
 // XAnd returns [`None`] if the option is [`None`], otherwise returns `optb`.
+//
+//go:inline
 func (o Option[T]) XAnd(optb Option[any]) Option[any] {
 	if o.IsSome() {
 		return optb
@@ -409,6 +453,8 @@ func (o Option[T]) XAnd(optb Option[any]) Option[any] {
 }
 
 // Or returns the option if it contains a value, otherwise returns `optb`.
+//
+//go:inline
 func (o Option[T]) Or(optb Option[T]) Option[T] {
 	if o.IsNone() {
 		return optb

@@ -16,9 +16,7 @@ func TestExamples(t *testing.T) {
 	// Test Result example
 	numbers := []string{"1", "2", "three", "4"}
 	results := iter.FilterMap(
-		iter.Map(iter.FromSlice(numbers), func(s string) gust.Result[int] {
-			return gust.Ret(strconv.Atoi(s))
-		}),
+		iter.RetMap(iter.FromSlice(numbers), strconv.Atoi),
 		gust.Result[int].Ok).
 		Collect()
 

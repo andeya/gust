@@ -52,6 +52,8 @@ import (
 // | 3       | 3   | 3 | 6      |
 //
 // And so, our final result, 6.
+//
+//go:inline
 func Fold[T any, B any](iter Iterator[T], init B, f func(B, T) B) B {
 	return foldImpl(iter.iterable, init, f)
 }

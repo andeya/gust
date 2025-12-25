@@ -48,6 +48,8 @@ import (
 //		return gust.Ok(acc + x)
 //	})
 //	assert.True(t, sum.IsErr())
+//
+//go:inline
 func TryFold[T any, B any](iter Iterator[T], init B, f func(B, T) gust.Result[B]) gust.Result[B] {
 	accum := init
 	for {
@@ -77,6 +79,8 @@ func TryFold[T any, B any](iter Iterator[T], init B, f func(B, T) gust.Result[B]
 //		return gust.Ok[any](nil)
 //	})
 //	assert.True(t, res.IsOk())
+//
+//go:inline
 func TryForEach[T any, B any](iter Iterator[T], f func(T) gust.Result[B]) gust.Result[B] {
 	var zero B
 	return TryFold(iter, zero, func(_ B, x T) gust.Result[B] {
@@ -84,6 +88,8 @@ func TryForEach[T any, B any](iter Iterator[T], f func(T) gust.Result[B]) gust.R
 	})
 }
 
+//
+//go:inline
 func tryReduceImpl[T any](iter Iterator[T], f func(T, T) gust.Result[T]) gust.Result[gust.Option[T]] {
 	first := iter.Next()
 	if first.IsNone() {
@@ -97,6 +103,8 @@ func tryReduceImpl[T any](iter Iterator[T], f func(T, T) gust.Result[T]) gust.Re
 	return gust.Ok(gust.Some(result.Unwrap()))
 }
 
+//
+//go:inline
 func tryFindImpl[T any](iter Iterator[T], f func(T) gust.Result[bool]) gust.Result[gust.Option[T]] {
 	for {
 		item := iter.Next()

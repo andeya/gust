@@ -1,3 +1,5 @@
+// Package gust provides Rust-inspired error handling, optional values, and iteration utilities for Go.
+// This file contains the EnumResult type for representing success or failure enumerations.
 package gust
 
 import (
@@ -7,11 +9,15 @@ import (
 )
 
 // EnumOk wraps a successful result enumeration.
+//
+//go:inline
 func EnumOk[T any, E any](ok T) EnumResult[T, E] {
 	return EnumResult[T, E]{t: Some(ok)}
 }
 
 // EnumErr wraps a failure result enumeration.
+//
+//go:inline
 func EnumErr[T any, E any](err E) EnumResult[T, E] {
 	return EnumResult[T, E]{e: &err}
 }
@@ -56,11 +62,15 @@ func (r EnumResult[T, E]) Split() (T, E) {
 }
 
 // IsErr returns true if the result is E.
+//
+//go:inline
 func (r EnumResult[T, E]) IsErr() bool {
 	return r.e != nil
 }
 
 // IsOk returns true if the result is ok.
+//
+//go:inline
 func (r EnumResult[T, E]) IsOk() bool {
 	return !r.IsErr()
 }
@@ -106,11 +116,15 @@ func (r EnumResult[T, E]) IsErrAnd(f func(E) bool) bool {
 }
 
 // Ok converts from `Result[T,E]` to `Option[T]`.
+//
+//go:inline
 func (r EnumResult[T, E]) Ok() Option[T] {
 	return r.t
 }
 
 // XOk converts from `Result[T,E]` to `Option[any]`.
+//
+//go:inline
 func (r EnumResult[T, E]) XOk() Option[any] {
 	return r.t.ToX()
 }
