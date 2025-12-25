@@ -32,6 +32,8 @@ jobs:
           file: ./cover.out
           flags: unittests
           verbose: true
+          fail_ci_if_error: false  # Don't fail CI if Codecov upload fails (e.g., rate limit)
+          allow_empty: true  # Allow empty coverage reports
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
         with:
