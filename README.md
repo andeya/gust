@@ -10,6 +10,8 @@
 
 **Bring Rust's elegance to Go** - A powerful library that makes error handling, optional values, and iteration as beautiful and safe as in Rust.
 
+> 🎯 **Zero dependencies** • 🚀 **Production ready** • 📚 **Well documented** • ✨ **Type-safe**
+
 ## ✨ Why gust?
 
 Tired of writing `if err != nil` everywhere? Frustrated with nil pointer panics? Want Rust-like iterator chains in Go?
@@ -50,22 +52,27 @@ func fetchUserData(userID int) (string, error) {
 
 ### After gust (Elegant & Safe)
 ```go
+import "github.com/andeya/gust"
+import "github.com/andeya/gust/ret"
+
 func fetchUserData(userID int) gust.Result[string] {
-    return gust.Ok(userID).
-        AndThen(func(id int) gust.Result[*User] {
-            return gust.Ret(db.GetUser(id))
-        }).
-        AndThen(func(user *User) gust.Result[string] {
+    return ret.AndThen(
+        gust.Ret(db.GetUser(userID)),
+        func(user *User) gust.Result[string] {
             if user == nil || user.Email == "" {
                 return gust.Err[string]("invalid user")
             }
-            profile, err := api.GetProfile(user.Email)
-            if err != nil {
-                return gust.Err[string](err)
-            }
-            return gust.Ok(fmt.Sprintf("%s: %s", user.Name, profile.Bio))
-        })
+            return ret.AndThen(
+                gust.Ret(api.GetProfile(user.Email)),
+                func(profile *Profile) gust.Result[string] {
+                    return gust.Ok(fmt.Sprintf("%s: %s", user.Name, profile.Bio))
+                },
+            )
+        },
+    )
 }
+
+// See ExampleResult_fetchUserData in examples/ for a complete runnable example
 ```
 
 **What changed?**
@@ -101,10 +108,13 @@ result := gust.Ok(10).
         return gust.Ok(x + 5)
     }).
     OrElse(func(err error) gust.Result[int] {
+        fmt.Println("Error handled:", err)
         return gust.Ok(0) // Fallback
     })
 
-fmt.Println(result.Unwrap()) // 0
+fmt.Println("Final value:", result.Unwrap())
+// Output: Error handled: too large
+// Final value: 0
 ```
 
 **Key Benefits:**
@@ -187,20 +197,32 @@ iter.FromSlice(numbers).Filter(func(x int) bool { return x > 0 }).Map(func(x int
 Iterate from both ends:
 
 ```go
+import "github.com/andeya/gust/iter"
+
 numbers := []int{1, 2, 3, 4, 5}
 deIter := iter.FromSlice(numbers).MustToDoubleEnded()
 
-fmt.Println(deIter.Next())    // Some(1)
-fmt.Println(deIter.NextBack()) // Some(5)
-fmt.Println(deIter.NextBack()) // Some(4)
+// Iterate from front
+if val := deIter.Next(); val.IsSome() {
+    fmt.Println("Front:", val.Unwrap()) // Front: 1
+}
+
+// Iterate from back
+if val := deIter.NextBack(); val.IsSome() {
+    fmt.Println("Back:", val.Unwrap()) // Back: 5
+}
 ```
 
 ## 📖 More Examples
 
-### Error Handling with Result
+### Parse and Filter with Error Handling
 
 ```go
-// Parse numbers with automatic error handling
+import "github.com/andeya/gust"
+import "github.com/andeya/gust/iter"
+import "strconv"
+
+// Parse strings to integers, automatically filtering out errors
 numbers := []string{"1", "2", "three", "4", "five"}
 
 results := iter.FilterMap(
@@ -214,10 +236,10 @@ fmt.Println("Parsed numbers:", results)
 // Output: Parsed numbers: [1 2 4]
 ```
 
-### Real-World Data Processing
+### Real-World Data Pipeline
 
 ```go
-// Process user input: parse, validate, transform
+// Process user input: parse, validate, transform, limit
 input := []string{"10", "20", "invalid", "30", "0", "40"}
 
 results := iter.FilterMap(
@@ -230,15 +252,13 @@ results := iter.FilterMap(
     Take(3).
     Collect()
 
-fmt.Println(results)
-// Output:
-// [20 40 60]
+fmt.Println(results) // [20 40 60]
 ```
 
-### Optional Values with Option
+### Option Chain Operations
 
 ```go
-// Chain operations on optional values
+// Chain operations on optional values with filtering
 result := gust.Some(5).
     Map(func(x int) int { return x * 2 }).
     Filter(func(x int) bool { return x > 8 }).
@@ -250,73 +270,14 @@ result := gust.Some(5).
 fmt.Println(result) // "Value: 10"
 ```
 
-### Advanced Iterator Chains
+### Partition Data
 
 ```go
-data := []string{"hello", "world", "rust", "go", "iterator"}
-
-enumerated := iter.Enumerate(
-    iter.FromSlice(data).
-        Filter(func(s string) bool { return len(s) > 2 }).
-        XMap(func(s string) any { return len(s) }),
-)
-result := iter.Map(enumerated, func(p gust.Pair[uint, any]) string {
-    return fmt.Sprintf("%d: %d", p.A, p.B)
-}).
-    Collect()
-
-fmt.Println(result) // ["0: 5", "1: 5", "2: 4", "3: 8"]
-```
-
-### Flattening Nested Structures
-
-```go
-words := []string{"hello", "world"}
-
-chars := iter.FromSlice(words).
-    XFlatMap(func(s string) iter.Iterator[any] {
-        return iter.FromSlice([]rune(s)).XMap(func(r rune) any { return r })
-    }).
-    Collect()
-
-// Convert []any to []rune
-runeSlice := make([]rune, 0, len(chars))
-for _, v := range chars {
-    runeSlice = append(runeSlice, v.(rune))
-}
-
-fmt.Println(string(runeSlice)) // "helloworld"
-```
-
-### Finding and Mapping
-
-```go
-numbers := []string{"lol", "NaN", "2", "5"}
-
-result := iter.FromSlice(numbers).
-    XFilterMap(func(s string) gust.Option[any] {
-        if v, err := strconv.Atoi(s); err == nil {
-            return gust.Some[any](v)
-        }
-        return gust.None[any]()
-    }).
-    Take(1).
-    Collect()
-
-if len(result) > 0 {
-    fmt.Println("First number:", result[0]) // 2
-}
-```
-
-### Partitioning Data
-
-```go
+// Split numbers into evens and odds
 numbers := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 
 evens, odds := iter.FromSlice(numbers).
-    Partition(func(x int) bool {
-        return x%2 == 0
-    })
+    Partition(func(x int) bool { return x%2 == 0 })
 
 fmt.Println("Evens:", evens) // [2 4 6 8 10]
 fmt.Println("Odds:", odds)   // [1 3 5 7 9]
@@ -324,11 +285,12 @@ fmt.Println("Odds:", odds)   // [1 3 5 7 9]
 
 ## 🎯 Use Cases
 
-- **Error Handling**: Replace `(T, error)` with `Result[T]` for cleaner code
-- **Optional Values**: Use `Option[T]` instead of `*T` for nil safety
-- **Data Processing**: Chain iterator operations for elegant data transformations
-- **API Responses**: Handle optional/error cases explicitly
-- **Configuration**: Use `Option` for optional config fields
+- **Error Handling**: Replace `(T, error)` with `Result[T]` for cleaner, chainable error handling
+- **Optional Values**: Use `Option[T]` instead of `*T` for nil safety and explicit optional semantics
+- **Data Processing**: Chain iterator operations for elegant, lazy-evaluated data transformations
+- **API Responses**: Handle optional/error cases explicitly without nil checks
+- **Configuration**: Use `Option` for optional config fields with type safety
+- **Data Validation**: Combine `Result` and `Option` for robust input validation pipelines
 
 ## 📦 Additional Packages
 
@@ -362,11 +324,32 @@ mapped := dict.MapValue(m, func(k string, v int) int {
 fmt.Println(mapped) // map[a:2 b:4 c:6]
 ```
 
+### Vec Utilities Example
+
+```go
+import "github.com/andeya/gust/vec"
+
+// Map slice elements
+numbers := []int{1, 2, 3, 4, 5}
+doubled := vec.MapAlone(numbers, func(x int) int {
+    return x * 2
+})
+fmt.Println(doubled) // [2 4 6 8 10]
+
+// Convert []any to specific type
+anySlice := []any{1, 2, 3, 4, 5}
+intSlice := vec.MapAlone(anySlice, func(v any) int {
+    return v.(int)
+})
+fmt.Println(intSlice) // [1 2 3 4 5]
+```
+
 ## 🔗 Resources
 
-- [Full Documentation](https://pkg.go.dev/github.com/andeya/gust)
-- [Examples](./examples/)
-- [Go Version Requirement](#go-version)
+- 📖 [Full Documentation](https://pkg.go.dev/github.com/andeya/gust) - Complete API reference
+- 💡 [Examples](./examples/) - Comprehensive examples organized by feature
+- 🐛 [Issue Tracker](https://github.com/andeya/gust/issues) - Report bugs or request features
+- 💬 [Discussions](https://github.com/andeya/gust/discussions) - Ask questions and share ideas
 
 ## 📋 Go Version
 
@@ -374,7 +357,13 @@ Requires **Go 1.19+** (for generics support)
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Whether it's:
+- 🐛 Reporting bugs
+- 💡 Suggesting new features
+- 📝 Improving documentation
+- 🔧 Submitting pull requests
+
+Every contribution makes gust better! Please feel free to submit a Pull Request or open an issue.
 
 ## 📄 License
 
