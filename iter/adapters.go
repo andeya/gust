@@ -38,6 +38,58 @@ func Map[T any, U any](iter Iterator[T], f func(T) U) Iterator[U] {
 	return Iterator[U]{iterable: &mapIterable[T, U]{iter: iter.iterable, f: f}}
 }
 
+// RetMap creates an iterator which calls a closure on each element and returns a Result[U].
+//
+// # Examples
+//
+// iter := RetMap(FromSlice([]string{"1", "2", "3", "NaN"}), strconv.Atoi)
+
+// assert.Equal(t, gust.Some(gust.Ok(1)), iter.Next())
+// assert.Equal(t, gust.Some(gust.Ok(2)), iter.Next())
+// assert.Equal(t, gust.Some(gust.Ok(3)), iter.Next())
+// assert.Equal(t, true, iter.Next().Unwrap().IsErr())
+// assert.Equal(t, gust.None[gust.Result[int]](), iter.Next())
+//
+//go:inline
+func RetMap[T any, U any](iter Iterator[T], f func(T) (U, error)) Iterator[gust.Result[U]] {
+	return Map(iter, func(t T) gust.Result[U] {
+		return gust.Ret(f(t))
+	})
+}
+
+// OptMap creates an iterator which calls a closure on each element and returns a Option[*U].
+// NOTE:
+//
+//	`non-nil pointer` is wrapped as Some,
+//	and `nil pointer` is wrapped as None.
+//
+// # Examples
+//
+//	iter := OptMap(FromSlice([]string{"1", "2", "3", "NaN"}), func(s string) *int {
+//		if v, err := strconv.Atoi(s); err == nil {
+//			return &v
+//		} else {
+//			return nil
+//		}
+//	})
+//
+//	var newInt = func(v int) *int {
+//		return &v
+//	}
+//
+// assert.Equal(t, gust.Some(gust.Some(newInt(1))), iter.Next())
+// assert.Equal(t, gust.Some(gust.Some(newInt(2))), iter.Next())
+// assert.Equal(t, gust.Some(gust.Some(newInt(3))), iter.Next())
+// assert.Equal(t, gust.Some(gust.None[*int]()), iter.Next())
+// assert.Equal(t, gust.None[gust.Option[*int]](), iter.Next())
+//
+//go:inline
+func OptMap[T any, U any](iter Iterator[T], f func(T) *U) Iterator[gust.Option[*U]] {
+	return Map(iter, func(t T) gust.Option[*U] {
+		return gust.PtrOpt(f(t))
+	})
+}
+
 type mapIterable[T any, U any] struct {
 	iter Iterable[T]
 	f    func(T) U

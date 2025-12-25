@@ -1,6 +1,7 @@
 package iter
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/andeya/gust"
@@ -113,6 +114,34 @@ func TestChunkBySingle(t *testing.T) {
 	assert.Equal(t, []int{1}, chunk1.Unwrap())
 
 	assert.True(t, iter.Next().IsNone())
+}
+
+func TestRetMap(t *testing.T) {
+	iter := RetMap(FromSlice([]string{"1", "2", "3", "NaN"}), strconv.Atoi)
+
+	assert.Equal(t, gust.Some(gust.Ok(1)), iter.Next())
+	assert.Equal(t, gust.Some(gust.Ok(2)), iter.Next())
+	assert.Equal(t, gust.Some(gust.Ok(3)), iter.Next())
+	assert.Equal(t, true, iter.Next().Unwrap().IsErr())
+	assert.Equal(t, gust.None[gust.Result[int]](), iter.Next())
+}
+
+func TestOptMap(t *testing.T) {
+	iter := OptMap(FromSlice([]string{"1", "2", "3", "NaN"}), func(s string) *int {
+		if v, err := strconv.Atoi(s); err == nil {
+			return &v
+		} else {
+			return nil
+		}
+	})
+	var newInt = func(v int) *int {
+		return &v
+	}
+	assert.Equal(t, gust.Some(gust.Some(newInt(1))), iter.Next())
+	assert.Equal(t, gust.Some(gust.Some(newInt(2))), iter.Next())
+	assert.Equal(t, gust.Some(gust.Some(newInt(3))), iter.Next())
+	assert.Equal(t, gust.Some(gust.None[*int]()), iter.Next())
+	assert.Equal(t, gust.None[gust.Option[*int]](), iter.Next())
 }
 
 func TestMapWindows(t *testing.T) {
