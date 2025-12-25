@@ -92,4 +92,3 @@ func TestCycle(t *testing.T) {
 	assert.Equal(t, gust.Some(2), iter.Next())
 	assert.Equal(t, gust.Some(3), iter.Next())
 }
-

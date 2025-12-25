@@ -396,7 +396,7 @@ func TestSyncMap_Range_TypeMismatch(t *testing.T) {
 	var m gust.SyncMap[string, int]
 	m.Store("key", 42)
 	m.Store("key2", 100)
-	
+
 	count := 0
 	m.Range(func(key string, value int) bool {
 		count++
@@ -411,7 +411,7 @@ func TestSyncMap_Range_EarlyTermination(t *testing.T) {
 	m.Store("a", 1)
 	m.Store("b", 2)
 	m.Store("c", 3)
-	
+
 	count := 0
 	m.Range(func(key string, value int) bool {
 		count++
@@ -423,15 +423,15 @@ func TestSyncMap_Range_EarlyTermination(t *testing.T) {
 func TestAtomicValue_CompareAndSwap(t *testing.T) {
 	var v gust.AtomicValue[int]
 	v.Store(10)
-	
+
 	// Test successful swap
 	assert.True(t, v.CompareAndSwap(10, 20))
 	assert.Equal(t, gust.Some(20), v.Load())
-	
+
 	// Test failed swap (old value doesn't match)
 	assert.False(t, v.CompareAndSwap(10, 30))
 	assert.Equal(t, gust.Some(20), v.Load()) // Value unchanged
-	
+
 	// Test successful swap with correct old value
 	assert.True(t, v.CompareAndSwap(20, 30))
 	assert.Equal(t, gust.Some(30), v.Load())
@@ -442,12 +442,12 @@ func TestLazyValue_SetInitFunc_AlreadyInitialized(t *testing.T) {
 	// Initialize it
 	_ = lv.TryGetValue()
 	assert.True(t, lv.IsInitialized())
-	
+
 	// Try to set init func after initialization
 	lv.SetInitFunc(func() gust.Result[string] {
 		return gust.Ok("new")
 	})
-	
+
 	// Should still return original value
 	assert.Equal(t, gust.Some("original"), lv.TryGetValue().Ok())
 }
@@ -457,12 +457,12 @@ func TestLazyValue_SetInitFunc_AlreadySet(t *testing.T) {
 	lv.SetInitFunc(func() gust.Result[string] {
 		return gust.Ok("first")
 	})
-	
+
 	// Try to set another init func
 	lv.SetInitFunc(func() gust.Result[string] {
 		return gust.Ok("second")
 	})
-	
+
 	// Should use first function
 	assert.Equal(t, gust.Some("first"), lv.TryGetValue().Ok())
 }
@@ -471,7 +471,7 @@ func TestLazyValue_Zero(t *testing.T) {
 	lv := gust.NewLazyValue[int]()
 	var zero int
 	assert.Equal(t, zero, lv.Zero())
-	
+
 	lv2 := gust.NewLazyValue[string]()
 	var zeroStr string
 	assert.Equal(t, zeroStr, lv2.Zero())

@@ -36,4 +36,3 @@ func Unzip[T any, U any](iter Iterator[gust.Pair[T, U]]) ([]T, []U) {
 	}
 	return left, right
 }
-

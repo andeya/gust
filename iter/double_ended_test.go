@@ -22,6 +22,26 @@ func TestSliceIteratorDoubleEnded(t *testing.T) {
 	assert.Equal(t, gust.None[int](), deIter.NextBack())
 }
 
+func TestSliceIteratorRemaining(t *testing.T) {
+	var numbers = []int{1, 2, 3, 4, 5, 6}
+	var deIter = FromSlice(numbers).MustToDoubleEnded()
+	assert.Equal(t, uint(6), deIter.Remaining())
+	deIter.Next()
+	assert.Equal(t, uint(5), deIter.Remaining())
+	deIter.NextBack()
+	assert.Equal(t, uint(4), deIter.Remaining())
+	deIter.NextBack()
+	assert.Equal(t, uint(3), deIter.Remaining())
+	deIter.NextBack()
+	assert.Equal(t, uint(2), deIter.Remaining())
+	deIter.NextBack()
+	assert.Equal(t, uint(1), deIter.Remaining())
+	deIter.NextBack()
+	assert.Equal(t, uint(0), deIter.Remaining())
+	deIter.NextBack()
+	assert.Equal(t, uint(0), deIter.Remaining())
+}
+
 func TestSliceIteratorNextBack(t *testing.T) {
 	numbers := []int{1, 2, 3}
 	iter := FromSlice(numbers)

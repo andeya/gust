@@ -59,12 +59,12 @@ func Max[T gust.Ord](iter Iterator[T]) gust.Option[T] {
 //	assert.Equal(t, gust.Some(1), Min(FromSlice(a)))
 //	assert.Equal(t, gust.None[int](), Min(FromSlice(b)))
 func Min[T gust.Ord](iter Iterator[T]) gust.Option[T] {
-	return minImpl(iter.Iterable())
+	return minImpl(iter.iterable)
 }
 
 //go:inline
 func minImpl[T gust.Ord](iter Iterable[T]) gust.Option[T] {
-	return minByImpl(Iterator[T]{iter: iter}, func(a, b T) int {
+	return minByImpl(Iterator[T]{iterable: iter}, func(a, b T) int {
 		if a < b {
 			return -1
 		}

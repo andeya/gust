@@ -799,7 +799,7 @@ func TestOption_UnmarshalJSON_ValidAfterError(t *testing.T) {
 	// First attempt with invalid JSON
 	_ = opt.UnmarshalJSON([]byte("invalid"))
 	assert.True(t, opt.IsNone())
-	
+
 	// Then with valid JSON
 	err := opt.UnmarshalJSON([]byte("42"))
 	assert.NoError(t, err)

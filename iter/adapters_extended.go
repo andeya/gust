@@ -6,16 +6,16 @@ import (
 
 //go:inline
 func skipWhileImpl[T any](iter Iterator[T], predicate func(T) bool) Iterator[T] {
-	return Iterator[T]{iter: &skipWhileIterator[T]{iter: iter.Iterable(), predicate: predicate, done: false}}
+	return Iterator[T]{iterable: &skipWhileIterable[T]{iter: iter.iterable, predicate: predicate, done: false}}
 }
 
-type skipWhileIterator[T any] struct {
+type skipWhileIterable[T any] struct {
 	iter      Iterable[T]
 	predicate func(T) bool
 	done      bool
 }
 
-func (s *skipWhileIterator[T]) Next() gust.Option[T] {
+func (s *skipWhileIterable[T]) Next() gust.Option[T] {
 	if !s.done {
 		for {
 			item := s.iter.Next()
@@ -32,7 +32,7 @@ func (s *skipWhileIterator[T]) Next() gust.Option[T] {
 	return s.iter.Next()
 }
 
-func (s *skipWhileIterator[T]) SizeHint() (uint, gust.Option[uint]) {
+func (s *skipWhileIterable[T]) SizeHint() (uint, gust.Option[uint]) {
 	// SkipWhile can reduce the size, but we don't know by how much
 	_, upper := s.iter.SizeHint()
 	return 0, upper
@@ -40,15 +40,15 @@ func (s *skipWhileIterator[T]) SizeHint() (uint, gust.Option[uint]) {
 
 //go:inline
 func takeWhileImpl[T any](iter Iterator[T], predicate func(T) bool) Iterator[T] {
-	return Iterator[T]{iter: &takeWhileIterator[T]{iter: iter.Iterable(), predicate: predicate}}
+	return Iterator[T]{iterable: &takeWhileIterable[T]{iter: iter.iterable, predicate: predicate}}
 }
 
-type takeWhileIterator[T any] struct {
+type takeWhileIterable[T any] struct {
 	iter      Iterable[T]
 	predicate func(T) bool
 }
 
-func (t *takeWhileIterator[T]) Next() gust.Option[T] {
+func (t *takeWhileIterable[T]) Next() gust.Option[T] {
 	item := t.iter.Next()
 	if item.IsNone() {
 		return gust.None[T]()
@@ -59,7 +59,7 @@ func (t *takeWhileIterator[T]) Next() gust.Option[T] {
 	return gust.None[T]()
 }
 
-func (t *takeWhileIterator[T]) SizeHint() (uint, gust.Option[uint]) {
+func (t *takeWhileIterable[T]) SizeHint() (uint, gust.Option[uint]) {
 	_, upper := t.iter.SizeHint()
 	// TakeWhile can reduce the size, but we don't know by how much
 	return 0, upper
@@ -87,15 +87,15 @@ func (t *takeWhileIterator[T]) SizeHint() (uint, gust.Option[uint]) {
 //	assert.Equal(t, gust.Some(4), iter.Next())
 //	assert.Equal(t, gust.None[int](), iter.Next())
 func MapWhile[T any, U any](iter Iterator[T], predicate func(T) gust.Option[U]) Iterator[U] {
-	return Iterator[U]{iter: &mapWhileIterator[T, U]{iter: iter.Iterable(), predicate: predicate}}
+	return Iterator[U]{iterable: &mapWhileIterable[T, U]{iter: iter.iterable, predicate: predicate}}
 }
 
-type mapWhileIterator[T any, U any] struct {
+type mapWhileIterable[T any, U any] struct {
 	iter      Iterable[T]
 	predicate func(T) gust.Option[U]
 }
 
-func (m *mapWhileIterator[T, U]) Next() gust.Option[U] {
+func (m *mapWhileIterable[T, U]) Next() gust.Option[U] {
 	item := m.iter.Next()
 	if item.IsNone() {
 		return gust.None[U]()
@@ -103,7 +103,7 @@ func (m *mapWhileIterator[T, U]) Next() gust.Option[U] {
 	return m.predicate(item.Unwrap())
 }
 
-func (m *mapWhileIterator[T, U]) SizeHint() (uint, gust.Option[uint]) {
+func (m *mapWhileIterable[T, U]) SizeHint() (uint, gust.Option[uint]) {
 	_, upper := m.iter.SizeHint()
 	// MapWhile can reduce the size, but we don't know by how much
 	return 0, upper
@@ -139,16 +139,16 @@ func (m *mapWhileIterator[T, U]) SizeHint() (uint, gust.Option[uint]) {
 //	assert.Equal(t, gust.Some(-6), iter.Next())
 //	assert.Equal(t, gust.None[int](), iter.Next())
 func Scan[T any, U any, St any](iter Iterator[T], initialState St, f func(*St, T) gust.Option[U]) Iterator[U] {
-	return Iterator[U]{iter: &scanIterator[T, U, St]{iter: iter.Iterable(), state: initialState, f: f}}
+	return Iterator[U]{iterable: &scanIterable[T, U, St]{iter: iter.iterable, state: initialState, f: f}}
 }
 
-type scanIterator[T any, U any, St any] struct {
+type scanIterable[T any, U any, St any] struct {
 	iter  Iterable[T]
 	state St
 	f     func(*St, T) gust.Option[U]
 }
 
-func (s *scanIterator[T, U, St]) Next() gust.Option[U] {
+func (s *scanIterable[T, U, St]) Next() gust.Option[U] {
 	item := s.iter.Next()
 	if item.IsNone() {
 		return gust.None[U]()
@@ -156,7 +156,7 @@ func (s *scanIterator[T, U, St]) Next() gust.Option[U] {
 	return s.f(&s.state, item.Unwrap())
 }
 
-func (s *scanIterator[T, U, St]) SizeHint() (uint, gust.Option[uint]) {
+func (s *scanIterable[T, U, St]) SizeHint() (uint, gust.Option[uint]) {
 	// Scan can terminate early, so we can't provide accurate size hint
 	_, upper := s.iter.SizeHint()
 	return 0, upper
@@ -185,16 +185,16 @@ func (s *scanIterator[T, U, St]) SizeHint() (uint, gust.Option[uint]) {
 //	var result = Collect[rune](iter)
 //	// result contains all characters from all words
 func FlatMap[T any, U any](iter Iterator[T], f func(T) Iterator[U]) Iterator[U] {
-	return Iterator[U]{iter: &flatMapIterator[T, U]{iter: iter.Iterable(), f: f, current: nil}}
+	return Iterator[U]{iterable: &flatMapIterable[T, U]{iter: iter.iterable, f: f, current: nil}}
 }
 
-type flatMapIterator[T any, U any] struct {
+type flatMapIterable[T any, U any] struct {
 	iter    Iterable[T]
 	f       func(T) Iterator[U]
 	current Iterable[U]
 }
 
-func (f *flatMapIterator[T, U]) Next() gust.Option[U] {
+func (f *flatMapIterable[T, U]) Next() gust.Option[U] {
 	for {
 		if f.current != nil {
 			item := f.current.Next()
@@ -209,11 +209,11 @@ func (f *flatMapIterator[T, U]) Next() gust.Option[U] {
 			return gust.None[U]()
 		}
 		iter := f.f(item.Unwrap())
-		f.current = iter.iter
+		f.current = iter.iterable
 	}
 }
 
-func (f *flatMapIterator[T, U]) SizeHint() (uint, gust.Option[uint]) {
+func (f *flatMapIterable[T, U]) SizeHint() (uint, gust.Option[uint]) {
 	// FlatMap can expand or contract the size, so we can't provide accurate size hint
 	return 0, gust.None[uint]()
 }
@@ -237,19 +237,19 @@ func (f *flatMapIterator[T, U]) SizeHint() (uint, gust.Option[uint]) {
 //
 //go:inline
 func flattenImpl[T any](iter Iterable[Iterator[T]]) Iterable[T] {
-	return &flattenIterator[T]{iter: iter, current: nil}
+	return &flattenIterable[T]{iter: iter, current: nil}
 }
 
 func Flatten[T any](iter Iterator[Iterator[T]]) Iterator[T] {
-	return Iterator[T]{iter: flattenImpl(iter.Iterable())}
+	return Iterator[T]{iterable: flattenImpl(iter.iterable)}
 }
 
-type flattenIterator[T any] struct {
+type flattenIterable[T any] struct {
 	iter    Iterable[Iterator[T]]
 	current Iterable[T]
 }
 
-func (f *flattenIterator[T]) Next() gust.Option[T] {
+func (f *flattenIterable[T]) Next() gust.Option[T] {
 	for {
 		if f.current != nil {
 			item := f.current.Next()
@@ -264,26 +264,26 @@ func (f *flattenIterator[T]) Next() gust.Option[T] {
 			return gust.None[T]()
 		}
 		iter := item.Unwrap()
-		f.current = iter.iter
+		f.current = iter.iterable
 	}
 }
 
-func (f *flattenIterator[T]) SizeHint() (uint, gust.Option[uint]) {
+func (f *flattenIterable[T]) SizeHint() (uint, gust.Option[uint]) {
 	// Flatten can expand or contract the size, so we can't provide accurate size hint
 	return 0, gust.None[uint]()
 }
 
 //go:inline
 func fuseImpl[T any](iter Iterator[T]) Iterator[T] {
-	return Iterator[T]{iter: &fuseIterator[T]{iter: iter.Iterable(), done: false}}
+	return Iterator[T]{iterable: &fuseIterable[T]{iter: iter.iterable, done: false}}
 }
 
-type fuseIterator[T any] struct {
+type fuseIterable[T any] struct {
 	iter Iterable[T]
 	done bool
 }
 
-func (f *fuseIterator[T]) Next() gust.Option[T] {
+func (f *fuseIterable[T]) Next() gust.Option[T] {
 	if f.done {
 		return gust.None[T]()
 	}
@@ -294,21 +294,21 @@ func (f *fuseIterator[T]) Next() gust.Option[T] {
 	return item
 }
 
-func (f *fuseIterator[T]) SizeHint() (uint, gust.Option[uint]) {
+func (f *fuseIterable[T]) SizeHint() (uint, gust.Option[uint]) {
 	return f.iter.SizeHint()
 }
 
 //go:inline
 func inspectImpl[T any](iter Iterator[T], f func(T)) Iterator[T] {
-	return Iterator[T]{iter: &inspectIterator[T]{iter: iter.Iterable(), f: f}}
+	return Iterator[T]{iterable: &inspectIterable[T]{iter: iter.iterable, f: f}}
 }
 
-type inspectIterator[T any] struct {
+type inspectIterable[T any] struct {
 	iter Iterable[T]
 	f    func(T)
 }
 
-func (i *inspectIterator[T]) Next() gust.Option[T] {
+func (i *inspectIterable[T]) Next() gust.Option[T] {
 	item := i.iter.Next()
 	if item.IsSome() {
 		i.f(item.Unwrap())
@@ -316,7 +316,7 @@ func (i *inspectIterator[T]) Next() gust.Option[T] {
 	return item
 }
 
-func (i *inspectIterator[T]) SizeHint() (uint, gust.Option[uint]) {
+func (i *inspectIterable[T]) SizeHint() (uint, gust.Option[uint]) {
 	return i.iter.SizeHint()
 }
 
@@ -327,7 +327,7 @@ func intersperseImpl[T any](iter Iterable[T], separator T) Iterator[T] {
 
 //go:inline
 func intersperseWithImpl[T any](iter Iterable[T], separator func() T) Iterator[T] {
-	return Iterator[T]{iter: &intersperseIterator[T]{iter: iter, separator: separator, peeked: gust.None[T](), state: intersperseStateFirst}}
+	return Iterator[T]{iterable: &intersperseIterable[T]{iter: iter, separator: separator, peeked: gust.None[T](), state: intersperseStateFirst}}
 }
 
 type intersperseState int
@@ -338,14 +338,14 @@ const (
 	intersperseStateSeparator
 )
 
-type intersperseIterator[T any] struct {
+type intersperseIterable[T any] struct {
 	iter      Iterable[T]
 	separator func() T
 	peeked    gust.Option[T]
 	state     intersperseState
 }
 
-func (i *intersperseIterator[T]) Next() gust.Option[T] {
+func (i *intersperseIterable[T]) Next() gust.Option[T] {
 	switch i.state {
 	case intersperseStateFirst:
 		item := i.iter.Next()
@@ -374,7 +374,7 @@ func (i *intersperseIterator[T]) Next() gust.Option[T] {
 	return gust.None[T]()
 }
 
-func (i *intersperseIterator[T]) SizeHint() (uint, gust.Option[uint]) {
+func (i *intersperseIterable[T]) SizeHint() (uint, gust.Option[uint]) {
 	lower, upper := i.iter.SizeHint()
 	if lower > 0 {
 		lower = lower*2 - 1
@@ -418,23 +418,23 @@ func (i *intersperseIterator[T]) SizeHint() (uint, gust.Option[uint]) {
 //
 //go:inline
 func arrayChunksImpl[T any](iter Iterable[T], chunkSize uint) Iterable[[]T] {
-	return &arrayChunksIterator[T]{iter: iter, chunkSize: chunkSize, buffer: make([]T, 0, chunkSize)}
+	return &arrayChunksIterable[T]{iter: iter, chunkSize: chunkSize, buffer: make([]T, 0, chunkSize)}
 }
 
 func ArrayChunks[T any](iter Iterator[T], chunkSize uint) Iterator[[]T] {
 	if chunkSize == 0 {
 		panic("ArrayChunks: chunk_size must be non-zero")
 	}
-	return Iterator[[]T]{iter: arrayChunksImpl(iter.Iterable(), chunkSize)}
+	return Iterator[[]T]{iterable: arrayChunksImpl(iter.iterable, chunkSize)}
 }
 
-type arrayChunksIterator[T any] struct {
+type arrayChunksIterable[T any] struct {
 	iter      Iterable[T]
 	chunkSize uint
 	buffer    []T
 }
 
-func (a *arrayChunksIterator[T]) Next() gust.Option[[]T] {
+func (a *arrayChunksIterable[T]) Next() gust.Option[[]T] {
 	// Clear buffer but keep capacity
 	a.buffer = a.buffer[:0]
 
@@ -458,7 +458,7 @@ func (a *arrayChunksIterator[T]) Next() gust.Option[[]T] {
 	return gust.Some(result)
 }
 
-func (a *arrayChunksIterator[T]) SizeHint() (uint, gust.Option[uint]) {
+func (a *arrayChunksIterable[T]) SizeHint() (uint, gust.Option[uint]) {
 	lower, upper := a.iter.SizeHint()
 	if lower > 0 {
 		lower = (lower + a.chunkSize - 1) / a.chunkSize
@@ -499,14 +499,14 @@ func (a *arrayChunksIterator[T]) SizeHint() (uint, gust.Option[uint]) {
 //
 //go:inline
 func chunkByImpl[T any](iter Iterable[T], predicate func(T, T) bool) Iterable[[]T] {
-	return &chunkByIterator[T]{iter: iter, predicate: predicate, first: true, prev: gust.None[T](), current: []T{}}
+	return &chunkByIterable[T]{iter: iter, predicate: predicate, first: true, prev: gust.None[T](), current: []T{}}
 }
 
 func ChunkBy[T any](iter Iterator[T], predicate func(T, T) bool) Iterator[[]T] {
-	return Iterator[[]T]{iter: chunkByImpl(iter.Iterable(), predicate)}
+	return Iterator[[]T]{iterable: chunkByImpl(iter.iterable, predicate)}
 }
 
-type chunkByIterator[T any] struct {
+type chunkByIterable[T any] struct {
 	iter      Iterable[T]
 	predicate func(T, T) bool
 	first     bool
@@ -514,7 +514,7 @@ type chunkByIterator[T any] struct {
 	current   []T
 }
 
-func (c *chunkByIterator[T]) Next() gust.Option[[]T] {
+func (c *chunkByIterable[T]) Next() gust.Option[[]T] {
 	if c.first {
 		item := c.iter.Next()
 		if item.IsNone() {
@@ -553,7 +553,7 @@ func (c *chunkByIterator[T]) Next() gust.Option[[]T] {
 	}
 }
 
-func (c *chunkByIterator[T]) SizeHint() (uint, gust.Option[uint]) {
+func (c *chunkByIterable[T]) SizeHint() (uint, gust.Option[uint]) {
 	// We can't know the exact size without iterating
 	return 0, gust.None[uint]()
 }
@@ -581,17 +581,17 @@ func MapWindows[T any, U any](iter Iterator[T], windowSize uint, f func([]T) U) 
 	if windowSize == 0 {
 		panic("MapWindows: window_size must be non-zero")
 	}
-	return Iterator[U]{iter: &mapWindowsIterator[T, U]{iter: iter.Iterable(), windowSize: windowSize, f: f, buffer: make([]T, 0, windowSize)}}
+	return Iterator[U]{iterable: &mapWindowsIterable[T, U]{iter: iter.iterable, windowSize: windowSize, f: f, buffer: make([]T, 0, windowSize)}}
 }
 
-type mapWindowsIterator[T any, U any] struct {
+type mapWindowsIterable[T any, U any] struct {
 	iter       Iterable[T]
 	windowSize uint
 	f          func([]T) U
 	buffer     []T
 }
 
-func (m *mapWindowsIterator[T, U]) Next() gust.Option[U] {
+func (m *mapWindowsIterable[T, U]) Next() gust.Option[U] {
 	// Fill buffer to windowSize
 	for uint(len(m.buffer)) < m.windowSize {
 		item := m.iter.Next()
@@ -610,7 +610,7 @@ func (m *mapWindowsIterator[T, U]) Next() gust.Option[U] {
 	return gust.Some(result)
 }
 
-func (m *mapWindowsIterator[T, U]) SizeHint() (uint, gust.Option[uint]) {
+func (m *mapWindowsIterable[T, U]) SizeHint() (uint, gust.Option[uint]) {
 	lower, upper := m.iter.SizeHint()
 	if lower >= m.windowSize {
 		lower = lower - m.windowSize + 1

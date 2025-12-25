@@ -4,39 +4,6 @@ import (
 	"github.com/andeya/gust"
 )
 
-// FromIterable creates an iterator from a gust.Iterable[T].
-// If the data is already an Iterator[T], it returns the same iterator.
-// If the data is an Iterable[T], it returns an Iterator[T] with the core.
-// If the data is a gust.Iterable[T], it returns an Iterator[T] with the iterable wrapper.
-//
-// # Examples
-//
-//	var iter = FromIterable(FromSlice([]int{1, 2, 3}))
-//	assert.Equal(t, gust.Some(1), iter.Next())
-//	assert.Equal(t, gust.Some(2), iter.Next())
-//	assert.Equal(t, gust.Some(3), iter.Next())
-//	assert.Equal(t, gust.None[int](), iter.Next())
-func FromIterable[T any](data gust.Iterable[T]) Iterator[T] {
-	iter, ok := data.(Iterator[T])
-	if ok {
-		return iter
-	}
-	core, ok := data.(Iterable[T])
-	if ok {
-		return Iterator[T]{iter: core}
-	}
-	return Iterator[T]{iter: iterableWrapper[T]{Iterable: data}}
-}
-
-type iterableWrapper[T any] struct {
-	gust.Iterable[T]
-}
-
-//go:inline
-func (iter iterableWrapper[T]) SizeHint() (uint, gust.Option[uint]) {
-	return 0, gust.None[uint]()
-}
-
 // MustToDoubleEnded converts to a DoubleEndedIterator[T] if the underlying
 // iterator supports double-ended iteration. Otherwise, it panics.
 //
@@ -48,10 +15,10 @@ func (iter iterableWrapper[T]) SizeHint() (uint, gust.Option[uint]) {
 //	// Can use Iterator methods:
 //	var doubled = deIter.Map(func(x int) any { return x * 2 })
 func (it Iterator[T]) MustToDoubleEnded() DoubleEndedIterator[T] {
-	if deCore, ok := it.iter.(DoubleEndedIterable[T]); ok {
+	if deCore, ok := it.iterable.(DoubleEndedIterable[T]); ok {
 		return DoubleEndedIterator[T]{
-			Iterator: Iterator[T]{iter: deCore}, // Embed Iterator with the same core
-			iter:     deCore,
+			Iterator: Iterator[T]{iterable: deCore}, // Embed Iterator with the same core
+			iterable: deCore,
 		}
 	}
 	panic("iterator does not support double-ended iteration")
@@ -68,10 +35,10 @@ func (it Iterator[T]) MustToDoubleEnded() DoubleEndedIterator[T] {
 //	// Can use Iterator methods:
 //	var doubled = deIter.Map(func(x int) any { return x * 2 })
 func (it Iterator[T]) TryToDoubleEnded() gust.Option[DoubleEndedIterator[T]] {
-	if deCore, ok := it.iter.(DoubleEndedIterable[T]); ok {
+	if deCore, ok := it.iterable.(DoubleEndedIterable[T]); ok {
 		return gust.Some(DoubleEndedIterator[T]{
-			Iterator: Iterator[T]{iter: deCore}, // Embed Iterator with the same core
-			iter:     deCore,
+			Iterator: Iterator[T]{iterable: deCore}, // Embed Iterator with the same core
+			iterable: deCore,
 		})
 	}
 	return gust.None[DoubleEndedIterator[T]]()
@@ -82,7 +49,7 @@ func (it Iterator[T]) TryToDoubleEnded() gust.Option[DoubleEndedIterator[T]] {
 //
 //go:inline
 func (it Iterator[T]) Next() gust.Option[T] {
-	return it.iter.Next()
+	return it.iterable.Next()
 }
 
 // SizeHint returns the bounds on the remaining length of the iterator.
@@ -90,20 +57,7 @@ func (it Iterator[T]) Next() gust.Option[T] {
 //
 //go:inline
 func (it Iterator[T]) SizeHint() (uint, gust.Option[uint]) {
-	return it.iter.SizeHint()
-}
-
-// Iterable returns the underlying Iterable[T] interface.
-// This is useful when you need to pass an Iterator[T] to a function that accepts Iterable[T].
-//
-// # Examples
-//
-//	var iter = FromSlice([]int{1, 2, 3})
-//	var mapped = Map(iter.Iterable(), func(x int) int { return x * 2 })
-//
-//go:inline
-func (it Iterator[T]) Iterable() Iterable[T] {
-	return it.iter
+	return it.iterable.SizeHint()
 }
 
 // Adapter methods - these return new iterators and can be chained
@@ -246,7 +200,7 @@ func (it Iterator[T]) Inspect(f func(T)) Iterator[T] {
 //
 //go:inline
 func (it Iterator[T]) Collect() []T {
-	return collectImpl(it.Iterable())
+	return collectImpl(it.iterable)
 }
 
 // Count consumes the iterator, counting the number of iterations.
@@ -258,7 +212,7 @@ func (it Iterator[T]) Collect() []T {
 //
 //go:inline
 func (it Iterator[T]) Count() uint {
-	return countImpl(it.Iterable())
+	return countImpl(it.iterable)
 }
 
 // Last returns the last element of the iterator.
@@ -270,7 +224,7 @@ func (it Iterator[T]) Count() uint {
 //
 //go:inline
 func (it Iterator[T]) Last() gust.Option[T] {
-	return lastImpl(it.Iterable())
+	return lastImpl(it.iterable)
 }
 
 // Reduce reduces the iterator to a single value.
@@ -283,7 +237,7 @@ func (it Iterator[T]) Last() gust.Option[T] {
 //
 //go:inline
 func (it Iterator[T]) Reduce(f func(T, T) T) gust.Option[T] {
-	return reduceImpl(it.Iterable(), f)
+	return reduceImpl(it.iterable, f)
 }
 
 // ForEach calls a closure on each element.
@@ -295,7 +249,7 @@ func (it Iterator[T]) Reduce(f func(T, T) T) gust.Option[T] {
 //
 //go:inline
 func (it Iterator[T]) ForEach(f func(T)) {
-	forEachImpl(it.Iterable(), f)
+	forEachImpl(it.iterable, f)
 }
 
 // All tests if all elements satisfy a predicate.
@@ -307,7 +261,7 @@ func (it Iterator[T]) ForEach(f func(T)) {
 //
 //go:inline
 func (it Iterator[T]) All(predicate func(T) bool) bool {
-	return allImpl(it.Iterable(), predicate)
+	return allImpl(it.iterable, predicate)
 }
 
 // Any tests if any element satisfies a predicate.
@@ -319,7 +273,7 @@ func (it Iterator[T]) All(predicate func(T) bool) bool {
 //
 //go:inline
 func (it Iterator[T]) Any(predicate func(T) bool) bool {
-	return anyImpl(it.Iterable(), predicate)
+	return anyImpl(it.iterable, predicate)
 }
 
 // Find searches for an element that satisfies a predicate.
@@ -331,7 +285,7 @@ func (it Iterator[T]) Any(predicate func(T) bool) bool {
 //
 //go:inline
 func (it Iterator[T]) Find(predicate func(T) bool) gust.Option[T] {
-	return findImpl(it.Iterable(), predicate)
+	return findImpl(it.iterable, predicate)
 }
 
 // XFindMap searches for an element and maps it (any version).
@@ -500,7 +454,7 @@ func (it Iterator[T]) TryFold(init T, f func(T, T) gust.Result[T]) gust.Result[T
 //
 //go:inline
 func (it Iterator[T]) Partition(f func(T) bool) (truePart []T, falsePart []T) {
-	return partitionImpl(it.Iterable(), f)
+	return partitionImpl(it.iterable, f)
 }
 
 // Position searches for an element in an iterator, returning its index.
@@ -512,7 +466,7 @@ func (it Iterator[T]) Partition(f func(T) bool) (truePart []T, falsePart []T) {
 //
 //go:inline
 func (it Iterator[T]) Position(predicate func(T) bool) gust.Option[uint] {
-	return positionImpl(it.Iterable(), predicate)
+	return positionImpl(it.iterable, predicate)
 }
 
 // AdvanceBy advances the iterator by n elements.
@@ -524,7 +478,7 @@ func (it Iterator[T]) Position(predicate func(T) bool) gust.Option[uint] {
 //
 //go:inline
 func (it Iterator[T]) AdvanceBy(n uint) gust.Errable[uint] {
-	return advanceByImpl(it.Iterable(), n)
+	return advanceByImpl(it.iterable, n)
 }
 
 // Nth returns the nth element of the iterator.
@@ -536,7 +490,7 @@ func (it Iterator[T]) AdvanceBy(n uint) gust.Errable[uint] {
 //
 //go:inline
 func (it Iterator[T]) Nth(n uint) gust.Option[T] {
-	return nthImpl(it.Iterable(), n)
+	return nthImpl(it.iterable, n)
 }
 
 // NextChunk advances the iterator and returns an array containing the next N values.
@@ -549,7 +503,7 @@ func (it Iterator[T]) Nth(n uint) gust.Option[T] {
 //
 //go:inline
 func (it Iterator[T]) NextChunk(n uint) gust.EnumResult[[]T, []T] {
-	return nextChunkImpl(it.Iterable(), n)
+	return nextChunkImpl(it.iterable, n)
 }
 
 // Intersperse creates an iterator that places a separator between adjacent items.
@@ -563,7 +517,7 @@ func (it Iterator[T]) NextChunk(n uint) gust.EnumResult[[]T, []T] {
 //
 //go:inline
 func (it Iterator[T]) Intersperse(separator T) Iterator[T] {
-	return intersperseImpl(it.Iterable(), separator)
+	return intersperseImpl(it.iterable, separator)
 }
 
 // IntersperseWith creates an iterator that places an item generated by separator between adjacent items.
@@ -577,7 +531,7 @@ func (it Iterator[T]) Intersperse(separator T) Iterator[T] {
 //
 //go:inline
 func (it Iterator[T]) IntersperseWith(separator func() T) Iterator[T] {
-	return intersperseWithImpl(it.Iterable(), separator)
+	return intersperseWithImpl(it.iterable, separator)
 }
 
 // Cycle repeats an iterator endlessly.
@@ -593,7 +547,7 @@ func (it Iterator[T]) IntersperseWith(separator func() T) Iterator[T] {
 //
 //go:inline
 func (it Iterator[T]) Cycle() Iterator[T] {
-	return cycleImpl(it.Iterable())
+	return cycleImpl(it.iterable)
 }
 
 // XFilterMap creates an iterator that both filters and maps (any version).

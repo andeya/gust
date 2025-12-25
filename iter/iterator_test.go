@@ -9,12 +9,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type customIter struct {
+type easyIterable struct {
 	values []int
 	index  int
 }
 
-func (c *customIter) Next() gust.Option[int] {
+func (c *easyIterable) Next() gust.Option[int] {
 	if c.index >= len(c.values) {
 		return gust.None[int]()
 	}
@@ -34,19 +34,13 @@ func TestFromIterable(t *testing.T) {
 	assert.Equal(t, gust.None[int](), iter2.Next())
 
 	// Test with gust.Iterable[T] that is not Iterator[T]
-	custom := &customIter{values: []int{10, 20, 30}, index: 0}
+	custom := &easyIterable{values: []int{10, 20, 30}, index: 0}
 	var gustIter2 gust.Iterable[int] = custom
 	iter3 := FromIterable(gustIter2)
 	assert.Equal(t, gust.Some(10), iter3.Next())
 	assert.Equal(t, gust.Some(20), iter3.Next())
 	assert.Equal(t, gust.Some(30), iter3.Next())
 	assert.Equal(t, gust.None[int](), iter3.Next())
-}
-
-func TestIteratorIterable(t *testing.T) {
-	iter := FromSlice([]int{1, 2, 3})
-	iterable := iter.Iterable()
-	assert.Equal(t, gust.Some(1), iterable.Next())
 }
 
 func TestTryToDoubleEnded(t *testing.T) {

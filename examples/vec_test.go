@@ -27,4 +27,3 @@ func ExampleMapAlone_typeConversion() {
 	fmt.Println(intSlice)
 	// Output: [1 2 3 4 5]
 }
-

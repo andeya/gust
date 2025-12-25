@@ -323,4 +323,3 @@ func IsSortedBy[T any](iter Iterator[T], compare func(T, T) bool) bool {
 func IsSortedByKey[T any, K gust.Digit](iter Iterator[T], f func(T) K) bool {
 	return IsSorted(Map(iter, f))
 }
-

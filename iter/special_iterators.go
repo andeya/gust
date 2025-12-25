@@ -21,7 +21,7 @@ import (
 //	assert.Equal(t, gust.Some(2), filtered.Next())
 type PeekableIterator[T any] struct {
 	Iterator[T] // Embed Iterator to inherit all its methods
-	core        *peekableIteratorCore[T]
+	peeker      *peekableIterable[T]
 }
 
 // Peek returns the next element without consuming it.
@@ -37,7 +37,7 @@ type PeekableIterator[T any] struct {
 //
 //go:inline
 func (p *PeekableIterator[T]) Peek() gust.Option[T] {
-	return p.core.Peek()
+	return p.peeker.Peek()
 }
 
 // Next advances the iterator and returns the next value.
@@ -45,7 +45,7 @@ func (p *PeekableIterator[T]) Peek() gust.Option[T] {
 //
 //go:inline
 func (p *PeekableIterator[T]) Next() gust.Option[T] {
-	return p.core.Next()
+	return p.peeker.Next()
 }
 
 // SizeHint returns the bounds on the remaining length of the iterator.
@@ -53,23 +53,23 @@ func (p *PeekableIterator[T]) Next() gust.Option[T] {
 //
 //go:inline
 func (p *PeekableIterator[T]) SizeHint() (uint, gust.Option[uint]) {
-	return p.core.SizeHint()
+	return p.peeker.SizeHint()
 }
 
 func peekableImpl[T any](iter Iterator[T]) PeekableIterator[T] {
-	core := &peekableIteratorCore[T]{iter: iter.Iterable(), peeked: gust.None[T]()}
+	core := &peekableIterable[T]{iter: iter.iterable, peeked: gust.None[T]()}
 	return PeekableIterator[T]{
-		Iterator: Iterator[T]{iter: core},
-		core:     core,
+		Iterator: Iterator[T]{iterable: core},
+		peeker:   core,
 	}
 }
 
-type peekableIteratorCore[T any] struct {
+type peekableIterable[T any] struct {
 	iter   Iterable[T]
 	peeked gust.Option[T]
 }
 
-func (p *peekableIteratorCore[T]) Next() gust.Option[T] {
+func (p *peekableIterable[T]) Next() gust.Option[T] {
 	if p.peeked.IsSome() {
 		item := p.peeked
 		p.peeked = gust.None[T]()
@@ -78,14 +78,14 @@ func (p *peekableIteratorCore[T]) Next() gust.Option[T] {
 	return p.iter.Next()
 }
 
-func (p *peekableIteratorCore[T]) Peek() gust.Option[T] {
+func (p *peekableIterable[T]) Peek() gust.Option[T] {
 	if p.peeked.IsNone() {
 		p.peeked = p.iter.Next()
 	}
 	return p.peeked
 }
 
-func (p *peekableIteratorCore[T]) SizeHint() (uint, gust.Option[uint]) {
+func (p *peekableIterable[T]) SizeHint() (uint, gust.Option[uint]) {
 	lower, upper := p.iter.SizeHint()
 	if p.peeked.IsSome() {
 		if lower > 0 {
@@ -122,7 +122,7 @@ func (p *peekableIteratorCore[T]) SizeHint() (uint, gust.Option[uint]) {
 //
 //go:inline
 func clonedImpl[T any](iter Iterable[*T]) Iterable[T] {
-	return Map(Iterator[*T]{iter: iter}, func(ptr *T) T {
+	return Map(Iterator[*T]{iterable: iter}, func(ptr *T) T {
 		if ptr == nil {
 			var zero T
 			return zero
@@ -130,28 +130,28 @@ func clonedImpl[T any](iter Iterable[*T]) Iterable[T] {
 		// In Go, we need to handle cloning manually for types that need it
 		// For basic types, dereferencing is enough
 		return *ptr
-	}).Iterable()
+	}).iterable
 }
 
 // Cloned creates an iterator which clones all of its elements.
 // This function accepts Iterator[*T] and returns Iterator[T] for chainable calls.
 func Cloned[T any](iter Iterator[*T]) Iterator[T] {
-	return Iterator[T]{iter: clonedImpl(iter.Iterable())}
+	return Iterator[T]{iterable: clonedImpl(iter.iterable)}
 }
 
 //go:inline
 func cycleImpl[T any](iter Iterable[T]) Iterator[T] {
-	return Iterator[T]{iter: &cycleIterator[T]{iter: iter, cache: []T{}, index: 0, exhausted: false}}
+	return Iterator[T]{iterable: &cycleIterable[T]{iter: iter, cache: []T{}, index: 0, exhausted: false}}
 }
 
-type cycleIterator[T any] struct {
+type cycleIterable[T any] struct {
 	iter      Iterable[T]
 	cache     []T
 	index     int
 	exhausted bool
 }
 
-func (c *cycleIterator[T]) Next() gust.Option[T] {
+func (c *cycleIterable[T]) Next() gust.Option[T] {
 	if !c.exhausted {
 		item := c.iter.Next()
 		if item.IsSome() {
@@ -173,7 +173,7 @@ func (c *cycleIterator[T]) Next() gust.Option[T] {
 	return gust.Some(item)
 }
 
-func (c *cycleIterator[T]) SizeHint() (uint, gust.Option[uint]) {
+func (c *cycleIterable[T]) SizeHint() (uint, gust.Option[uint]) {
 	if c.exhausted {
 		return 0, gust.None[uint]() // Infinite
 	}

@@ -22,4 +22,3 @@ func TestNextChunk(t *testing.T) {
 	chunk3 := iter.NextChunk(2)
 	assert.True(t, chunk3.IsErr())
 }
-

@@ -31,47 +31,47 @@ func TestProduct_AllTypes(t *testing.T) {
 	// int
 	assert.Equal(t, 1, Product(FromSlice([]int{})))
 	assert.Equal(t, 6, Product(FromSlice([]int{1, 2, 3})))
-	
+
 	// int8
 	assert.Equal(t, int8(1), Product(FromSlice([]int8{})))
 	assert.Equal(t, int8(6), Product(FromSlice([]int8{1, 2, 3})))
-	
+
 	// int16
 	assert.Equal(t, int16(1), Product(FromSlice([]int16{})))
 	assert.Equal(t, int16(6), Product(FromSlice([]int16{1, 2, 3})))
-	
+
 	// int32
 	assert.Equal(t, int32(1), Product(FromSlice([]int32{})))
 	assert.Equal(t, int32(6), Product(FromSlice([]int32{1, 2, 3})))
-	
+
 	// int64
 	assert.Equal(t, int64(1), Product(FromSlice([]int64{})))
 	assert.Equal(t, int64(6), Product(FromSlice([]int64{1, 2, 3})))
-	
+
 	// uint
 	assert.Equal(t, uint(1), Product(FromSlice([]uint{})))
 	assert.Equal(t, uint(6), Product(FromSlice([]uint{1, 2, 3})))
-	
+
 	// uint8
 	assert.Equal(t, uint8(1), Product(FromSlice([]uint8{})))
 	assert.Equal(t, uint8(6), Product(FromSlice([]uint8{1, 2, 3})))
-	
+
 	// uint16
 	assert.Equal(t, uint16(1), Product(FromSlice([]uint16{})))
 	assert.Equal(t, uint16(6), Product(FromSlice([]uint16{1, 2, 3})))
-	
+
 	// uint32
 	assert.Equal(t, uint32(1), Product(FromSlice([]uint32{})))
 	assert.Equal(t, uint32(6), Product(FromSlice([]uint32{1, 2, 3})))
-	
+
 	// uint64
 	assert.Equal(t, uint64(1), Product(FromSlice([]uint64{})))
 	assert.Equal(t, uint64(6), Product(FromSlice([]uint64{1, 2, 3})))
-	
+
 	// float32
 	assert.Equal(t, float32(1.0), Product(FromSlice([]float32{})))
 	assert.Equal(t, float32(6.0), Product(FromSlice([]float32{1.0, 2.0, 3.0})))
-	
+
 	// float64
 	assert.Equal(t, 1.0, Product(FromSlice([]float64{})))
 	assert.Equal(t, 6.0, Product(FromSlice([]float64{1.0, 2.0, 3.0})))
@@ -82,18 +82,18 @@ func TestSum_AllTypes(t *testing.T) {
 	// int
 	assert.Equal(t, 0, Sum(FromSlice([]int{})))
 	assert.Equal(t, 6, Sum(FromSlice([]int{1, 2, 3})))
-	
+
 	// float64
 	assert.Equal(t, 0.0, Sum(FromSlice([]float64{})))
 	assert.Equal(t, 6.0, Sum(FromSlice([]float64{1.0, 2.0, 3.0})))
 }
 
-type nonDoubleEndedIter struct {
+type nonDoubleEndedIterable struct {
 	values []int
 	index  int
 }
 
-func (n *nonDoubleEndedIter) Next() gust.Option[int] {
+func (n *nonDoubleEndedIterable) Next() gust.Option[int] {
 	if n.index >= len(n.values) {
 		return gust.None[int]()
 	}
@@ -102,7 +102,7 @@ func (n *nonDoubleEndedIter) Next() gust.Option[int] {
 	return gust.Some(val)
 }
 
-func (n *nonDoubleEndedIter) SizeHint() (uint, gust.Option[uint]) {
+func (n *nonDoubleEndedIterable) SizeHint() (uint, gust.Option[uint]) {
 	return 0, gust.None[uint]()
 }
 
@@ -113,11 +113,11 @@ func TestMustToDoubleEnded_Panic(t *testing.T) {
 			t.Error("MustToDoubleEnded should panic for non-double-ended iterator")
 		}
 	}()
-	
+
 	iter := Iterator[int]{
-		iter: &nonDoubleEndedIter{values: []int{1, 2, 3}, index: 0},
+		iterable: &nonDoubleEndedIterable{values: []int{1, 2, 3}, index: 0},
 	}
-	
+
 	_ = iter.MustToDoubleEnded()
 }
 
@@ -150,4 +150,3 @@ func TestFromIterable_IterablePath(t *testing.T) {
 	assert.Equal(t, gust.Some(30), iter.Next())
 	assert.Equal(t, gust.None[int](), iter.Next())
 }
-

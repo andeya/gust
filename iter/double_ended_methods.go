@@ -4,6 +4,113 @@ import (
 	"github.com/andeya/gust"
 )
 
+// Remaining returns the number of elements remaining in the iterator.
+//
+// # Examples
+//
+// var numbers = []int{1, 2, 3, 4, 5, 6}
+// var deIter = FromSlice(numbers).MustToDoubleEnded()
+// assert.Equal(t, uint(6), deIter.Remaining())
+// deIter.Next()
+// assert.Equal(t, uint(5), deIter.Remaining())
+// deIter.NextBack()
+// assert.Equal(t, uint(4), deIter.Remaining())
+// deIter.NextBack()
+// assert.Equal(t, uint(3), deIter.Remaining())
+// deIter.NextBack()
+// assert.Equal(t, uint(2), deIter.Remaining())
+// deIter.NextBack()
+// assert.Equal(t, uint(1), deIter.Remaining())
+// deIter.NextBack()
+// assert.Equal(t, uint(0), deIter.Remaining())
+// deIter.NextBack()
+// assert.Equal(t, uint(0), deIter.Remaining())
+func (de DoubleEndedIterator[T]) Remaining() uint {
+	return de.iterable.Remaining()
+}
+
+// NextBack removes and returns an element from the end of the iterator.
+//
+// Returns None when there are no more elements.
+//
+// # Examples
+//
+//	var numbers = []int{1, 2, 3, 4, 5, 6}
+//	var deIter = FromSlice(numbers).MustToDoubleEnded()
+//	assert.Equal(t, gust.Some(6), deIter.NextBack())
+//	assert.Equal(t, gust.Some(5), deIter.NextBack())
+//	assert.Equal(t, gust.Some(4), deIter.NextBack())
+//	assert.Equal(t, gust.Some(3), deIter.NextBack())
+//	assert.Equal(t, gust.Some(2), deIter.NextBack())
+//	assert.Equal(t, gust.Some(1), deIter.NextBack())
+//	assert.Equal(t, gust.None[int](), deIter.NextBack())
+//
+//go:inline
+func (de DoubleEndedIterator[T]) NextBack() gust.Option[T] {
+	return de.iterable.NextBack()
+}
+
+// AdvanceBackBy advances the iterator from the back by n elements.
+//
+// AdvanceBackBy is the reverse version of AdvanceBy. This method will
+// eagerly skip n elements starting from the back by calling NextBack up
+// to n times until None is encountered.
+//
+// AdvanceBackBy(n) will return NonErrable if the iterator successfully advances by
+// n elements, or a ToErrable(k) with value k if None is encountered, where k
+// is remaining number of steps that could not be advanced because the iterator ran out.
+// If iter is empty and n is non-zero, then this returns ToErrable(n).
+// Otherwise, k is always less than n.
+//
+// Calling AdvanceBackBy(0) can do meaningful work.
+//
+// # Examples
+//
+//	var a = []int{3, 4, 5, 6}
+//	var deIter = FromSlice(a).MustToDoubleEnded()
+//	assert.Equal(t, gust.NonErrable[uint](), deIter.AdvanceBackBy(2))
+//	assert.Equal(t, gust.Some(4), deIter.NextBack())
+//	assert.Equal(t, gust.NonErrable[uint](), deIter.AdvanceBackBy(0))
+//	assert.Equal(t, gust.ToErrable[uint](99), deIter.AdvanceBackBy(100))
+func (de DoubleEndedIterator[T]) AdvanceBackBy(n uint) gust.Errable[uint] {
+	for i := uint(0); i < n; i++ {
+		if de.iterable.NextBack().IsNone() {
+			return gust.ToErrable[uint](n - i)
+		}
+	}
+	return gust.NonErrable[uint]()
+}
+
+// NthBack returns the nth element from the end of the iterator.
+//
+// This is essentially the reversed version of Nth().
+// Although like most indexing operations, the count starts from zero, so
+// NthBack(0) returns the first value from the end, NthBack(1) the
+// second, and so on.
+//
+// Note that all elements between the end and the returned element will be
+// consumed, including the returned element. This also means that calling
+// NthBack(0) multiple times on the same iterator will return different
+// elements.
+//
+// NthBack() will return None if n is greater than or equal to the length of the
+// iterator.
+//
+// # Examples
+//
+//	var a = []int{1, 2, 3}
+//	var deIter = FromSlice(a).MustToDoubleEnded()
+//	assert.Equal(t, gust.Some(1), deIter.NthBack(2))
+//	assert.Equal(t, gust.Some(2), deIter.NthBack(1))
+//	assert.Equal(t, gust.Some(3), deIter.NthBack(0))
+//	assert.Equal(t, gust.None[int](), deIter.NthBack(10))
+func (de DoubleEndedIterator[T]) NthBack(n uint) gust.Option[T] {
+	if de.AdvanceBackBy(n).IsErr() {
+		return gust.None[T]()
+	}
+	return de.iterable.NextBack()
+}
+
 // XRfold folds every element into an accumulator by applying an operation,
 // starting from the back (any version).
 //
@@ -13,14 +120,14 @@ import (
 // # Examples
 //
 //	var a = []int{1, 2, 3}
-//	var iter = FromSlice(a)
+//	var deIter = FromSlice(a).MustToDoubleEnded()
 //	var deIter = iter.MustToDoubleEnded()
 //	var sum = deIter.XRfold(0, func(acc any, x int) any { return acc.(int) + x })
 //	assert.Equal(t, 6, sum)
 //
 //go:inline
 func (de DoubleEndedIterator[T]) XRfold(init any, f func(any, T) any) any {
-	return rfoldImpl(de.iter, init, f)
+	return rfoldImpl(de.iterable, init, f)
 }
 
 // Rfold folds every element into an accumulator by applying an operation,
@@ -46,14 +153,13 @@ func (de DoubleEndedIterator[T]) XRfold(init any, f func(any, T) any) any {
 // # Examples
 //
 //	var a = []int{1, 2, 3}
-//	var iter = FromSlice(a)
-//	var deIter = iter.MustToDoubleEnded()
+//	var deIter = FromSlice(a).MustToDoubleEnded()
 //	var sum = deIter.Rfold(0, func(acc int, x int) int { return acc + x })
 //	assert.Equal(t, 6, sum)
 //
 //go:inline
 func (de DoubleEndedIterator[T]) Rfold(init T, f func(T, T) T) T {
-	return rfoldImpl(de.iter, init, f)
+	return rfoldImpl(de.iterable, init, f)
 }
 
 // Rfold folds every element into an accumulator by applying an operation,
@@ -62,12 +168,11 @@ func (de DoubleEndedIterator[T]) Rfold(init T, f func(T, T) T) T {
 // # Examples
 //
 //	var a = []int{1, 2, 3}
-//	var iter = FromSlice(a)
-//	var deIter = iter.MustToDoubleEnded()
+//	var deIter = FromSlice(a).MustToDoubleEnded()
 //	var sum = Rfold(deIter, 0, func(acc int, x int) int { return acc + x })
 //	assert.Equal(t, 6, sum)
 func Rfold[T any, B any](de DoubleEndedIterator[T], init B, f func(B, T) B) B {
-	return rfoldImpl(de.iter, init, f)
+	return rfoldImpl(de.iterable, init, f)
 }
 
 // rfoldImpl is the internal implementation of Rfold.
@@ -91,8 +196,7 @@ func rfoldImpl[T any, B any](iter DoubleEndedIterable[T], init B, f func(B, T) B
 // # Examples
 //
 //	var a = []string{"1", "2", "3"}
-//	var iter = FromSlice(a)
-//	var deIter = iter.MustToDoubleEnded()
+//	var deIter = FromSlice(a).MustToDoubleEnded()
 //	var sum = deIter.XTryRfold(0, func(acc any, s string) gust.Result[any] {
 //		if v, err := strconv.Atoi(s); err == nil {
 //			return gust.Ok(any(acc.(int) + v))
@@ -104,7 +208,7 @@ func rfoldImpl[T any, B any](iter DoubleEndedIterable[T], init B, f func(B, T) B
 //
 //go:inline
 func (de DoubleEndedIterator[T]) XTryRfold(init any, f func(any, T) gust.Result[any]) gust.Result[any] {
-	return tryRfoldImpl(de.iter, init, f)
+	return tryRfoldImpl(de.iterable, init, f)
 }
 
 // TryRfold is the reverse version of TryFold: it takes elements starting from
@@ -113,8 +217,7 @@ func (de DoubleEndedIterator[T]) XTryRfold(init any, f func(any, T) gust.Result[
 // # Examples
 //
 //	var a = []string{"1", "2", "3"}
-//	var iter = FromSlice(a)
-//	var deIter = iter.MustToDoubleEnded()
+//	var deIter = FromSlice(a).MustToDoubleEnded()
 //	var sum = deIter.TryRfold(0, func(acc int, s string) gust.Result[int] {
 //		if v, err := strconv.Atoi(s); err == nil {
 //			return gust.Ok(acc + v)
@@ -126,7 +229,7 @@ func (de DoubleEndedIterator[T]) XTryRfold(init any, f func(any, T) gust.Result[
 //
 //go:inline
 func (de DoubleEndedIterator[T]) TryRfold(init T, f func(T, T) gust.Result[T]) gust.Result[T] {
-	return tryRfoldImpl(de.iter, init, f)
+	return tryRfoldImpl(de.iterable, init, f)
 }
 
 // TryRfold is the reverse version of TryFold: it takes elements starting from
@@ -135,8 +238,7 @@ func (de DoubleEndedIterator[T]) TryRfold(init T, f func(T, T) gust.Result[T]) g
 // # Examples
 //
 //	var a = []string{"1", "2", "3"}
-//	var iter = FromSlice(a)
-//	var deIter = iter.MustToDoubleEnded()
+//	var deIter = FromSlice(a).MustToDoubleEnded()
 //	var sum = TryRfold(deIter, 0, func(acc int, s string) gust.Result[int] {
 //		if v, err := strconv.Atoi(s); err == nil {
 //			return gust.Ok(acc + v)
@@ -146,7 +248,7 @@ func (de DoubleEndedIterator[T]) TryRfold(init T, f func(T, T) gust.Result[T]) g
 //	assert.True(t, sum.IsOk())
 //	assert.Equal(t, 6, sum.Unwrap())
 func TryRfold[T any, B any](de DoubleEndedIterator[T], init B, f func(B, T) gust.Result[B]) gust.Result[B] {
-	return tryRfoldImpl(de.iter, init, f)
+	return tryRfoldImpl(de.iterable, init, f)
 }
 
 // tryRfoldImpl is the internal implementation of TryRfold.
@@ -181,16 +283,14 @@ func tryRfoldImpl[T any, B any](iter DoubleEndedIterable[T], init B, f func(B, T
 // # Examples
 //
 //	var a = []int{1, 2, 3}
-//	var iter = FromSlice(a)
-//	var deIter = AsDoubleEnded(iter)
+//	var deIter = FromSlice(a).MustToDoubleEnded()
 //	assert.Equal(t, gust.Some(2), deIter.Rfind(func(x int) bool { return x == 2 }))
 //
 //	var b = []int{1, 2, 3}
-//	var iter2 = FromSlice(b)
-//	var deIter2 = AsDoubleEnded(iter2)
+//	var deIter2 = FromSlice(b).MustToDoubleEnded()
 //	assert.Equal(t, gust.None[int](), deIter2.Rfind(func(x int) bool { return x == 5 }))
 func (de DoubleEndedIterator[T]) Rfind(predicate func(T) bool) gust.Option[T] {
-	return rfindImpl(de.iter, predicate)
+	return rfindImpl(de.iterable, predicate)
 }
 
 // Rfind searches for an element of an iterator from the back that satisfies a predicate (function version).
@@ -198,8 +298,7 @@ func (de DoubleEndedIterator[T]) Rfind(predicate func(T) bool) gust.Option[T] {
 // # Examples
 //
 //	var a = []int{1, 2, 3}
-//	var iter = FromSlice(a)
-//	var deIter = AsDoubleEnded(iter)
+//	var deIter = FromSlice(a).MustToDoubleEnded()
 //	assert.Equal(t, gust.Some(2), Rfind(deIter, func(x int) bool { return x == 2 }))
 func Rfind[T any](de DoubleEndedIterator[T], predicate func(T) bool) gust.Option[T] {
 	return de.Rfind(predicate)

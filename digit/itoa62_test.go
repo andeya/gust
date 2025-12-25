@@ -287,36 +287,36 @@ func TestFormatBits_NonPowerOfTwoBase(t *testing.T) {
 		base int
 		want string
 	}{
-		{10, 3, "101"},   // base 3
-		{10, 5, "20"},    // base 5
-		{10, 7, "13"},   // base 7
-		{10, 9, "11"},   // base 9
-		{10, 11, "a"},   // base 11
-		{10, 13, "a"},   // base 13
-		{10, 15, "a"},   // base 15
-		{10, 17, "a"},   // base 17
-		{10, 19, "a"},   // base 19
-		{10, 21, "a"},   // base 21
-		{10, 23, "a"},   // base 23
-		{10, 25, "a"},   // base 25
-		{10, 27, "a"},   // base 27
-		{10, 29, "a"},   // base 29
-		{10, 31, "a"},   // base 31
-		{10, 33, "a"},   // base 33
-		{10, 35, "a"},   // base 35
-		{10, 37, "a"},   // base 37
-		{10, 39, "a"},   // base 39
-		{10, 41, "a"},   // base 41
-		{10, 43, "a"},   // base 43
-		{10, 45, "a"},   // base 45
-		{10, 47, "a"},   // base 47
-		{10, 49, "a"},   // base 49
-		{10, 51, "a"},   // base 51
-		{10, 53, "a"},   // base 53
-		{10, 55, "a"},   // base 55
-		{10, 57, "a"},   // base 57
-		{10, 59, "a"},   // base 59
-		{10, 61, "a"},   // base 61
+		{10, 3, "101"}, // base 3
+		{10, 5, "20"},  // base 5
+		{10, 7, "13"},  // base 7
+		{10, 9, "11"},  // base 9
+		{10, 11, "a"},  // base 11
+		{10, 13, "a"},  // base 13
+		{10, 15, "a"},  // base 15
+		{10, 17, "a"},  // base 17
+		{10, 19, "a"},  // base 19
+		{10, 21, "a"},  // base 21
+		{10, 23, "a"},  // base 23
+		{10, 25, "a"},  // base 25
+		{10, 27, "a"},  // base 27
+		{10, 29, "a"},  // base 29
+		{10, 31, "a"},  // base 31
+		{10, 33, "a"},  // base 33
+		{10, 35, "a"},  // base 35
+		{10, 37, "a"},  // base 37
+		{10, 39, "a"},  // base 39
+		{10, 41, "a"},  // base 41
+		{10, 43, "a"},  // base 43
+		{10, 45, "a"},  // base 45
+		{10, 47, "a"},  // base 47
+		{10, 49, "a"},  // base 49
+		{10, 51, "a"},  // base 51
+		{10, 53, "a"},  // base 53
+		{10, 55, "a"},  // base 55
+		{10, 57, "a"},  // base 57
+		{10, 59, "a"},  // base 59
+		{10, 61, "a"},  // base 61
 	}
 
 	for _, tc := range testCases {
@@ -745,7 +745,6 @@ func TestFormatBits_PowerOfTwoBases(t *testing.T) {
 	}
 }
 
-
 func TestFormatBits_AppendInt_Negative(t *testing.T) {
 	// Test AppendInt with negative numbers
 	dst := []byte("prefix")
@@ -910,11 +909,11 @@ func TestTryFromString_ReflectPath_AllKinds(t *testing.T) {
 	// Test tryFromString with reflect path for all kinds
 	// This tests the reflect.TypeOf(x).Kind() path at line 45
 	// We need to use custom types that will trigger the reflect path
-	
+
 	// Test with custom string type
 	type CustomString string
 	type CustomInt int
-	
+
 	// This should use the reflect path
 	result := TryFromString[CustomString, CustomInt]("42", 10, 0)
 	if result.IsErr() {
@@ -922,7 +921,7 @@ func TestTryFromString_ReflectPath_AllKinds(t *testing.T) {
 	} else {
 		t.Logf("TryFromString returned: %v", result.Unwrap())
 	}
-	
+
 	// Test with standard types that will use reflect path
 	result2 := TryFromString[string, int]("42", 10, 0)
 	if result2.IsErr() {
@@ -930,7 +929,7 @@ func TestTryFromString_ReflectPath_AllKinds(t *testing.T) {
 	} else if result2.Unwrap() != 42 {
 		t.Errorf("TryFromString[string, int]('42', 10, 0) = %d, want 42", result2.Unwrap())
 	}
-	
+
 	// Test with uint
 	result3 := TryFromString[string, uint]("42", 10, 0)
 	if result3.IsErr() {
@@ -938,13 +937,13 @@ func TestTryFromString_ReflectPath_AllKinds(t *testing.T) {
 	} else if result3.Unwrap() != 42 {
 		t.Errorf("TryFromString[string, uint]('42', 10, 0) = %d, want 42", result3.Unwrap())
 	}
-	
+
 	// Test with float32
 	result4 := TryFromString[string, float32]("3.14", 10, 32)
 	if result4.IsErr() {
 		t.Errorf("TryFromString[string, float32]('3.14', 10, 32) should work, got error: %v", result4.UnwrapErr())
 	}
-	
+
 	// Test with float64
 	result5 := TryFromString[string, float64]("3.14", 10, 64)
 	if result5.IsErr() {

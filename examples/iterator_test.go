@@ -150,4 +150,3 @@ func ExampleIterator_Chain() {
 	fmt.Println("Result:", result)
 	// Output: Result: 56
 }
-

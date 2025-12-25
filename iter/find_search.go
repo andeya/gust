@@ -59,7 +59,7 @@ func findImpl[T any](iter Iterable[T], predicate func(T) bool) gust.Option[T] {
 //	})
 //	assert.Equal(t, gust.Some(2), firstNumber)
 func FindMap[T any, U any](iter Iterator[T], f func(T) gust.Option[U]) gust.Option[U] {
-	return findMapImpl(iter.Iterable(), f)
+	return findMapImpl(iter.iterable, f)
 }
 
 //go:inline

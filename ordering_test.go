@@ -49,4 +49,3 @@ func TestOrdering(t *testing.T) {
 	assert.True(t, gust.Compare(uint(20), uint(20)).IsEqual())
 	assert.True(t, gust.Compare(uint(30), uint(20)).IsGreater())
 }
-

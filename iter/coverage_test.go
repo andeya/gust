@@ -102,11 +102,11 @@ func TestFlattenEmptyInner(t *testing.T) {
 	assert.Equal(t, []int{1, 2}, result)
 }
 
-type alternateIter struct {
+type alternateIterable struct {
 	state int
 }
 
-func (a *alternateIter) Next() gust.Option[int] {
+func (a *alternateIterable) Next() gust.Option[int] {
 	val := a.state
 	a.state++
 	if val%2 == 0 {
@@ -115,16 +115,16 @@ func (a *alternateIter) Next() gust.Option[int] {
 	return gust.None[int]()
 }
 
-func (a *alternateIter) SizeHint() (uint, gust.Option[uint]) {
+func (a *alternateIterable) SizeHint() (uint, gust.Option[uint]) {
 	return DefaultSizeHint[int]()
 }
 
 // TestFuse tests Fuse functionality
 func TestFuse(t *testing.T) {
 	// Create an iterator that alternates between Some and None
-	alt := &alternateIter{state: 0}
+	alt := &alternateIterable{state: 0}
 	var iterable Iterable[int] = alt
-	iter := Iterator[int]{iter: iterable}.Fuse()
+	iter := Iterator[int]{iterable: iterable}.Fuse()
 
 	// First call should return Some(0)
 	assert.Equal(t, gust.Some(0), iter.Next())
@@ -189,12 +189,12 @@ func TestIntersperseWithEmpty(t *testing.T) {
 	assert.Equal(t, gust.None[int](), iter.Next())
 }
 
-type nonDEIter struct {
+type nonDEIterable struct {
 	values []int
 	index  int
 }
 
-func (n *nonDEIter) Next() gust.Option[int] {
+func (n *nonDEIterable) Next() gust.Option[int] {
 	if n.index >= len(n.values) {
 		return gust.None[int]()
 	}
@@ -203,16 +203,16 @@ func (n *nonDEIter) Next() gust.Option[int] {
 	return gust.Some(val)
 }
 
-func (n *nonDEIter) SizeHint() (uint, gust.Option[uint]) {
+func (n *nonDEIterable) SizeHint() (uint, gust.Option[uint]) {
 	return DefaultSizeHint[int]()
 }
 
 // TestMustToDoubleEndedPanic tests MustToDoubleEnded panic case
 func TestMustToDoubleEndedPanic(t *testing.T) {
 	// Create a non-double-ended iterator
-	nonDE := &nonDEIter{values: []int{1, 2, 3}, index: 0}
+	nonDE := &nonDEIterable{values: []int{1, 2, 3}, index: 0}
 	var iterable Iterable[int] = nonDE
-	iter := Iterator[int]{iter: iterable}
+	iter := Iterator[int]{iterable: iterable}
 
 	assert.Panics(t, func() {
 		iter.MustToDoubleEnded()
@@ -222,20 +222,20 @@ func TestMustToDoubleEndedPanic(t *testing.T) {
 // TestTryToDoubleEndedNone tests TryToDoubleEnded returning None
 func TestTryToDoubleEndedNone(t *testing.T) {
 	// Create a non-double-ended iterator
-	nonDE := &nonDEIter{values: []int{1, 2, 3}, index: 0}
+	nonDE := &nonDEIterable{values: []int{1, 2, 3}, index: 0}
 	var iterable Iterable[int] = nonDE
-	iter := Iterator[int]{iter: iterable}
+	iter := Iterator[int]{iterable: iterable}
 
 	result := iter.TryToDoubleEnded()
 	assert.True(t, result.IsNone())
 }
 
-type testIter struct {
+type testIterable struct {
 	values []int
 	index  int
 }
 
-func (t *testIter) Next() gust.Option[int] {
+func (t *testIterable) Next() gust.Option[int] {
 	if t.index >= len(t.values) {
 		return gust.None[int]()
 	}
@@ -244,13 +244,13 @@ func (t *testIter) Next() gust.Option[int] {
 	return gust.Some(val)
 }
 
-func (t *testIter) SizeHint() (uint, gust.Option[uint]) {
+func (t *testIterable) SizeHint() (uint, gust.Option[uint]) {
 	return DefaultSizeHint[int]()
 }
 
 // TestFromIterableWithIterable tests FromIterable with Iterable[T] (not Iterator[T])
 func TestFromIterableWithIterable(t *testing.T) {
-	ti := &testIter{values: []int{10, 20, 30}, index: 0}
+	ti := &testIterable{values: []int{10, 20, 30}, index: 0}
 	var iterable Iterable[int] = ti
 	var gustIter gust.Iterable[int] = iterable
 	iter := FromIterable(gustIter)
@@ -409,17 +409,6 @@ func TestNextChunkZero(t *testing.T) {
 	chunk := iter.NextChunk(0)
 	assert.True(t, chunk.IsOk())
 	assert.Equal(t, []int{}, chunk.Unwrap())
-}
-
-// TestSliceIteratorRemaining tests sliceIterator Remaining
-func TestSliceIteratorRemaining(t *testing.T) {
-	iter := FromSlice([]int{1, 2, 3, 4, 5})
-	deIter := iter.MustToDoubleEnded()
-	assert.Equal(t, uint(5), deIter.iter.Remaining())
-	deIter.Next()
-	assert.Equal(t, uint(4), deIter.iter.Remaining())
-	deIter.NextBack()
-	assert.Equal(t, uint(3), deIter.iter.Remaining())
 }
 
 // TestAdvanceBackByZero tests AdvanceBackBy with zero
@@ -1148,12 +1137,12 @@ func TestRfindEmptyIterator(t *testing.T) {
 	assert.True(t, result.IsNone())
 }
 
-type testIter2 struct {
+type testIterable2 struct {
 	values []int
 	index  int
 }
 
-func (t *testIter2) Next() gust.Option[int] {
+func (t *testIterable2) Next() gust.Option[int] {
 	if t.index >= len(t.values) {
 		return gust.None[int]()
 	}
@@ -1162,13 +1151,13 @@ func (t *testIter2) Next() gust.Option[int] {
 	return gust.Some(val)
 }
 
-func (t *testIter2) SizeHint() (uint, gust.Option[uint]) {
+func (t *testIterable2) SizeHint() (uint, gust.Option[uint]) {
 	return DefaultSizeHint[int]()
 }
 
 // TestFromIterableIterableBranch tests FromIterable with Iterable[T] branch
 func TestFromIterableIterableBranch(t *testing.T) {
-	ti := &testIter2{values: []int{10, 20, 30}, index: 0}
+	ti := &testIterable2{values: []int{10, 20, 30}, index: 0}
 	var iterable Iterable[int] = ti
 	var gustIter gust.Iterable[int] = iterable
 	iter := FromIterable(gustIter)
@@ -1181,7 +1170,7 @@ func TestFromIterableIterableBranch(t *testing.T) {
 
 // TestIterableWrapperSizeHint tests iterableWrapper SizeHint
 func TestIterableWrapperSizeHint(t *testing.T) {
-	custom := &customIter{values: []int{1, 2, 3}, index: 0}
+	custom := &easyIterable{values: []int{1, 2, 3}, index: 0}
 	var gustIter gust.Iterable[int] = custom
 	iter := FromIterable(gustIter)
 	lower, upper := iter.SizeHint()

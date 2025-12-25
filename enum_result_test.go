@@ -579,7 +579,7 @@ func TestEnumResult_UnmarshalJSON_ValidAfterError(t *testing.T) {
 	// First attempt with invalid JSON
 	_ = result.UnmarshalJSON([]byte("invalid"))
 	assert.True(t, result.IsErr())
-	
+
 	// Then with valid JSON
 	err := result.UnmarshalJSON([]byte("42"))
 	assert.NoError(t, err)

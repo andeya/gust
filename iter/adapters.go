@@ -35,15 +35,15 @@ import (
 // Map creates an iterator which calls a closure on each element.
 // This function accepts Iterator[T] and returns Iterator[U] for chainable calls.
 func Map[T any, U any](iter Iterator[T], f func(T) U) Iterator[U] {
-	return Iterator[U]{iter: &mapIterator[T, U]{iter: iter.Iterable(), f: f}}
+	return Iterator[U]{iterable: &mapIterable[T, U]{iter: iter.iterable, f: f}}
 }
 
-type mapIterator[T any, U any] struct {
+type mapIterable[T any, U any] struct {
 	iter Iterable[T]
 	f    func(T) U
 }
 
-func (m *mapIterator[T, U]) Next() gust.Option[U] {
+func (m *mapIterable[T, U]) Next() gust.Option[U] {
 	item := m.iter.Next()
 	if item.IsNone() {
 		return gust.None[U]()
@@ -51,21 +51,21 @@ func (m *mapIterator[T, U]) Next() gust.Option[U] {
 	return gust.Some(m.f(item.Unwrap()))
 }
 
-func (m *mapIterator[T, U]) SizeHint() (uint, gust.Option[uint]) {
+func (m *mapIterable[T, U]) SizeHint() (uint, gust.Option[uint]) {
 	return m.iter.SizeHint()
 }
 
 //go:inline
 func filterImpl[T any](iter Iterator[T], predicate func(T) bool) Iterator[T] {
-	return Iterator[T]{iter: &filterIterator[T]{iter: iter.Iterable(), predicate: predicate}}
+	return Iterator[T]{iterable: &filterIterable[T]{iter: iter.iterable, predicate: predicate}}
 }
 
-type filterIterator[T any] struct {
+type filterIterable[T any] struct {
 	iter      Iterable[T]
 	predicate func(T) bool
 }
 
-func (f *filterIterator[T]) Next() gust.Option[T] {
+func (f *filterIterable[T]) Next() gust.Option[T] {
 	for {
 		item := f.iter.Next()
 		if item.IsNone() {
@@ -77,7 +77,7 @@ func (f *filterIterator[T]) Next() gust.Option[T] {
 	}
 }
 
-func (f *filterIterator[T]) SizeHint() (uint, gust.Option[uint]) {
+func (f *filterIterable[T]) SizeHint() (uint, gust.Option[uint]) {
 	_, upper := f.iter.SizeHint()
 	// Filter can reduce the size, but we don't know by how much
 	return 0, upper
@@ -111,15 +111,15 @@ func (f *filterIterator[T]) SizeHint() (uint, gust.Option[uint]) {
 // FilterMap creates an iterator that both filters and maps.
 // This function accepts Iterator[T] and returns Iterator[U] for chainable calls.
 func FilterMap[T any, U any](iter Iterator[T], f func(T) gust.Option[U]) Iterator[U] {
-	return Iterator[U]{iter: &filterMapIterator[T, U]{iter: iter.Iterable(), f: f}}
+	return Iterator[U]{iterable: &filterMapIterable[T, U]{iter: iter.iterable, f: f}}
 }
 
-type filterMapIterator[T any, U any] struct {
+type filterMapIterable[T any, U any] struct {
 	iter Iterable[T]
 	f    func(T) gust.Option[U]
 }
 
-func (f *filterMapIterator[T, U]) Next() gust.Option[U] {
+func (f *filterMapIterable[T, U]) Next() gust.Option[U] {
 	for {
 		item := f.iter.Next()
 		if item.IsNone() {
@@ -131,7 +131,7 @@ func (f *filterMapIterator[T, U]) Next() gust.Option[U] {
 	}
 }
 
-func (f *filterMapIterator[T, U]) SizeHint() (uint, gust.Option[uint]) {
+func (f *filterMapIterable[T, U]) SizeHint() (uint, gust.Option[uint]) {
 	_, upper := f.iter.SizeHint()
 	// FilterMap can reduce the size, but we don't know by how much
 	return 0, upper
@@ -139,16 +139,16 @@ func (f *filterMapIterator[T, U]) SizeHint() (uint, gust.Option[uint]) {
 
 //go:inline
 func chainImpl[T any](a Iterator[T], b Iterator[T]) Iterator[T] {
-	return Iterator[T]{iter: &chainIterator[T]{a: a.Iterable(), b: b.Iterable(), useA: true}}
+	return Iterator[T]{iterable: &chainIterable[T]{a: a.iterable, b: b.iterable, useA: true}}
 }
 
-type chainIterator[T any] struct {
+type chainIterable[T any] struct {
 	a    Iterable[T]
 	b    Iterable[T]
 	useA bool
 }
 
-func (c *chainIterator[T]) Next() gust.Option[T] {
+func (c *chainIterable[T]) Next() gust.Option[T] {
 	if c.useA {
 		item := c.a.Next()
 		if item.IsSome() {
@@ -159,7 +159,7 @@ func (c *chainIterator[T]) Next() gust.Option[T] {
 	return c.b.Next()
 }
 
-func (c *chainIterator[T]) SizeHint() (uint, gust.Option[uint]) {
+func (c *chainIterable[T]) SizeHint() (uint, gust.Option[uint]) {
 	lowerA, upperA := c.a.SizeHint()
 	lowerB, upperB := c.b.SizeHint()
 
@@ -202,15 +202,15 @@ func (c *chainIterator[T]) SizeHint() (uint, gust.Option[uint]) {
 // Zip creates an iterator that zips two iterators together.
 // This function accepts Iterator[T] and Iterator[U] and returns Iterator[gust.Pair[T, U]] for chainable calls.
 func Zip[T any, U any](a Iterator[T], b Iterator[U]) Iterator[gust.Pair[T, U]] {
-	return Iterator[gust.Pair[T, U]]{iter: &zipIterator[T, U]{a: a.Iterable(), b: b.Iterable()}}
+	return Iterator[gust.Pair[T, U]]{iterable: &zipIterable[T, U]{a: a.iterable, b: b.iterable}}
 }
 
-type zipIterator[T any, U any] struct {
+type zipIterable[T any, U any] struct {
 	a Iterable[T]
 	b Iterable[U]
 }
 
-func (z *zipIterator[T, U]) Next() gust.Option[gust.Pair[T, U]] {
+func (z *zipIterable[T, U]) Next() gust.Option[gust.Pair[T, U]] {
 	itemA := z.a.Next()
 	if itemA.IsNone() {
 		return gust.None[gust.Pair[T, U]]()
@@ -224,7 +224,7 @@ func (z *zipIterator[T, U]) Next() gust.Option[gust.Pair[T, U]] {
 	return gust.Some(gust.Pair[T, U]{A: itemA.Unwrap(), B: itemB.Unwrap()})
 }
 
-func (z *zipIterator[T, U]) SizeHint() (uint, gust.Option[uint]) {
+func (z *zipIterable[T, U]) SizeHint() (uint, gust.Option[uint]) {
 	lowerA, upperA := z.a.SizeHint()
 	lowerB, upperB := z.b.SizeHint()
 
@@ -289,21 +289,21 @@ func (z *zipIterator[T, U]) SizeHint() (uint, gust.Option[uint]) {
 //
 //go:inline
 func enumerateImpl[T any](iter Iterable[T]) Iterable[gust.Pair[uint, T]] {
-	return &enumerateIterator[T]{iter: iter, count: 0}
+	return &enumerateIterable[T]{iter: iter, count: 0}
 }
 
 // Enumerate creates an iterator that yields pairs of (index, value).
 // This function accepts Iterator[T] and returns Iterator[gust.Pair[uint, T]] for chainable calls.
 func Enumerate[T any](iter Iterator[T]) Iterator[gust.Pair[uint, T]] {
-	return Iterator[gust.Pair[uint, T]]{iter: enumerateImpl(iter.Iterable())}
+	return Iterator[gust.Pair[uint, T]]{iterable: enumerateImpl(iter.iterable)}
 }
 
-type enumerateIterator[T any] struct {
+type enumerateIterable[T any] struct {
 	iter  Iterable[T]
 	count uint
 }
 
-func (e *enumerateIterator[T]) Next() gust.Option[gust.Pair[uint, T]] {
+func (e *enumerateIterable[T]) Next() gust.Option[gust.Pair[uint, T]] {
 	item := e.iter.Next()
 	if item.IsNone() {
 		return gust.None[gust.Pair[uint, T]]()
@@ -313,22 +313,22 @@ func (e *enumerateIterator[T]) Next() gust.Option[gust.Pair[uint, T]] {
 	return gust.Some(pair)
 }
 
-func (e *enumerateIterator[T]) SizeHint() (uint, gust.Option[uint]) {
+func (e *enumerateIterable[T]) SizeHint() (uint, gust.Option[uint]) {
 	return e.iter.SizeHint()
 }
 
 //go:inline
 func skipImpl[T any](iter Iterator[T], n uint) Iterator[T] {
-	return Iterator[T]{iter: &skipIterator[T]{iter: iter.Iterable(), n: n, done: false}}
+	return Iterator[T]{iterable: &skipIterable[T]{iter: iter.iterable, n: n, done: false}}
 }
 
-type skipIterator[T any] struct {
+type skipIterable[T any] struct {
 	iter Iterable[T]
 	n    uint
 	done bool
 }
 
-func (s *skipIterator[T]) Next() gust.Option[T] {
+func (s *skipIterable[T]) Next() gust.Option[T] {
 	if !s.done {
 		advanceByImpl(s.iter, s.n)
 		s.done = true
@@ -336,7 +336,7 @@ func (s *skipIterator[T]) Next() gust.Option[T] {
 	return s.iter.Next()
 }
 
-func (s *skipIterator[T]) SizeHint() (uint, gust.Option[uint]) {
+func (s *skipIterable[T]) SizeHint() (uint, gust.Option[uint]) {
 	lower, upper := s.iter.SizeHint()
 	if lower >= s.n {
 		lower -= s.n
@@ -356,16 +356,16 @@ func (s *skipIterator[T]) SizeHint() (uint, gust.Option[uint]) {
 
 //go:inline
 func takeImpl[T any](iter Iterator[T], n uint) Iterator[T] {
-	return Iterator[T]{iter: &takeIterator[T]{iter: iter.Iterable(), n: n, taken: 0}}
+	return Iterator[T]{iterable: &takeIterable[T]{iter: iter.iterable, n: n, taken: 0}}
 }
 
-type takeIterator[T any] struct {
+type takeIterable[T any] struct {
 	iter  Iterable[T]
 	n     uint
 	taken uint
 }
 
-func (t *takeIterator[T]) Next() gust.Option[T] {
+func (t *takeIterable[T]) Next() gust.Option[T] {
 	if t.taken >= t.n {
 		return gust.None[T]()
 	}
@@ -376,7 +376,7 @@ func (t *takeIterator[T]) Next() gust.Option[T] {
 	return item
 }
 
-func (t *takeIterator[T]) SizeHint() (uint, gust.Option[uint]) {
+func (t *takeIterable[T]) SizeHint() (uint, gust.Option[uint]) {
 	lower, upper := t.iter.SizeHint()
 	if lower > t.n {
 		lower = t.n
@@ -392,16 +392,16 @@ func stepByImpl[T any](iter Iterator[T], step uint) Iterator[T] {
 	if step == 0 {
 		panic("StepBy: step must be non-zero")
 	}
-	return Iterator[T]{iter: &stepByIterator[T]{iter: iter.Iterable(), step: step, first: true}}
+	return Iterator[T]{iterable: &stepByIterable[T]{iter: iter.iterable, step: step, first: true}}
 }
 
-type stepByIterator[T any] struct {
+type stepByIterable[T any] struct {
 	iter  Iterable[T]
 	step  uint
 	first bool
 }
 
-func (s *stepByIterator[T]) Next() gust.Option[T] {
+func (s *stepByIterable[T]) Next() gust.Option[T] {
 	if s.first {
 		s.first = false
 		return s.iter.Next()
@@ -412,7 +412,7 @@ func (s *stepByIterator[T]) Next() gust.Option[T] {
 	return s.iter.Next()
 }
 
-func (s *stepByIterator[T]) SizeHint() (uint, gust.Option[uint]) {
+func (s *stepByIterable[T]) SizeHint() (uint, gust.Option[uint]) {
 	lower, upper := s.iter.SizeHint()
 	if lower > 0 {
 		lower = (lower + s.step - 1) / s.step

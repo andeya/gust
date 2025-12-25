@@ -78,4 +78,3 @@ func TestTryFind(t *testing.T) {
 	assert.True(t, result.Unwrap().IsSome())
 	assert.Equal(t, "2", result.Unwrap().Unwrap())
 }
-

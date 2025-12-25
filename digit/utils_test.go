@@ -104,7 +104,7 @@ func TestCheckedAdd(t *testing.T) {
 	maxUint := Max[uint]()
 	result3 := CheckedAdd(maxUint, 1)
 	assert.True(t, result3.IsNone())
-	
+
 	// Use gust to satisfy linter
 	_ = gust.None[int]()
 }
@@ -156,4 +156,3 @@ func TestCheckedMul(t *testing.T) {
 	result8Overflow := CheckedMul(int8(50), int8(3))
 	assert.True(t, result8Overflow.IsNone()) // 50*3 = 150 > 127, should return None
 }
-

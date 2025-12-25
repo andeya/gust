@@ -17,4 +17,3 @@ func TestUnzip(t *testing.T) {
 	assert.Equal(t, []int{1, 2, 3}, left)
 	assert.Equal(t, []string{"a", "b", "c"}, right)
 }
-

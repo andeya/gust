@@ -53,7 +53,7 @@ import (
 //
 // And so, our final result, 6.
 func Fold[T any, B any](iter Iterator[T], init B, f func(B, T) B) B {
-	return foldImpl(iter.Iterable(), init, f)
+	return foldImpl(iter.iterable, init, f)
 }
 
 //go:inline
@@ -75,7 +75,7 @@ func reduceImpl[T any](iter Iterable[T], f func(T, T) T) gust.Option[T] {
 	if first.IsNone() {
 		return gust.None[T]()
 	}
-	result := Fold(Iterator[T]{iter: iter}, first.Unwrap(), f)
+	result := Fold(Iterator[T]{iterable: iter}, first.Unwrap(), f)
 	return gust.Some(result)
 }
 

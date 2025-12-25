@@ -73,4 +73,3 @@ func Example_errorHandling() {
 	}
 	// Output: Success: [1 2 3]
 }
-

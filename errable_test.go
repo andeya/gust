@@ -208,8 +208,8 @@ func TestToErrable_NonPointerTypes(t *testing.T) {
 	assert.True(t, gust.ToErrable[uint8](42).IsErr())
 	assert.True(t, gust.ToErrable[float32](42.0).IsErr())
 	assert.True(t, gust.ToErrable[float64](42.0).IsErr())
-	assert.True(t, gust.ToErrable[complex64](42 + 0i).IsErr())
-	assert.True(t, gust.ToErrable[complex128](42 + 0i).IsErr())
+	assert.True(t, gust.ToErrable[complex64](42+0i).IsErr())
+	assert.True(t, gust.ToErrable[complex128](42+0i).IsErr())
 	assert.True(t, gust.ToErrable[string]("test").IsErr())
 	assert.True(t, gust.ToErrable[bool](true).IsErr())
 }

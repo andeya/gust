@@ -36,8 +36,17 @@ func DefaultSizeHint[T any]() (uint, gust.Option[uint]) {
 //	              Take(2).
 //	              Collect()
 type Iterator[T any] struct {
-	iter Iterable[T]
+	iterable Iterable[T]
 }
+
+var (
+	// Verify that Iterator[T] implements Iterable[T]
+	_ Iterable[any] = Iterator[any]{}
+	// Verify that DoubleEndedIterator[T] implements Iterable[T]
+	_ Iterable[any] = DoubleEndedIterator[any]{}
+	// Verify that DoubleEndedIterator[T] implements DoubleEndedIterable[T]
+	_ DoubleEndedIterable[any] = DoubleEndedIterator[any]{}
+)
 
 // DoubleEndedIterable is the interface for double-ended iterator implementations.
 type DoubleEndedIterable[T any] interface {
@@ -73,5 +82,5 @@ type DoubleEndedIterable[T any] interface {
 //	var collected = filtered.Collect()
 type DoubleEndedIterator[T any] struct {
 	Iterator[T] // Embed Iterator to inherit all its methods
-	iter        DoubleEndedIterable[T]
+	iterable    DoubleEndedIterable[T]
 }

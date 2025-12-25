@@ -56,4 +56,3 @@ func ExampleMapValue() {
 	fmt.Println("Mapped values:", mapped)
 	// Output: Mapped values: map[a:2 b:4 c:6]
 }
-

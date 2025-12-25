@@ -153,4 +153,3 @@ func TestAnyCtrlFlow(t *testing.T) {
 	assert.True(t, acf2.IsBreak())
 	assert.Equal(t, 123, acf2.UnwrapBreak())
 }
-

@@ -277,4 +277,3 @@ func TestRefSliceValue_MultipleLevels(t *testing.T) {
 	assert.Equal(t, 1, **ret[0])
 	assert.Equal(t, 2, **ret[1])
 }
-
