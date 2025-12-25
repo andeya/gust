@@ -1,6 +1,8 @@
 package iter
 
 import (
+	stditer "iter"
+
 	"github.com/andeya/gust"
 )
 
@@ -58,6 +60,58 @@ func (it Iterator[T]) Next() gust.Option[T] {
 //go:inline
 func (it Iterator[T]) SizeHint() (uint, gust.Option[uint]) {
 	return it.iterable.SizeHint()
+}
+
+// Seq converts the Iterator[T] to Go's standard iter.Seq[T].
+// This allows using gust iterators with Go's built-in iteration support (for loops).
+//
+// # Examples
+//
+//	iter := FromSlice([]int{1, 2, 3})
+//	for v := range iter.Seq() {
+//		fmt.Println(v) // prints 1, 2, 3
+//	}
+//
+//	// Works with Go's standard library functions
+//	iter := FromSlice([]int{1, 2, 3})
+//	all := iter.Seq().All(func(v int) bool { return v > 0 })
+func (it Iterator[T]) Seq() stditer.Seq[T] {
+	return func(yield func(T) bool) {
+		for {
+			opt := it.Next()
+			if opt.IsNone() {
+				return
+			}
+			if !yield(opt.Unwrap()) {
+				return
+			}
+		}
+	}
+}
+
+// Pull converts the Iterator[T] to a pull-style iterator using Go's standard iter.Pull.
+// This returns two functions: next (to pull values) and stop (to stop iteration).
+// The caller should defer stop() to ensure proper cleanup.
+//
+// # Examples
+//
+//	iter := FromSlice([]int{1, 2, 3, 4, 5})
+//	next, stop := iter.Pull()
+//	defer stop()
+//
+//	// Pull values manually
+//	for {
+//		v, ok := next()
+//		if !ok {
+//			break
+//		}
+//		fmt.Println(v)
+//		if v == 3 {
+//			break // Early termination
+//		}
+//	}
+func (it Iterator[T]) Pull() (next func() (T, bool), stop func()) {
+	return stditer.Pull(it.Seq())
 }
 
 // Adapter methods - these return new iterators and can be chained

@@ -1,7 +1,7 @@
 # gust 🌬️
 
 [![tag](https://img.shields.io/github/tag/andeya/gust.svg)](https://github.com/andeya/gust/releases)
-![Go Version](https://img.shields.io/badge/Go-%3E%3D%201.19-%23007d9c)
+![Go Version](https://img.shields.io/badge/Go-%3E%3D%201.23-%23007d9c)
 [![GoDoc](https://godoc.org/github.com/andeya/gust?status.svg)](https://pkg.go.dev/github.com/andeya/gust)
 ![Build Status](https://github.com/andeya/gust/actions/workflows/go-ci.yml/badge.svg)
 [![Go report](https://goreportcard.com/badge/github.com/andeya/gust)](https://goreportcard.com/report/github.com/andeya/gust)
@@ -178,6 +178,7 @@ fmt.Println(sum) // 56 (4 + 16 + 36)
 - **Consumers**: `Fold`, `Reduce`, `Collect`, `Count`, `All`, `Any`, `Find`, `Sum`, `Product`, `Partition`
 - **Advanced**: `Scan`, `Intersperse`, `Peekable`, `ArrayChunks`, `FindMap`, `MapWhile`
 - **Double-Ended**: `NextBack`, `Rfold`, `TryRfold`, `Rfind`
+- **Go Integration**: `Seq()` converts to Go's `iter.Seq[T]`, `FromSeq()` creates from Go's `iter.Seq[T]`
 - And 60+ more methods from Rust's Iterator trait!
 
 **Note:** For type-changing operations (e.g., `Map` from `string` to `int`), use the function-style API:
@@ -218,6 +219,124 @@ if val := deIter.NextBack(); val.IsSome() {
 ```
 
 ## 📖 More Examples
+
+### Go Standard Iterator Integration
+
+gust iterators seamlessly integrate with Go 1.23+ standard iterators:
+
+**Convert gust Iterator to Go's `iter.Seq[T]`:**
+```go
+import "github.com/andeya/gust/iter"
+
+numbers := []int{1, 2, 3, 4, 5}
+gustIter := iter.FromSlice(numbers).Filter(func(x int) bool { return x%2 == 0 })
+
+// Use in Go's standard for-range loop
+for v := range gustIter.Seq() {
+    fmt.Println(v) // prints 2, 4
+}
+```
+
+**Convert gust Pair Iterator to Go's `iter.Seq2[K, V]`:**
+```go
+import "github.com/andeya/gust/iter"
+
+iter1 := iter.FromSlice([]int{1, 2, 3})
+iter2 := iter.FromSlice([]string{"a", "b", "c"})
+zipped := iter.Zip(iter1, iter2)
+
+// Use in Go's standard for-range loop with key-value pairs
+for k, v := range iter.Seq2(zipped) {
+    fmt.Println(k, v) // prints 1 a, 2 b, 3 c
+}
+```
+
+**Convert Go's `iter.Seq[T]` to gust Iterator:**
+```go
+import "github.com/andeya/gust/iter"
+
+// Create a Go standard iterator sequence
+goSeq := func(yield func(int) bool) {
+    for i := 0; i < 5; i++ {
+        if !yield(i) {
+            return
+        }
+    }
+}
+
+// Convert to gust Iterator and use gust methods
+gustIter, deferStop := iter.FromSeq(goSeq)
+defer deferStop()
+result := gustIter.Map(func(x int) int { return x * 2 }).Collect()
+fmt.Println(result) // [0 2 4 6 8]
+```
+
+**Convert Go's `iter.Seq2[K, V]` to gust Pair Iterator:**
+```go
+import "github.com/andeya/gust/iter"
+
+// Create a custom Go key-value iterator
+m := map[string]int{"a": 1, "b": 2, "c": 3}
+goSeq2 := func(yield func(string, int) bool) {
+    for k, v := range m {
+        if !yield(k, v) {
+            return
+        }
+    }
+}
+
+// Convert to gust Iterator and use gust methods
+gustIter, deferStop := iter.FromSeq2(goSeq2)
+defer deferStop()
+result := gustIter.Filter(func(p gust.Pair[string, int]) bool {
+    return p.B > 1
+}).Collect()
+fmt.Println(result) // [{b 2} {c 3}]
+```
+
+**Using Go's `iter.Pull` and `iter.Pull2` with gust iterators:**
+
+The Go standard library provides `iter.Pull` and `iter.Pull2` functions to convert push-style iterators to pull-style iterators. These work seamlessly with gust iterators:
+
+```go
+import (
+    "iter"
+    gustiter "github.com/andeya/gust/iter"
+)
+
+// Using iter.Pull with gust Iterator
+gustIter := gustiter.FromSlice([]int{1, 2, 3, 4, 5})
+next, stop := iter.Pull(gustIter.Seq())
+defer stop()
+
+// Pull values manually
+for {
+    v, ok := next()
+    if !ok {
+        break
+    }
+    fmt.Println(v)
+    if v == 3 {
+        break // Early termination
+    }
+}
+
+// Using iter.Pull2 with gust Pair Iterator
+iter1 := gustiter.FromSlice([]int{1, 2, 3})
+iter2 := gustiter.FromSlice([]string{"a", "b", "c"})
+zipped := gustiter.Zip(iter1, iter2)
+next2, stop2 := iter.Pull2(gustiter.Seq2(zipped))
+defer stop2()
+
+// Pull key-value pairs manually
+for {
+    k, v, ok := next2()
+    if !ok {
+        break
+    }
+    fmt.Println(k, v)
+}
+```
 
 ### Parse and Filter with Error Handling
 

@@ -147,3 +147,40 @@ func ExampleIterator_Chain() {
 	fmt.Println("Result:", result)
 	// Output: Result: 56
 }
+
+// ExampleIterator_Seq demonstrates converting gust Iterator to Go's standard iter.Seq.
+func ExampleIterator_Seq() {
+	numbers := []int{1, 2, 3, 4, 5}
+	gustIter := iter.FromSlice(numbers).Filter(func(x int) bool { return x%2 == 0 })
+
+	// Use gust Iterator in Go's standard for-range loop
+	fmt.Print("Even numbers: ")
+	for v := range gustIter.Seq() {
+		fmt.Print(v, " ")
+	}
+	fmt.Println()
+	// Output: Even numbers: 2 4
+}
+
+// ExampleFromSeq demonstrates converting Go's standard iter.Seq to gust Iterator.
+func ExampleFromSeq() {
+	// Create a Go standard iterator sequence
+	goSeq := func(yield func(int) bool) {
+		for i := 0; i < 5; i++ {
+			if !yield(i) {
+				return
+			}
+		}
+	}
+
+	// Convert to gust Iterator and use gust methods
+	gustIter, deferStop := iter.FromSeq(goSeq)
+	defer deferStop()
+	result := gustIter.
+		Filter(func(x int) bool { return x > 1 }).
+		Map(func(x int) int { return x * x }).
+		Collect()
+
+	fmt.Println("Squares of numbers > 1:", result)
+	// Output: Squares of numbers > 1: [4 9 16]
+}

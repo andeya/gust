@@ -1,7 +1,7 @@
 # gust 🌬️
 
 [![tag](https://img.shields.io/github/tag/andeya/gust.svg)](https://github.com/andeya/gust/releases)
-![Go Version](https://img.shields.io/badge/Go-%3E%3D%201.19-%23007d9c)
+![Go Version](https://img.shields.io/badge/Go-%3E%3D%201.23-%23007d9c)
 [![GoDoc](https://godoc.org/github.com/andeya/gust?status.svg)](https://pkg.go.dev/github.com/andeya/gust)
 ![Build Status](https://github.com/andeya/gust/actions/workflows/go-ci.yml/badge.svg)
 [![Go report](https://goreportcard.com/badge/github.com/andeya/gust)](https://goreportcard.com/report/github.com/andeya/gust)
@@ -220,6 +220,146 @@ if val := deIter.NextBack(); val.IsSome() {
 ```
 
 ## 📖 更多示例
+
+### Go 标准迭代器集成
+
+gust 迭代器与 Go 1.23+ 标准迭代器无缝集成：
+
+**将 gust Iterator 转换为 Go 的 `iter.Seq[T]`：**
+```go
+import "github.com/andeya/gust/iter"
+
+numbers := []int{1, 2, 3, 4, 5}
+gustIter := iter.FromSlice(numbers).Filter(func(x int) bool { return x%2 == 0 })
+
+// 在 Go 标准的 for-range 循环中使用
+for v := range gustIter.Seq() {
+    fmt.Println(v) // 输出 2, 4
+}
+```
+
+**将 gust Pair Iterator 转换为 Go 的 `iter.Seq2[K, V]`：**
+```go
+import "github.com/andeya/gust/iter"
+
+iter1 := iter.FromSlice([]int{1, 2, 3})
+iter2 := iter.FromSlice([]string{"a", "b", "c"})
+zipped := iter.Zip(iter1, iter2)
+
+// 在 Go 标准的 for-range 循环中使用键值对
+for k, v := range iter.Seq2(zipped) {
+    fmt.Println(k, v) // 输出 1 a, 2 b, 3 c
+}
+```
+
+**将 Go 的 `iter.Seq[T]` 转换为 gust Iterator：**
+```go
+import "github.com/andeya/gust/iter"
+
+// 创建 Go 标准迭代器序列
+goSeq := func(yield func(int) bool) {
+    for i := 0; i < 5; i++ {
+        if !yield(i) {
+            return
+        }
+    }
+}
+
+// 转换为 gust Iterator 并使用 gust 方法
+gustIter, deferStop := iter.FromSeq(goSeq)
+defer deferStop()
+result := gustIter.
+    Filter(func(x int) bool { return x > 1 }).
+    Map(func(x int) int { return x * x }).
+    Collect()
+
+fmt.Println(result) // [4 9 16]
+```
+
+**将 Go 的 `iter.Seq2[K, V]` 转换为 gust Pair Iterator：**
+```go
+import "github.com/andeya/gust/iter"
+
+// 创建 Go 标准键值对迭代器
+m := map[string]int{"a": 1, "b": 2, "c": 3}
+goSeq2 := func(yield func(string, int) bool) {
+    for k, v := range m {
+        if !yield(k, v) {
+            return
+        }
+    }
+}
+
+// 转换为 gust Iterator 并使用 gust 方法
+gustIter, deferStop := iter.FromSeq2(goSeq2)
+defer deferStop()
+result := gustIter.Filter(func(p gust.Pair[string, int]) bool {
+    return p.B > 1
+}).Collect()
+fmt.Println(result) // [{b 2} {c 3}]
+```
+
+**使用拉取式迭代与 gust 迭代器：**
+
+gust 提供了便捷的 `Pull()` 方法和 `Pull2()` 函数，用于将推送式迭代器转换为拉取式迭代器：
+
+```go
+import "github.com/andeya/gust/iter"
+
+// 使用 Pull() 方法与 gust Iterator
+gustIter := iter.FromSlice([]int{1, 2, 3, 4, 5})
+next, stop := gustIter.Pull()
+defer stop()
+
+// 手动拉取值
+for {
+    v, ok := next()
+    if !ok {
+        break
+    }
+    fmt.Println(v)
+    if v == 3 {
+        break // 提前终止
+    }
+}
+
+// 使用 Pull2() 函数与 gust Pair Iterator
+iter1 := iter.FromSlice([]int{1, 2, 3})
+iter2 := iter.FromSlice([]string{"a", "b", "c"})
+zipped := iter.Zip(iter1, iter2)
+next2, stop2 := iter.Pull2(zipped)
+defer stop2()
+
+// 手动拉取键值对
+for {
+    k, v, ok := next2()
+    if !ok {
+        break
+    }
+    fmt.Println(k, v)
+}
+```
+
+**替代方案：使用 Go 标准的 `iter.Pull` 和 `iter.Pull2`：**
+
+你也可以直接使用 Go 标准库的函数：
+
+```go
+import (
+    "iter"
+    gustiter "github.com/andeya/gust/iter"
+)
+
+// 使用 iter.Pull 与 gust Iterator
+gustIter := gustiter.FromSlice([]int{1, 2, 3, 4, 5})
+next, stop := iter.Pull(gustIter.Seq())
+defer stop()
+
+// 使用 iter.Pull2 与 gust Pair Iterator
+zipped := gustiter.Zip(iter1, iter2)
+next2, stop2 := iter.Pull2(gustiter.Seq2(zipped))
+defer stop2()
+```
 
 ### 解析和过滤错误处理
 
