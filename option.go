@@ -329,7 +329,7 @@ func (o Option[T]) XMapOrElse(defaultFn func() any, f func(T) any) any {
 // [`Ok(v)`] and [`None`] to [`Err(err)`].
 func (o Option[T]) OkOr(err any) Result[T] {
 	if o.IsSome() {
-		return Result[T]{inner: EnumResult[T, error]{t: o}}
+		return Result[T]{t: o}
 	}
 	return Err[T](err)
 }
@@ -347,7 +347,7 @@ func (o Option[T]) XOkOr(err any) Result[any] {
 // [`Ok(v)`] and [`None`] to [`Err(errFn())`].
 func (o Option[T]) OkOrElse(errFn func() any) Result[T] {
 	if o.IsSome() {
-		return Result[T]{inner: EnumResult[T, error]{t: o}}
+		return Result[T]{t: o}
 	}
 	return Err[T](errFn())
 }
@@ -359,42 +359,6 @@ func (o Option[T]) XOkOrElse(errFn func() any) Result[any] {
 		return Ok[any](o.UnwrapUnchecked())
 	}
 	return Err[any](errFn())
-}
-
-// EnumOkOr transforms the `Option[T]` into a [`EnumResult[T,any]`], mapping [`Some(v)`] to
-// [`EnumOk(v)`] and [`None`] to [`EnumErr(err)`].
-func (o Option[T]) EnumOkOr(err any) EnumResult[T, any] {
-	if o.IsSome() {
-		return EnumResult[T, any]{t: o}
-	}
-	return EnumErr[T, any](err)
-}
-
-// XEnumOkOr transforms the `Option[T]` into a [`EnumResult[any,any]`], mapping [`Some(v)`] to
-// [`EnumOk(v)`] and [`None`] to [`EnumErr(err)`].
-func (o Option[T]) XEnumOkOr(err any) EnumResult[any, any] {
-	if o.IsSome() {
-		return EnumOk[any, any](o.UnwrapUnchecked())
-	}
-	return EnumErr[any, any](err)
-}
-
-// EnumOkOrElse transforms the `Option[T]` into a [`EnumResult[T,any]`], mapping [`Some(v)`] to
-// [`EnumOk(v)`] and [`None`] to [`EnumErr(errFn())`].
-func (o Option[T]) EnumOkOrElse(errFn func() any) EnumResult[T, any] {
-	if o.IsSome() {
-		return EnumResult[T, any]{t: o}
-	}
-	return EnumErr[T, any](errFn())
-}
-
-// XEnumOkOrElse transforms the `Option[T]` into a [`EnumResult[any,any]`], mapping [`Some(v)`] to
-// [`EnumOk(v)`] and [`None`] to [`EnumErr(errFn())`].
-func (o Option[T]) XEnumOkOrElse(errFn func() any) EnumResult[any, any] {
-	if o.IsSome() {
-		return EnumOk[any, any](o.UnwrapUnchecked())
-	}
-	return EnumErr[any, any](errFn())
 }
 
 // AndThen returns [`None`] if the option is [`None`], otherwise calls `f` with the
@@ -596,14 +560,6 @@ func (o *Option[T]) Remaining() uint {
 		return 0
 	}
 	return 1
-}
-
-// CtrlFlow returns the `CtrlFlow[Void, T]`.
-func (o Option[T]) CtrlFlow() CtrlFlow[Void, T] {
-	if o.IsNone() {
-		return Break[Void, T](nil)
-	}
-	return Continue[Void, T](o.Unwrap())
 }
 
 // ToErrable converts from `Option[T]` to `Errable[T]`.

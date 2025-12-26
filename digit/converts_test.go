@@ -869,3 +869,79 @@ func TestAs_DigitToUint64_AllTypes(t *testing.T) {
 	assert.True(t, result4.IsOk())
 	assert.Equal(t, uint64(50000), result4.Unwrap())
 }
+
+// TestAs_ReflectPath_AllKinds tests reflect path in as function for all reflect.Kind cases
+// This covers lines 160-195 in converts.go: reflect.TypeOf(x).Kind() branches
+func TestAs_ReflectPath_AllKinds(t *testing.T) {
+	// Test reflect.Int path (using custom int type)
+	type CustomInt int
+	result := As[CustomInt, int](CustomInt(42))
+	assert.True(t, result.IsOk())
+	assert.Equal(t, 42, result.Unwrap())
+
+	// Test reflect.Int8 path
+	type CustomInt8 int8
+	result2 := As[CustomInt8, int8](CustomInt8(100))
+	assert.True(t, result2.IsOk())
+	assert.Equal(t, int8(100), result2.Unwrap())
+
+	// Test reflect.Int16 path
+	type CustomInt16 int16
+	result3 := As[CustomInt16, int16](CustomInt16(200))
+	assert.True(t, result3.IsOk())
+	assert.Equal(t, int16(200), result3.Unwrap())
+
+	// Test reflect.Int32 path
+	type CustomInt32 int32
+	result4 := As[CustomInt32, int32](CustomInt32(300))
+	assert.True(t, result4.IsOk())
+	assert.Equal(t, int32(300), result4.Unwrap())
+
+	// Test reflect.Int64 path
+	type CustomInt64 int64
+	result5 := As[CustomInt64, int64](CustomInt64(400))
+	assert.True(t, result5.IsOk())
+	assert.Equal(t, int64(400), result5.Unwrap())
+
+	// Test reflect.Uint path
+	type CustomUint uint
+	result6 := As[CustomUint, uint](CustomUint(500))
+	assert.True(t, result6.IsOk())
+	assert.Equal(t, uint(500), result6.Unwrap())
+
+	// Test reflect.Uint8 path
+	type CustomUint8 uint8
+	result7 := As[CustomUint8, uint8](CustomUint8(100))
+	assert.True(t, result7.IsOk())
+	assert.Equal(t, uint8(100), result7.Unwrap())
+
+	// Test reflect.Uint16 path
+	type CustomUint16 uint16
+	result8 := As[CustomUint16, uint16](CustomUint16(200))
+	assert.True(t, result8.IsOk())
+	assert.Equal(t, uint16(200), result8.Unwrap())
+
+	// Test reflect.Uint32 path
+	type CustomUint32 uint32
+	result9 := As[CustomUint32, uint32](CustomUint32(300))
+	assert.True(t, result9.IsOk())
+	assert.Equal(t, uint32(300), result9.Unwrap())
+
+	// Test reflect.Uint64 path
+	type CustomUint64 uint64
+	result10 := As[CustomUint64, uint64](CustomUint64(400))
+	assert.True(t, result10.IsOk())
+	assert.Equal(t, uint64(400), result10.Unwrap())
+
+	// Test reflect.Float32 path
+	type CustomFloat32 float32
+	result11 := As[CustomFloat32, float32](CustomFloat32(1.5))
+	assert.True(t, result11.IsOk())
+	assert.Equal(t, float32(1.5), result11.Unwrap())
+
+	// Test reflect.Float64 path
+	type CustomFloat64 float64
+	result12 := As[CustomFloat64, float64](CustomFloat64(2.5))
+	assert.True(t, result12.IsOk())
+	assert.Equal(t, float64(2.5), result12.Unwrap())
+}

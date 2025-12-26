@@ -12,6 +12,24 @@ func TestCmp(t *testing.T) {
 	assert.True(t, Cmp(FromSlice([]int{1}), FromSlice([]int{1})).IsEqual())
 	assert.True(t, Cmp(FromSlice([]int{1}), FromSlice([]int{1, 2})).IsLess())
 	assert.True(t, Cmp(FromSlice([]int{1, 2}), FromSlice([]int{1})).IsGreater())
+
+	// Test with equal iterators (covers iter/comparison.go:17-26)
+	iter1 := FromSlice([]int{1, 2, 3})
+	iter2 := FromSlice([]int{1, 2, 3})
+	ordering := Cmp(iter1, iter2)
+	assert.True(t, ordering.IsEqual())
+
+	// Test with less than case
+	iter3 := FromSlice([]int{1, 2})
+	iter4 := FromSlice([]int{1, 2, 3})
+	ordering2 := Cmp(iter3, iter4)
+	assert.True(t, ordering2.IsLess())
+
+	// Test with greater than case (need to recreate iterators as they are consumed)
+	iter5 := FromSlice([]int{1, 2, 3})
+	iter6 := FromSlice([]int{1, 2})
+	ordering3 := Cmp(iter5, iter6)
+	assert.True(t, ordering3.IsGreater())
 }
 
 func TestCmpBy(t *testing.T) {
@@ -27,6 +45,42 @@ func TestCmpBy(t *testing.T) {
 		return 0
 	})
 	assert.True(t, result.IsEqual())
+
+	// Test itemA.IsNone() && itemB.IsNone() returns Equal
+	result2 := CmpBy(Empty[int](), Empty[int](), func(x, y int) int {
+		return x - y
+	})
+	assert.True(t, result2.IsEqual())
+
+	// Test itemA.IsNone() returns Less
+	result3 := CmpBy(Empty[int](), FromSlice([]int{1}), func(x, y int) int {
+		return x - y
+	})
+	assert.True(t, result3.IsLess())
+
+	// Test itemB.IsNone() returns Greater
+	result4 := CmpBy(FromSlice([]int{1}), Empty[int](), func(x, y int) int {
+		return x - y
+	})
+	assert.True(t, result4.IsGreater())
+
+	// Test cmp result < 0 returns Less
+	result5 := CmpBy(FromSlice([]int{1}), FromSlice([]int{2}), func(x, y int) int {
+		return x - y
+	})
+	assert.True(t, result5.IsLess())
+
+	// Test cmp result > 0 returns Greater
+	result6 := CmpBy(FromSlice([]int{2}), FromSlice([]int{1}), func(x, y int) int {
+		return x - y
+	})
+	assert.True(t, result6.IsGreater())
+
+	// Test cmp result == 0 continues to next elements
+	result7 := CmpBy(FromSlice([]int{1, 2}), FromSlice([]int{1, 3}), func(x, y int) int {
+		return x - y
+	})
+	assert.True(t, result7.IsLess())
 }
 
 func TestEq(t *testing.T) {
@@ -38,6 +92,16 @@ func TestEqBy(t *testing.T) {
 	xs := []int{1, 2, 3, 4}
 	ys := []int{1, 4, 9, 16}
 	assert.True(t, EqBy(FromSlice(xs), FromSlice(ys), func(x, y int) bool { return x*x == y }))
+
+	// Test !eq returns false
+	assert.False(t, EqBy(FromSlice([]int{1, 2}), FromSlice([]int{1, 3}), func(x, y int) bool { return x == y }))
+
+	// Test itemA.IsNone() || itemB.IsNone() returns false
+	assert.False(t, EqBy(Empty[int](), FromSlice([]int{1}), func(x, y int) bool { return x == y }))
+	assert.False(t, EqBy(FromSlice([]int{1}), Empty[int](), func(x, y int) bool { return x == y }))
+
+	// Test itemA.IsNone() && itemB.IsNone() returns true
+	assert.True(t, EqBy(Empty[int](), Empty[int](), func(x, y int) bool { return x == y }))
 }
 
 func TestNe(t *testing.T) {

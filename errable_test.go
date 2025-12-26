@@ -24,6 +24,55 @@ func TestErrable(t *testing.T) {
 	assert.PanicsWithError(t, "test TryPanic", gust.ToErrable[error](errors.New("test TryPanic")).TryPanic)
 }
 
+// TestErrable_TryPanic tests TryPanic function with various types (covers errable.go:115-117)
+func TestErrable_TryPanic(t *testing.T) {
+	assert.Panics(t, func() {
+		gust.TryPanic("test panic")
+	})
+
+	assert.Panics(t, func() {
+		gust.TryPanic(123)
+	})
+}
+
+// TestErrable_ToErrableNilError tests ToErrable handling nil error (covers errable.go:28-30)
+func TestErrable_ToErrableNilError(t *testing.T) {
+	var err error = nil
+	result := gust.ToErrable[error](err)
+	assert.False(t, result.IsErr())
+}
+
+// TestErrable_CatchNil tests Errable.Catch and CatchErrable with nil case (covers errable.go:231, 254)
+func TestErrable_CatchNil(t *testing.T) {
+	// Test Catch's nil case
+	var errable *gust.Errable[string] = nil
+	assert.Panics(t, func() {
+		defer errable.Catch()
+		gust.ToErrable("panic error").TryThrow()
+	})
+
+	// Test CatchErrable's nil case
+	var errable2 *gust.Errable[string] = nil
+	assert.Panics(t, func() {
+		defer gust.CatchErrable(errable2)
+		gust.ToErrable("panic error").TryThrow()
+	})
+
+	// Test Catch's nil case (no panic)
+	var errable3 *gust.Errable[string] = nil
+	func() {
+		defer errable3.Catch()
+		// No panic, should return normally
+	}()
+
+	// Test CatchErrable's nil case (no panic)
+	var errable4 *gust.Errable[string] = nil
+	func() {
+		defer gust.CatchErrable(errable4)
+		// No panic, should return normally
+	}()
+}
+
 func ExampleErrable() {
 	var hasErr = true
 	var f = func() gust.Errable[int] {
@@ -70,21 +119,12 @@ func TestErrableTryThrow_3(t *testing.T) {
 }
 
 func TestErrableTryThrow_4(t *testing.T) {
-	var r gust.EnumResult[int, string]
+	var r gust.Result[int]
 	defer func() {
-		assert.Equal(t, gust.EnumErr[int, string]("err"), r)
+		assert.Equal(t, gust.Err[int]("err"), r)
 	}()
-	defer gust.CatchEnumResult[int, string](&r)
-	assert.Equal(t, gust.Void(nil), gust.ToErrable("err").EnumResult().UnwrapOrThrow())
-}
-
-func TestErrableTryThrow_5(t *testing.T) {
-	var r gust.EnumResult[int, string]
-	defer func() {
-		assert.Equal(t, gust.EnumErr[int, string]("err"), r)
-	}()
-	defer gust.CatchEnumResult[int, string](&r)
-	gust.TryThrow("err")
+	defer r.Catch()
+	assert.Equal(t, gust.Void(nil), gust.ToErrable("err").Result().UnwrapOrThrow())
 }
 
 func TestErrableTryThrow_6(t *testing.T) {
@@ -112,24 +152,6 @@ func TestErrableTryThrow_8(t *testing.T) {
 	}()
 	defer r.Catch()
 	assert.Equal(t, gust.Void(nil), gust.ToErrable("err").Result().UnwrapOrThrow())
-}
-
-func TestErrableTryThrow_9(t *testing.T) {
-	var r gust.EnumResult[int, string]
-	defer func() {
-		assert.Equal(t, gust.EnumErr[int, string]("err"), r)
-	}()
-	defer r.Catch()
-	assert.Equal(t, gust.Void(nil), gust.ToErrable("err").EnumResult().UnwrapOrThrow())
-}
-
-func TestErrableTryThrow_10(t *testing.T) {
-	var r gust.EnumResult[int, string]
-	defer func() {
-		assert.Equal(t, gust.EnumErr[int, string]("err"), r)
-	}()
-	defer r.Catch()
-	gust.TryThrow("err")
 }
 
 func TestFmtErrable(t *testing.T) {
@@ -239,21 +261,6 @@ func TestErrable_UnwrapErrOr(t *testing.T) {
 	}
 }
 
-func TestErrable_EnumResult(t *testing.T) {
-	{
-		var e = gust.ToErrable[string]("error")
-		er := e.EnumResult()
-		assert.True(t, er.IsErr())
-		assert.Equal(t, "error", er.UnwrapErr())
-	}
-	{
-		var e = gust.NonErrable[string]()
-		er := e.EnumResult()
-		assert.True(t, er.IsOk())
-		assert.Equal(t, gust.Void(nil), er.Unwrap())
-	}
-}
-
 func TestErrable_Result(t *testing.T) {
 	{
 		var e = gust.ToErrable[string]("error")
@@ -279,21 +286,6 @@ func TestErrable_Option(t *testing.T) {
 		var e = gust.NonErrable[string]()
 		opt := e.Option()
 		assert.True(t, opt.IsNone())
-	}
-}
-
-func TestErrable_CtrlFlow(t *testing.T) {
-	{
-		var e = gust.ToErrable[string]("error")
-		cf := e.CtrlFlow()
-		assert.True(t, cf.IsBreak())
-		assert.Equal(t, "error", cf.UnwrapBreak())
-	}
-	{
-		var e = gust.NonErrable[string]()
-		cf := e.CtrlFlow()
-		assert.True(t, cf.IsContinue())
-		assert.Equal(t, gust.Void(nil), cf.UnwrapContinue())
 	}
 }
 
@@ -433,4 +425,33 @@ func TestToErrable_InterfaceNonNil(t *testing.T) {
 	var iface interface{} = &val
 	errable := gust.ToErrable[interface{}](iface)
 	assert.True(t, errable.IsErr())
+}
+
+// TestTryThrow tests TryThrow function (covers errable.go:125-127)
+func TestTryThrow(t *testing.T) {
+	defer func() {
+		r := recover()
+		assert.NotNil(t, r)
+		// TryThrow wraps the error value in a panicValue struct
+		// The actual panic value should be the error string
+		if errStr, ok := r.(string); ok {
+			assert.Equal(t, "test error", errStr)
+		} else {
+			// It might be wrapped in a struct, check the error message
+			if err, ok := r.(error); ok {
+				assert.Contains(t, err.Error(), "test error")
+			} else {
+				// Just verify we got something
+				assert.NotNil(t, r)
+			}
+		}
+	}()
+	gust.TryThrow("test error")
+}
+
+// TestToErrable_NilError tests nil error case (covers errable.go:28-30)
+func TestToErrable_NilError(t *testing.T) {
+	var err error = nil
+	errable := gust.ToErrable[error](err)
+	assert.False(t, errable.IsErr())
 }

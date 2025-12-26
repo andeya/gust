@@ -119,7 +119,7 @@ func TryPanic[E any](errVal E) {
 // TryThrow panic returns E (panicValue[*E]) if the errVal is not nil.
 // NOTE:
 //
-//	If there is an E, that panic should be caught with CatchErrable[E] or CatchEnumResult[U, E].
+//	If there is an E, that panic should be caught with CatchErrable[E].
 //
 //go:inline
 func TryThrow[E any](errVal E) {
@@ -167,14 +167,6 @@ func (e Errable[E]) UnwrapErrOr(def E) E {
 	return def
 }
 
-// EnumResult converts from Errable[E] to EnumResult[Void, E].
-func (e Errable[E]) EnumResult() EnumResult[Void, E] {
-	if e.IsErr() {
-		return EnumErr[Void, E](e.UnwrapErr())
-	}
-	return EnumOk[Void, E](nil)
-}
-
 // Result converts from Errable[E] to Result[Void].
 func (e Errable[E]) Result() Result[Void] {
 	if e.IsErr() {
@@ -189,14 +181,6 @@ func (e Errable[E]) Option() Option[E] {
 		return Some[E](e.UnwrapErr())
 	}
 	return None[E]()
-}
-
-// CtrlFlow returns the `CtrlFlow[E, Void]`.
-func (e Errable[E]) CtrlFlow() CtrlFlow[E, Void] {
-	if e.IsErr() {
-		return Break[E, Void](e.UnwrapErr())
-	}
-	return Continue[E, Void](nil)
 }
 
 // InspectErr calls the provided closure with a reference to the contained error (if error).
@@ -225,7 +209,7 @@ func (e Errable[E]) TryPanic() {
 // TryThrow panic returns E (panicValue[*E]) if the errVal is not nil.
 // NOTE:
 //
-//	If there is an E, that panic should be caught with CatchErrable[E] or CatchEnumResult[U, E].
+//	If there is an E, that panic should be caught with CatchErrable[E].
 func (e Errable[E]) TryThrow() {
 	if e.errVal != nil {
 		panic(panicValue[E]{value: e.errVal})

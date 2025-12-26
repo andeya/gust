@@ -136,21 +136,3 @@ func Unzip[T any, U any](p gust.Option[gust.Pair[T, U]]) gust.Pair[gust.Option[T
 	}
 	return gust.Pair[gust.Option[T], gust.Option[U]]{A: gust.None[T](), B: gust.None[U]()}
 }
-
-// EnumOkOr transforms the `Option[T]` into a [`EnumResult[T,E]`], mapping [`Some(v)`] to
-// [`EnumOk(v)`] and [`None`] to [`EnumErr(err)`].
-func EnumOkOr[T any, E any](o gust.Option[T], err E) gust.EnumResult[T, E] {
-	if o.IsSome() {
-		return gust.EnumOk[T, E](o.UnwrapUnchecked())
-	}
-	return gust.EnumErr[T, E](err)
-}
-
-// EnumOkOrElse transforms the `Option[T]` into a [`EnumResult[T,E]`], mapping [`Some(v)`] to
-// [`EnumOk(v)`] and [`None`] to [`EnumErr(errFn())`].
-func EnumOkOrElse[T any, E any](o gust.Option[T], errFn func() E) gust.EnumResult[T, E] {
-	if o.IsSome() {
-		return gust.EnumOk[T, E](o.UnwrapUnchecked())
-	}
-	return gust.EnumErr[T, E](errFn())
-}

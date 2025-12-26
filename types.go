@@ -36,6 +36,8 @@ type Pair[A any, B any] struct {
 }
 
 // Split splits the pair into its two components.
+//
+//go:inline
 func (p Pair[A, B]) Split() (A, B) {
 	return p.A, p.B
 }
@@ -47,6 +49,8 @@ type VecEntry[T any] struct {
 }
 
 // Split splits the vector entry into its two components.
+//
+//go:inline
 func (v VecEntry[T]) Split() (int, T) {
 	return v.Index, v.Elem
 }
@@ -58,6 +62,8 @@ type DictEntry[K comparable, V any] struct {
 }
 
 // Split splits the dictionary entry into its two components.
+//
+//go:inline
 func (d DictEntry[K, V]) Split() (K, V) {
 	return d.Key, d.Value
 }

@@ -613,7 +613,7 @@ func (it Iterator[T]) Nth(n uint) gust.Option[T] {
 //	assert.True(t, chunk.IsOk())
 //
 //go:inline
-func (it Iterator[T]) NextChunk(n uint) gust.EnumResult[[]T, []T] {
+func (it Iterator[T]) NextChunk(n uint) ChunkResult[[]T] {
 	return nextChunkImpl(it.iterable, n)
 }
 

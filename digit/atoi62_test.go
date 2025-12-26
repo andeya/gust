@@ -861,17 +861,27 @@ func TestParseUint_InvalidChar(t *testing.T) {
 }
 
 func TestParseUint_Base36InvalidDigit(t *testing.T) {
-	// Test base <= 36 && d >= byte(base) case
+	// Test base <= 36 && d >= byte(base) case with lowercase letters
 	// For base 10, 'a' (10) >= 10, should return error
 	_, err := parseUint("a", 10, 64)
 	if err == nil {
 		t.Error("parseUint('a', 10) should return error")
+	}
+	if nerr, ok := err.(*strconv.NumError); ok {
+		if nerr.Err != strconv.ErrSyntax {
+			t.Errorf("parseUint error Err = %v, want ErrSyntax", nerr.Err)
+		}
 	}
 
 	// For base 16, 'g' (16) >= 16, should return error
 	_, err2 := parseUint("g", 16, 64)
 	if err2 == nil {
 		t.Error("parseUint('g', 16) should return error")
+	}
+	if nerr, ok := err2.(*strconv.NumError); ok {
+		if nerr.Err != strconv.ErrSyntax {
+			t.Errorf("parseUint error Err = %v, want ErrSyntax", nerr.Err)
+		}
 	}
 }
 
@@ -935,6 +945,42 @@ func TestParseInt_NegativeOverflow(t *testing.T) {
 		t.Errorf("parseInt with negative overflow should return ErrRange, got %v", err)
 	} else if got != -128 {
 		t.Errorf("parseInt with negative overflow should return min value -128, got %d", got)
+	}
+
+	// Test with 64-bit int, cutoff is 9223372036854775808 (2^63)
+	// So -9223372036854775809 should trigger overflow
+	_, err2 := parseInt("-9223372036854775809", 10, 64)
+	if err2 == nil {
+		t.Error("parseInt with negative overflow should return error")
+	}
+	if nerr, ok := err2.(*strconv.NumError); ok {
+		if nerr.Err != strconv.ErrRange {
+			t.Errorf("parseInt error Err = %v, want ErrRange", nerr.Err)
+		}
+		if nerr.Func != "ParseInt" {
+			t.Errorf("parseInt error Func = %s, want ParseInt", nerr.Func)
+		}
+	}
+
+	// Test with 32-bit int, cutoff is 2147483648 (2^31)
+	// So -2147483649 should trigger overflow
+	_, err3 := parseInt("-2147483649", 10, 32)
+	if err3 == nil {
+		t.Error("parseInt with negative overflow should return error")
+	}
+	if nerr, ok := err3.(*strconv.NumError); ok {
+		if nerr.Err != strconv.ErrRange {
+			t.Errorf("parseInt error Err = %v, want ErrRange", nerr.Err)
+		}
+	}
+
+	// Test boundary case: min int64 should work
+	minInt64 := "-9223372036854775808"
+	got2, err4 := parseInt(minInt64, 10, 64)
+	if err4 != nil {
+		t.Errorf("parseInt with min int64 should work, got error: %v", err4)
+	} else if got2 != math.MinInt64 {
+		t.Errorf("parseInt('%s', 10, 64) = %d, want %d", minInt64, got2, math.MinInt64)
 	}
 }
 
@@ -1636,26 +1682,6 @@ func TestParseInt_PositiveOverflowBoundary2(t *testing.T) {
 	}
 }
 
-func TestParseInt_NegativeOverflowBoundary2(t *testing.T) {
-	// Test negative overflow boundary (neg && un > cutoff)
-	minInt64 := "-9223372036854775808" // min int64
-	got, err := parseInt(minInt64, 10, 64)
-	if err != nil {
-		t.Errorf("parseInt with min int64 should work, got error: %v", err)
-	} else if got != math.MinInt64 {
-		t.Errorf("parseInt('%s', 10, 64) = %d, want %d", minInt64, got, math.MinInt64)
-	}
-
-	// Test overflow (un > cutoff)
-	overflow := "-9223372036854775809" // min int64 - 1
-	got2, err2 := parseInt(overflow, 10, 64)
-	if err2 == nil {
-		t.Error("parseInt with negative overflow should return error")
-	} else if got2 != math.MinInt64 {
-		t.Errorf("parseInt('%s', 10, 64) should return min int64 on overflow, got %d", overflow, got2)
-	}
-}
-
 func TestUnderscoreOK_EdgeCases(t *testing.T) {
 	// Test underscoreOK with various edge cases
 	// Test with base prefix and underscore
@@ -1891,6 +1917,31 @@ func TestParseInt_NonErrRangeError2(t *testing.T) {
 		}
 		if nerr.Func != "ParseInt" {
 			t.Errorf("parseInt error Func = %s, want ParseInt", nerr.Func)
+		}
+	}
+}
+
+func TestParseInt_Base36InvalidDigit_Lowercase(t *testing.T) {
+	// Test base <= 36 && d >= byte(base) case with lowercase letters
+	// For base 10, 'a' (10) >= 10, should return error
+	_, err := parseInt("a", 10, 64)
+	if err == nil {
+		t.Error("parseInt with invalid digit for base should return error")
+	}
+	if nerr, ok := err.(*strconv.NumError); ok {
+		if nerr.Err != strconv.ErrSyntax {
+			t.Errorf("parseInt error Err = %v, want ErrSyntax", nerr.Err)
+		}
+	}
+
+	// Test with base 16, 'g' (16) >= 16, should return error
+	_, err2 := parseInt("g", 16, 64)
+	if err2 == nil {
+		t.Error("parseInt with invalid digit for base should return error")
+	}
+	if nerr, ok := err2.(*strconv.NumError); ok {
+		if nerr.Err != strconv.ErrSyntax {
+			t.Errorf("parseInt error Err = %v, want ErrSyntax", nerr.Err)
 		}
 	}
 }

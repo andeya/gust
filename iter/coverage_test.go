@@ -536,6 +536,15 @@ func TestZipSizeHintEdgeCases(t *testing.T) {
 	assert.Equal(t, uint(2), lower4)
 	assert.True(t, upper4.IsSome())
 	assert.Equal(t, uint(2), upper4.Unwrap())
+
+	// Test with neither upperA nor upperB IsSome() (covers adapters.go:301-303)
+	// Use iterators that don't provide SizeHint upper bound (infinite iterators)
+	iter9 := Repeat(1)    // Repeat returns (0, None)
+	iter10 := Repeat("a") // Repeat returns (“a”, None)
+	zipped5 := Zip(iter9, iter10)
+	lower5, upper5 := zipped5.SizeHint()
+	assert.Equal(t, uint(0), lower5)
+	assert.False(t, upper5.IsSome())
 }
 
 // TestChainSizeHintEdgeCases tests Chain SizeHint edge cases
@@ -933,6 +942,16 @@ func TestEnumerateEmpty(t *testing.T) {
 	iter := Empty[int]()
 	enumerated := Enumerate(iter)
 	assert.Equal(t, gust.None[gust.Pair[uint, int]](), enumerated.Next())
+}
+
+// TestEnumerateSizeHint tests Enumerate SizeHint (covers adapters.go:368-370)
+func TestEnumerateSizeHint(t *testing.T) {
+	iter := FromSlice([]int{1, 2, 3})
+	enumerated := Enumerate(iter)
+	lower, upper := enumerated.SizeHint()
+	assert.Equal(t, uint(3), lower)
+	assert.True(t, upper.IsSome())
+	assert.Equal(t, uint(3), upper.Unwrap())
 }
 
 // TestSkipEmpty tests Skip with empty iterator

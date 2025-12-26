@@ -198,34 +198,6 @@ func TestAnd(t *testing.T) {
 	assert.True(t, result4.IsNone())
 }
 
-func TestEnumOkOr(t *testing.T) {
-	// Test with Some
-	opt1 := gust.Some(42)
-	result1 := opt.EnumOkOr(opt1, "error")
-	assert.True(t, result1.IsOk())
-	assert.Equal(t, 42, result1.Unwrap())
-
-	// Test with None
-	opt2 := gust.None[int]()
-	result2 := opt.EnumOkOr(opt2, "error")
-	assert.True(t, result2.IsErr())
-	assert.Equal(t, "error", result2.UnwrapErr())
-}
-
-func TestEnumOkOrElse(t *testing.T) {
-	// Test with Some
-	opt1 := gust.Some(42)
-	result1 := opt.EnumOkOrElse(opt1, func() string { return "error" })
-	assert.True(t, result1.IsOk())
-	assert.Equal(t, 42, result1.Unwrap())
-
-	// Test with None
-	opt2 := gust.None[int]()
-	result2 := opt.EnumOkOrElse(opt2, func() string { return "error" })
-	assert.True(t, result2.IsErr())
-	assert.Equal(t, "error", result2.UnwrapErr())
-}
-
 func TestSafeAssert_TypeAssertionError(t *testing.T) {
 	// Test SafeAssert with type assertion error message
 	opt1 := gust.Some(42)

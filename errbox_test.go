@@ -44,6 +44,13 @@ func TestErrBox_Value(t *testing.T) {
 	assert.Nil(t, nilEb.Value())
 }
 
+// TestErrBox_Is_NilReceiver tests Is method with nil receiver (covers errbox.go:83-85)
+func TestErrBox_Is_NilReceiver(t *testing.T) {
+	var nilEb *ErrBox
+	target := &ErrBox{val: "test"}
+	assert.False(t, nilEb.Is(target))
+}
+
 func TestErrBox_Error(t *testing.T) {
 	// Test with string
 	eb1 := &ErrBox{val: "test error"}

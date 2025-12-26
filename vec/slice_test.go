@@ -57,6 +57,14 @@ func TestEvery(t *testing.T) {
 		return i < 40
 	})
 	assert.Equal(t, true, isBelowThreshold)
+
+	// Test Every with return false branch (covers slice.go:78-80)
+	slice2 := []string{"1", "30", "50", "29", "10", "13"}
+	isBelowThreshold2 := Every(slice2, func(k int, v string) bool {
+		i, _ := strconv.Atoi(v)
+		return i < 40
+	})
+	assert.Equal(t, false, isBelowThreshold2) // "50" >= 40, so should return false
 }
 
 func TestFill(t *testing.T) {

@@ -45,18 +45,18 @@ func nthImpl[T any](iter Iterable[T], n uint) gust.Option[T] {
 }
 
 //go:inline
-func nextChunkImpl[T any](iter Iterable[T], n uint) gust.EnumResult[[]T, []T] {
+func nextChunkImpl[T any](iter Iterable[T], n uint) ChunkResult[[]T] {
 	if n == 0 {
-		return gust.EnumOk[[]T, []T]([]T{})
+		return chunkOk[[]T]([]T{})
 	}
 	result := make([]T, 0, n)
 	for i := uint(0); i < n; i++ {
 		item := iter.Next()
 		if item.IsNone() {
 			// Return error with remaining elements
-			return gust.EnumErr[[]T, []T](result)
+			return chunkErr[[]T](result)
 		}
 		result = append(result, item.Unwrap())
 	}
-	return gust.EnumOk[[]T, []T](result)
+	return chunkOk[[]T](result)
 }

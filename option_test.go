@@ -705,65 +705,6 @@ func TestOption_XOkOrElse(t *testing.T) {
 	}
 }
 
-func TestOption_EnumOkOr(t *testing.T) {
-	{
-		var x = gust.Some("foo")
-		assert.Equal(t, gust.EnumOk[string, any]("foo"), x.EnumOkOr(0))
-	}
-	{
-		var x gust.Option[string]
-		assert.Equal(t, gust.EnumErr[string, any](0), x.EnumOkOr(0))
-	}
-}
-
-func TestOption_XEnumOkOr(t *testing.T) {
-	{
-		var x = gust.Some("foo")
-		assert.Equal(t, gust.EnumOk[any, any]("foo"), x.XEnumOkOr(0))
-	}
-	{
-		var x gust.Option[string]
-		assert.Equal(t, gust.EnumErr[any, any](0), x.XEnumOkOr(0))
-	}
-}
-
-func TestOption_EnumOkOrElse(t *testing.T) {
-	{
-		var x = gust.Some("foo")
-		assert.Equal(t, gust.EnumOk[string, any]("foo"), x.EnumOkOrElse(func() any { return 0 }))
-	}
-	{
-		var x gust.Option[string]
-		assert.Equal(t, gust.EnumErr[string, any](0), x.EnumOkOrElse(func() any { return 0 }))
-	}
-}
-
-func TestOption_XEnumOkOrElse(t *testing.T) {
-	{
-		var x = gust.Some("foo")
-		assert.Equal(t, gust.EnumOk[any, any]("foo"), x.XEnumOkOrElse(func() any { return 0 }))
-	}
-	{
-		var x gust.Option[string]
-		assert.Equal(t, gust.EnumErr[any, any](0), x.XEnumOkOrElse(func() any { return 0 }))
-	}
-}
-
-func TestOption_CtrlFlow(t *testing.T) {
-	{
-		var x = gust.Some("foo")
-		cf := x.CtrlFlow()
-		assert.True(t, cf.IsContinue())
-		assert.Equal(t, "foo", cf.UnwrapContinue())
-	}
-	{
-		var x gust.Option[string]
-		cf := x.CtrlFlow()
-		assert.True(t, cf.IsBreak())
-		assert.Equal(t, gust.Void(nil), cf.UnwrapBreak())
-	}
-}
-
 func TestOption_ToErrable(t *testing.T) {
 	{
 		var x = gust.Some("foo")
@@ -776,6 +717,15 @@ func TestOption_ToErrable(t *testing.T) {
 		errable := x.ToErrable()
 		assert.False(t, errable.IsErr())
 	}
+}
+
+// TestOption_String tests Option.String method (covers option.go:148-152)
+func TestOption_String(t *testing.T) {
+	none := gust.None[int]()
+	assert.Equal(t, "None", none.String())
+
+	some := gust.Some(42)
+	assert.Contains(t, some.String(), "Some")
 }
 
 func TestOption_Iterator(t *testing.T) {

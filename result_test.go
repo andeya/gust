@@ -137,11 +137,11 @@ func TestResultUnwrapOrThrow_2(t *testing.T) {
 }
 
 func TestResultUnwrapOrThrow_3(t *testing.T) {
-	var r gust.EnumResult[string, error]
+	var r gust.Result[string]
 	defer func() {
-		assert.Equal(t, gust.EnumErr[string, error](gust.ToErrBox("err")), r)
+		assert.Equal(t, gust.Err[string]("err"), r)
 	}()
-	defer gust.CatchEnumResult[string, error](&r)
+	defer r.Catch()
 	var r1 = gust.Ok(1)
 	var v1 = r1.UnwrapOrThrow()
 	assert.Equal(t, 1, v1)
@@ -171,20 +171,6 @@ func TestResultUnwrapOrThrow_5(t *testing.T) {
 	var r gust.Result[string]
 	defer r.Catch()
 	panic("panic text")
-}
-
-func TestResultUnwrapOrThrow_6(t *testing.T) {
-	var r gust.EnumResult[string, error]
-	defer func() {
-		assert.Equal(t, gust.EnumErr[string, error](gust.ToErrBox("err")), r)
-	}()
-	defer gust.CatchEnumResult[string, error](&r)
-	var r1 = gust.Ok(1)
-	var v1 = r1.UnwrapOrThrow()
-	assert.Equal(t, 1, v1)
-	var r2 = gust.Err[int]("err")
-	var v2 = r2.UnwrapOrThrow()
-	assert.Equal(t, 0, v2)
 }
 
 func TestResult_And(t *testing.T) {
@@ -294,6 +280,28 @@ func TestResult_ExpectErr(t *testing.T) {
 	}()
 	err := gust.Ok(10).ExpectErr("Testing expect_err")
 	assert.NoError(t, err)
+
+	// Test IsErr branch (covers result.go:311-313)
+	err2 := gust.Err[int]("test error")
+	result := err2.ExpectErr("should not panic")
+	assert.NotNil(t, result)
+	assert.Equal(t, "test error", result.Error())
+}
+
+// TestResult_String tests Result.String method (covers result.go:102-107)
+func TestResult_String(t *testing.T) {
+	ok := gust.Ok(42)
+	assert.Equal(t, "Ok(42)", ok.String())
+
+	err := gust.Err[int]("error message")
+	assert.Contains(t, err.String(), "Err")
+}
+
+// TestResult_ErrValNil tests Result.ErrVal returning nil (covers result.go:165-169)
+func TestResult_ErrValNil(t *testing.T) {
+	ok := gust.Ok(42)
+	val := ok.ErrVal()
+	assert.Nil(t, val)
 }
 
 func TestResult_Expect(t *testing.T) {
@@ -441,17 +449,24 @@ func TestResult_Ok(t *testing.T) {
 }
 
 func TestResult_OrElse(t *testing.T) {
-	var sq = func(x int) gust.EnumResult[int, int] {
-		return gust.EnumOk[int, int](x * x)
+	var sq = func(err error) gust.Result[int] {
+		if err == nil {
+			return gust.Ok(0)
+		}
+		// Convert error to int for testing
+		if err.Error() == "3" {
+			return gust.Ok(9) // 3 * 3
+		}
+		return gust.Err[int](err)
 	}
-	var err = func(x int) gust.EnumResult[int, int] {
-		return gust.EnumErr[int, int](x)
+	var errFn = func(err error) gust.Result[int] {
+		return gust.Err[int](err)
 	}
 
-	assert.Equal(t, gust.EnumOk[int, int](2).OrElse(sq).OrElse(sq), gust.EnumOk[int, int](2))
-	assert.Equal(t, gust.EnumOk[int, int](2).OrElse(err).OrElse(sq), gust.EnumOk[int, int](2))
-	assert.Equal(t, gust.EnumErr[int, int](3).OrElse(sq).OrElse(err), gust.EnumOk[int, int](9))
-	assert.Equal(t, gust.EnumErr[int, int](3).OrElse(err).OrElse(err), gust.EnumErr[int, int](3))
+	assert.Equal(t, gust.Ok(2), gust.Ok(2).OrElse(sq).OrElse(sq))
+	assert.Equal(t, gust.Ok(2), gust.Ok(2).OrElse(errFn).OrElse(sq))
+	assert.Equal(t, gust.Ok(9), gust.Err[int](fmt.Errorf("3")).OrElse(sq).OrElse(errFn))
+	assert.Equal(t, gust.Err[int](fmt.Errorf("3")), gust.Err[int](fmt.Errorf("3")).OrElse(errFn).OrElse(errFn))
 }
 
 func TestResult_Or(t *testing.T) {
@@ -529,6 +544,19 @@ func TestCatchResult(t *testing.T) {
 	gust.Err[int]("test error").UnwrapOrThrow()
 	assert.True(t, result.IsErr())
 	assert.Equal(t, "test error", result.Err().Error())
+}
+
+// TestCatchResult_IsSomeBranch tests CatchResult with IsSome branch (covers result.go:609-611)
+func TestCatchResult_IsSomeBranch(t *testing.T) {
+	// Test result.t.IsSome() branch
+	var result gust.Result[int]
+	result = gust.Ok(42)
+	func() {
+		defer gust.CatchResult(&result)
+		gust.Err[int]("panic error").UnwrapOrThrow()
+	}()
+	assert.True(t, result.IsErr())
+	assert.Equal(t, "panic error", result.Err().Error())
 }
 
 func TestResult_UnwrapOrDefault(t *testing.T) {
@@ -720,40 +748,11 @@ func TestResult_Iterator(t *testing.T) {
 	}
 }
 
-func TestResult_CtrlFlow(t *testing.T) {
-	{
-		var x = gust.Ok("foo")
-		cf := x.CtrlFlow()
-		assert.True(t, cf.IsContinue())
-		assert.Equal(t, "foo", cf.UnwrapContinue())
-	}
-	{
-		var x = gust.Err[string](errors.New("error"))
-		cf := x.CtrlFlow()
-		assert.True(t, cf.IsBreak())
-		assert.NotNil(t, cf.UnwrapBreak())
-	}
-}
-
 func TestResult_Ref(t *testing.T) {
 	result := gust.Ok(42)
 	ref := result.Ref()
 	assert.Equal(t, gust.Ok(42), *ref)
 	ref.Unwrap() // Should not panic
-}
-
-func TestResult_EnumResult(t *testing.T) {
-	{
-		var x = gust.Ok("foo")
-		er := x.EnumResult()
-		assert.True(t, er.IsOk())
-		assert.Equal(t, "foo", er.Unwrap())
-	}
-	{
-		var x = gust.Err[string](errors.New("error"))
-		er := x.EnumResult()
-		assert.True(t, er.IsErr())
-	}
 }
 
 func TestResult_Errable(t *testing.T) {
