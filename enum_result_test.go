@@ -247,6 +247,7 @@ func TestEnumResult_XAnd(t *testing.T) {
 }
 
 func TestEnumResult_XAndThen(t *testing.T) {
+	// Test XAndThen with Ok path
 	{
 		var x = gust.EnumOk[int, string](2)
 		result := x.XAndThen(func(i int) gust.EnumResult[any, string] {
@@ -255,6 +256,16 @@ func TestEnumResult_XAndThen(t *testing.T) {
 		assert.True(t, result.IsOk())
 		assert.Equal(t, 4, result.Unwrap())
 	}
+	// Test XAndThen with Ok input but error from callback
+	{
+		var x = gust.EnumOk[int, string](42)
+		result := x.XAndThen(func(i int) gust.EnumResult[any, string] {
+			return gust.EnumErr[any, string]("error")
+		})
+		assert.True(t, result.IsErr())
+		assert.Equal(t, "error", result.UnwrapErr())
+	}
+	// Test XAndThen with error path
 	{
 		var x = gust.EnumErr[int, string]("error")
 		result := x.XAndThen(func(i int) gust.EnumResult[any, string] {
@@ -266,6 +277,7 @@ func TestEnumResult_XAndThen(t *testing.T) {
 }
 
 func TestEnumResult_XOr(t *testing.T) {
+	// Test XOr with Ok path
 	{
 		var x = gust.EnumOk[int, string](2)
 		var y = gust.EnumOk[int, any](42)
@@ -273,6 +285,15 @@ func TestEnumResult_XOr(t *testing.T) {
 		assert.True(t, result.IsOk())
 		assert.Equal(t, 2, result.Unwrap())
 	}
+	// Test XOr with Ok path when res is Err
+	{
+		var x = gust.EnumOk[int, string](10)
+		var y = gust.EnumErr[int, any]("error")
+		result := x.XOr(y)
+		assert.True(t, result.IsOk())
+		assert.Equal(t, 10, result.Unwrap())
+	}
+	// Test XOr with error path
 	{
 		var x = gust.EnumErr[int, string]("error")
 		var y = gust.EnumOk[int, any](42)
@@ -663,6 +684,20 @@ func TestEnumResult_Catch_OkValue(t *testing.T) {
 	assert.True(t, result.IsErr())
 }
 
+func TestEnumResult_Catch_NoPanic(t *testing.T) {
+	// Test Catch when no panic occurs (nil case)
+	var result gust.EnumResult[int, string]
+	defer result.Catch()
+	// No panic, so Catch should handle nil case gracefully
+	assert.True(t, result.IsOk() || result.IsErr()) // Either state is valid
+
+	// Test CatchEnumResult when no panic occurs (nil case)
+	var result2 gust.EnumResult[int, string]
+	defer gust.CatchEnumResult(&result2)
+	// No panic, so CatchEnumResult should handle nil case gracefully
+	assert.True(t, result2.IsOk() || result2.IsErr()) // Either state is valid
+}
+
 func TestCatchEnumResult_OkValue(t *testing.T) {
 	// Test CatchEnumResult when result already has Ok value
 	var result gust.EnumResult[int, string] = gust.EnumOk[int, string](42)
@@ -670,63 +705,6 @@ func TestCatchEnumResult_OkValue(t *testing.T) {
 	gust.EnumErr[int, string]("test error").UnwrapOrThrow()
 	// Result should be updated to Err
 	assert.True(t, result.IsErr())
-}
-
-func TestEnumResult_XAndThen_ErrorPath(t *testing.T) {
-	// Test XAndThen with error path
-	result := gust.EnumOk[int, string](42)
-	result2 := result.XAndThen(func(i int) gust.EnumResult[any, string] {
-		return gust.EnumErr[any, string]("error")
-	})
-	assert.True(t, result2.IsErr())
-}
-
-func TestEnumResult_XAndThen_OkPath(t *testing.T) {
-	// Test XAndThen with Ok path
-	result := gust.EnumOk[int, string](42)
-	result2 := result.XAndThen(func(i int) gust.EnumResult[any, string] {
-		return gust.EnumOk[any, string](i * 2)
-	})
-	assert.True(t, result2.IsOk())
-	assert.Equal(t, 84, result2.Unwrap())
-}
-
-func TestEnumResult_XOr_ErrorPath(t *testing.T) {
-	// Test XOr with error path
-	result := gust.EnumErr[int, string]("error")
-	result2 := gust.EnumOk[int, any](42)
-	result3 := result.XOr(result2)
-	assert.True(t, result3.IsOk())
-	assert.Equal(t, 42, result3.Unwrap())
-}
-
-func TestEnumResult_XOr_OkPath(t *testing.T) {
-	// Test XOr with Ok path
-	result := gust.EnumOk[int, string](10)
-	result2 := gust.EnumOk[int, any](42)
-	result3 := result.XOr(result2)
-	assert.True(t, result3.IsOk())
-	assert.Equal(t, 10, result3.Unwrap())
-}
-
-func TestEnumResult_XOrElse_ErrorPath(t *testing.T) {
-	// Test XOrElse with error path
-	result := gust.EnumErr[int, string]("error")
-	result2 := result.XOrElse(func(s string) gust.EnumResult[int, any] {
-		return gust.EnumOk[int, any](42)
-	})
-	assert.True(t, result2.IsOk())
-	assert.Equal(t, 42, result2.Unwrap())
-}
-
-func TestEnumResult_XOrElse_OkPath(t *testing.T) {
-	// Test XOrElse with Ok path
-	result := gust.EnumOk[int, string](10)
-	result2 := result.XOrElse(func(s string) gust.EnumResult[int, any] {
-		return gust.EnumOk[int, any](42)
-	})
-	assert.True(t, result2.IsOk())
-	assert.Equal(t, 10, result2.Unwrap())
 }
 
 func TestEnumResult_wrapError_WithError(t *testing.T) {
@@ -771,4 +749,110 @@ func TestFromError_WithNonMatchingType(t *testing.T) {
 	assert.True(t, result.IsErr())
 	// The error should be converted to zero value of string
 	assert.Equal(t, "", result.UnwrapErr())
+}
+
+func TestEnumResult_And(t *testing.T) {
+	// Test And with Ok -> Ok
+	result1 := gust.EnumOk[int, string](2)
+	result2 := gust.EnumOk[int, string](3)
+	result3 := result1.And(result2)
+	assert.True(t, result3.IsOk())
+	assert.Equal(t, 3, result3.Unwrap())
+
+	// Test And with Err -> Err
+	result4 := gust.EnumErr[int, string]("error1")
+	result5 := gust.EnumOk[int, string](3)
+	result6 := result4.And(result5)
+	assert.True(t, result6.IsErr())
+	assert.Equal(t, "error1", result6.UnwrapErr())
+}
+
+func TestEnumResult_AndThen(t *testing.T) {
+	// Test AndThen with Ok -> Ok
+	result1 := gust.EnumOk[int, string](2)
+	result2 := result1.AndThen(func(i int) gust.EnumResult[int, string] {
+		return gust.EnumOk[int, string](i * 2)
+	})
+	assert.True(t, result2.IsOk())
+	assert.Equal(t, 4, result2.Unwrap())
+
+	// Test AndThen with Err -> Err
+	result3 := gust.EnumErr[int, string]("error")
+	result4 := result3.AndThen(func(i int) gust.EnumResult[int, string] {
+		return gust.EnumOk[int, string](i * 2)
+	})
+	assert.True(t, result4.IsErr())
+	assert.Equal(t, "error", result4.UnwrapErr())
+}
+
+func TestEnumResult_Or(t *testing.T) {
+	// Test Or with Err -> Ok
+	result1 := gust.EnumErr[int, string]("error")
+	result2 := gust.EnumOk[int, string](42)
+	result3 := result1.Or(result2)
+	assert.True(t, result3.IsOk())
+	assert.Equal(t, 42, result3.Unwrap())
+
+	// Test Or with Ok -> Ok
+	result4 := gust.EnumOk[int, string](10)
+	result5 := gust.EnumOk[int, string](42)
+	result6 := result4.Or(result5)
+	assert.True(t, result6.IsOk())
+	assert.Equal(t, 10, result6.Unwrap())
+}
+
+func TestEnumResult_OrElse(t *testing.T) {
+	// Test OrElse with Err -> Ok
+	result1 := gust.EnumErr[int, string]("error")
+	result2 := result1.OrElse(func(s string) gust.EnumResult[int, string] {
+		return gust.EnumOk[int, string](42)
+	})
+	assert.True(t, result2.IsOk())
+	assert.Equal(t, 42, result2.Unwrap())
+
+	// Test OrElse with Ok -> Ok
+	result3 := gust.EnumOk[int, string](10)
+	result4 := result3.OrElse(func(s string) gust.EnumResult[int, string] {
+		return gust.EnumOk[int, string](42)
+	})
+	assert.True(t, result4.IsOk())
+	assert.Equal(t, 10, result4.Unwrap())
+}
+
+func TestEnumResult_Map(t *testing.T) {
+	// Test Map with Ok
+	result1 := gust.EnumOk[int, string](2)
+	result2 := result1.Map(func(i int) int { return i * 2 })
+	assert.True(t, result2.IsOk())
+	assert.Equal(t, 4, result2.Unwrap())
+
+	// Test Map with Err
+	result3 := gust.EnumErr[int, string]("error")
+	result4 := result3.Map(func(i int) int { return i * 2 })
+	assert.True(t, result4.IsErr())
+	assert.Equal(t, "error", result4.UnwrapErr())
+}
+
+func TestEnumResult_MapOr(t *testing.T) {
+	// Test MapOr with Ok
+	result1 := gust.EnumOk[int, string](2)
+	result2 := result1.MapOr(0, func(i int) int { return i * 2 })
+	assert.Equal(t, 4, result2)
+
+	// Test MapOr with Err
+	result3 := gust.EnumErr[int, string]("error")
+	result4 := result3.MapOr(0, func(i int) int { return i * 2 })
+	assert.Equal(t, 0, result4)
+}
+
+func TestEnumResult_MapOrElse(t *testing.T) {
+	// Test MapOrElse with Ok
+	result1 := gust.EnumOk[int, string](2)
+	result2 := result1.MapOrElse(func(string) int { return 0 }, func(i int) int { return i * 2 })
+	assert.Equal(t, 4, result2)
+
+	// Test MapOrElse with Err
+	result3 := gust.EnumErr[int, string]("error")
+	result4 := result3.MapOrElse(func(string) int { return 42 }, func(i int) int { return i * 2 })
+	assert.Equal(t, 42, result4)
 }

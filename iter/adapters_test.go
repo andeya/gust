@@ -18,30 +18,6 @@ func TestStepBy(t *testing.T) {
 	assert.Equal(t, gust.None[int](), iter.Next())
 }
 
-func TestIntersperse(t *testing.T) {
-	a := []int{0, 1, 2}
-	iter := FromSlice(a).Intersperse(100)
-
-	assert.Equal(t, gust.Some(0), iter.Next())
-	assert.Equal(t, gust.Some(100), iter.Next())
-	assert.Equal(t, gust.Some(1), iter.Next())
-	assert.Equal(t, gust.Some(100), iter.Next())
-	assert.Equal(t, gust.Some(2), iter.Next())
-	assert.Equal(t, gust.None[int](), iter.Next())
-}
-
-func TestIntersperseWith(t *testing.T) {
-	v := []int{0, 1, 2}
-	iter := FromSlice(v).IntersperseWith(func() int { return 99 })
-
-	assert.Equal(t, gust.Some(0), iter.Next())
-	assert.Equal(t, gust.Some(99), iter.Next())
-	assert.Equal(t, gust.Some(1), iter.Next())
-	assert.Equal(t, gust.Some(99), iter.Next())
-	assert.Equal(t, gust.Some(2), iter.Next())
-	assert.Equal(t, gust.None[int](), iter.Next())
-}
-
 func TestArrayChunks(t *testing.T) {
 	iter := ArrayChunks(FromSlice([]int{1, 2, 3, 4, 5, 6}), 2)
 

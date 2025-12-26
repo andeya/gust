@@ -1,32 +1,32 @@
 
 BIN=go
-# Limit compiler concurrency to reduce memory usage (default: 2)
+# Limit compiler concurrency to reduce memory usage (default: 4)
 # Set COVERAGE_MAXPROCS environment variable to override
-COVERAGE_MAXPROCS ?= 2
-# Limit parallel test execution (default: 1 to reduce memory usage)
+COVERAGE_MAXPROCS ?= 4
+# Limit parallel test execution (default: 2 to balance speed and memory)
 # Set COVERAGE_PARALLEL environment variable to override
-COVERAGE_PARALLEL ?= 1
+COVERAGE_PARALLEL ?= 2
 
 .PHONY: all build test lint coverage coverage-modular clean-coverage
 
 all: build test lint
 
 build:
-	${BIN} build -v ./...
+	${BIN} build -v $$(${BIN} list ./... | grep -v '/scripts/')
 
 test:
-	go test -v ./...
+	go test -v $$(${BIN} list ./... | grep -v '/scripts/')
 watch-test:
-	reflex -t 50ms -s -- sh -c 'gotest -v ./...'
+	reflex -t 50ms -s -- sh -c 'gotest -v $$(go list ./... | grep -v "/scripts/")'
 
 bench:
-	go test -benchmem -count 3 -bench ./...
+	go test -benchmem -count 3 -bench $$(${BIN} list ./... | grep -v '/scripts/')
 watch-bench:
-	reflex -t 50ms -s -- sh -c 'go test -benchmem -count 3 -bench ./...'
+	reflex -t 50ms -s -- sh -c 'go test -benchmem -count 3 -bench $$(${BIN} list ./... | grep -v "/scripts/")'
 
 # Legacy coverage (runs all packages at once, high memory usage)
 coverage:
-	${BIN} test -v -coverprofile=cover.out -covermode=atomic ./...
+	${BIN} test -v -coverprofile=cover.out -covermode=atomic $$(${BIN} list ./... | grep -v '/scripts/')
 	${BIN} tool cover -html=cover.out -o cover.html
 
 # Modular coverage (runs each package separately to reduce memory usage)
@@ -35,21 +35,30 @@ coverage-modular:
 	@echo "Starting modular coverage testing..."
 	@mkdir -p coverage-tmp
 	@rm -f coverage-tmp/*.out
-	@echo "Getting list of all packages..."
-	@${BIN} list ./... | grep -v "^github.com/andeya/gust$$" > coverage-tmp/packages.txt || true
+	@echo "Getting list of all packages (excluding scripts)..."
+	@${BIN} list ./... | grep -v '/scripts/' | grep -v 'scripts' | grep -v "^github.com/andeya/gust$$" > coverage-tmp/packages.txt || true
 	@echo "github.com/andeya/gust" >> coverage-tmp/packages.txt
+	@echo "Packages to test:"
+	@cat coverage-tmp/packages.txt
 	@echo "Running tests for each package separately (GOMAXPROCS=$(COVERAGE_MAXPROCS), parallel=$(COVERAGE_PARALLEL))..."
 	@while IFS= read -r pkg; do \
 		if [ -n "$$pkg" ]; then \
 			pkg_name=$$(echo $$pkg | sed 's|github.com/andeya/gust/||' | sed 's|/|_|g' | sed 's|^$$|root|'); \
 			echo "Testing package: $$pkg (output: coverage-tmp/$$pkg_name.out)"; \
 			GOMAXPROCS=$(COVERAGE_MAXPROCS) ${BIN} test -p $(COVERAGE_PARALLEL) -v -coverprofile=coverage-tmp/$$pkg_name.out -covermode=atomic $$pkg || exit 1; \
-		fi \
+		fi; \
 	done < coverage-tmp/packages.txt
 	@echo "Merging all coverage files..."
-	@gocovmerge coverage-tmp/*.out > cover.out || (echo "Error: gocovmerge tool is required. Run 'make install-coverage-tools' to install it" && exit 1)
+	@go run scripts/merge_coverage.go cover.out coverage-tmp/*.out || (echo "Error: Failed to merge coverage files" && exit 1)
 	@echo "Generating HTML coverage report..."
 	@${BIN} tool cover -html=cover.out -o cover.html
+	@echo ""
+	@echo "=========================================="
+	@echo "Overall Coverage Summary:"
+	@echo "=========================================="
+	@${BIN} tool cover -func=cover.out | tail -1
+	@echo "=========================================="
+	@echo ""
 	@echo "Coverage testing completed! Results saved in cover.out and cover.html"
 	@echo "Cleaning up temporary files..."
 	@rm -rf coverage-tmp
@@ -70,14 +79,14 @@ tools:
 	${BIN} install github.com/sonatype-nexus-community/nancy@latest
 	go mod tidy
 
-# Install coverage merge tool
-install-coverage-tools:
-	${BIN} install github.com/wadey/gocovmerge@latest
+# Build coverage merge tool (optional, for faster execution)
+build-coverage-merge-tool:
+	${BIN} build -o scripts/merge_coverage scripts/merge_coverage.go
 
 lint:
-	golangci-lint run --print-resources-usage --fast --timeout 20m0s --max-same-issues 50 ./...
+	golangci-lint run --print-resources-usage --fast --timeout 20m0s --max-same-issues 50 $$(${BIN} list ./... | grep -v '/scripts/')
 lint-fix:
-	golangci-lint run --print-resources-usage --fast --timeout 20m0s --max-same-issues 50 --fix ./...
+	golangci-lint run --print-resources-usage --fast --timeout 20m0s --max-same-issues 50 --fix $$(${BIN} list ./... | grep -v '/scripts/')
 
 audit:
 	${BIN} mod tidy

@@ -23,8 +23,6 @@ jobs:
         with:
           go-version: 1.23.0
       - uses: actions/checkout@v3
-      - name: Install coverage merge tool
-        run: go install github.com/wadey/gocovmerge@latest
       - name: Test
         run: make coverage-modular
       - name: Codecov
@@ -46,7 +44,7 @@ jobs:
           working-directory: ./
 
           # Optional: golangci-lint command line arguments.
-          args: --print-resources-usage --fast --timeout 20m0s --max-same-issues 50 ./...
+          args: --print-resources-usage --fast --timeout 20m0s --max-same-issues 50 --skip-dirs scripts ./...
 
           # Optional: show only new issues if it's a pull request. The default value is `false`.
           # only-new-issues: true

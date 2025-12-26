@@ -888,27 +888,16 @@ func TestResult_Catch_OkValue(t *testing.T) {
 	gust.Err[string]("test error").UnwrapOrThrow()
 	// Result should be updated to Err
 	assert.True(t, result.IsErr())
-}
 
-func TestCatchResult_OkValue(t *testing.T) {
 	// Test CatchResult when result already has Ok value
-	var result gust.Result[int] = gust.Ok(42)
-	defer gust.CatchResult(&result)
+	var result2 gust.Result[int] = gust.Ok(42)
+	defer gust.CatchResult(&result2)
 	gust.Err[string]("test error").UnwrapOrThrow()
 	// Result should be updated to Err
-	assert.True(t, result.IsErr())
-}
-
-func TestResult_XAndThen_ErrorPath(t *testing.T) {
-	// Test XAndThen with error path
-	result := gust.Ok[int](42)
-	result2 := result.XAndThen(func(i int) gust.Result[any] {
-		return gust.Err[any]("error")
-	})
 	assert.True(t, result2.IsErr())
 }
 
-func TestResult_XAndThen_OkPath(t *testing.T) {
+func TestResult_XAndThen(t *testing.T) {
 	// Test XAndThen with Ok path
 	result := gust.Ok[int](42)
 	result2 := result.XAndThen(func(i int) gust.Result[any] {
@@ -916,6 +905,13 @@ func TestResult_XAndThen_OkPath(t *testing.T) {
 	})
 	assert.True(t, result2.IsOk())
 	assert.Equal(t, 84, result2.Unwrap())
+
+	// Test XAndThen with error path
+	result3 := gust.Ok[int](42)
+	result4 := result3.XAndThen(func(i int) gust.Result[any] {
+		return gust.Err[any]("error")
+	})
+	assert.True(t, result4.IsErr())
 }
 
 func TestResult_AndThen2(t *testing.T) {

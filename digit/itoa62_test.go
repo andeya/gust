@@ -694,6 +694,21 @@ func TestFormatBits_Base10_Host32bit(t *testing.T) {
 		if len(got2) == 0 {
 			t.Error("FormatUint(1e18, 10) should return non-empty string")
 		}
+
+		// Test with numbers that trigger the u >= 1e9 loop multiple times
+		veryVeryLargeNum := uint64(1e9 * 1e9)
+		got3 := FormatUint(veryVeryLargeNum, 10)
+		if len(got3) == 0 {
+			t.Error("FormatUint(1e18, 10) should return non-empty string")
+		}
+	} else {
+		// On 64-bit systems, test that large numbers still work
+		largeNum := uint64(1e9)
+		got := FormatUint(largeNum, 10)
+		expected := "1000000000"
+		if got != expected {
+			t.Errorf("FormatUint(%d, 10) = %q, want %q", largeNum, got, expected)
+		}
 	}
 }
 

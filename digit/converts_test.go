@@ -506,6 +506,45 @@ func TestTryFromString_ReflectPath_Int(t *testing.T) {
 	result3 := TryFromString[string, uint]("42", 10, 0)
 	assert.True(t, result3.IsOk())
 	assert.Equal(t, uint(42), result3.Unwrap())
+
+	// Test reflect path for all int types
+	result4 := TryFromString[string, int16]("42", 10, 0)
+	assert.True(t, result4.IsOk())
+	assert.Equal(t, int16(42), result4.Unwrap())
+
+	result5 := TryFromString[string, int32]("42", 10, 0)
+	assert.True(t, result5.IsOk())
+	assert.Equal(t, int32(42), result5.Unwrap())
+
+	result6 := TryFromString[string, int64]("42", 10, 0)
+	assert.True(t, result6.IsOk())
+	assert.Equal(t, int64(42), result6.Unwrap())
+
+	// Test reflect path for all uint types
+	result7 := TryFromString[string, uint8]("42", 10, 0)
+	assert.True(t, result7.IsOk())
+	assert.Equal(t, uint8(42), result7.Unwrap())
+
+	result8 := TryFromString[string, uint16]("42", 10, 0)
+	assert.True(t, result8.IsOk())
+	assert.Equal(t, uint16(42), result8.Unwrap())
+
+	result9 := TryFromString[string, uint32]("42", 10, 0)
+	assert.True(t, result9.IsOk())
+	assert.Equal(t, uint32(42), result9.Unwrap())
+
+	result10 := TryFromString[string, uint64]("42", 10, 0)
+	assert.True(t, result10.IsOk())
+	assert.Equal(t, uint64(42), result10.Unwrap())
+
+	// Test reflect path for float types
+	result11 := TryFromString[string, float32]("3.14", 10, 32)
+	assert.True(t, result11.IsOk())
+	assert.InDelta(t, float32(3.14), result11.Unwrap(), 0.001)
+
+	result12 := TryFromString[string, float64]("3.14", 10, 64)
+	assert.True(t, result12.IsOk())
+	assert.InDelta(t, 3.14, result12.Unwrap(), 0.001)
 }
 
 func TestAs_ReflectPath_AllTypes(t *testing.T) {

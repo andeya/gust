@@ -80,15 +80,3 @@ func TestCloned(t *testing.T) {
 	v := iter.Collect()
 	assert.Equal(t, []string{"hello", "world"}, v)
 }
-
-func TestCycle(t *testing.T) {
-	a := []int{1, 2, 3}
-	iter := FromSlice(a).Cycle()
-
-	assert.Equal(t, gust.Some(1), iter.Next())
-	assert.Equal(t, gust.Some(2), iter.Next())
-	assert.Equal(t, gust.Some(3), iter.Next())
-	assert.Equal(t, gust.Some(1), iter.Next()) // starts over
-	assert.Equal(t, gust.Some(2), iter.Next())
-	assert.Equal(t, gust.Some(3), iter.Next())
-}

@@ -77,4 +77,54 @@ func TestTryFind(t *testing.T) {
 	assert.True(t, result.IsOk())
 	assert.True(t, result.Unwrap().IsSome())
 	assert.Equal(t, "2", result.Unwrap().Unwrap())
+
+	// Test TryFind with error before finding
+	a2 := []string{"lol", "2", "3"}
+	result2 := FromSlice(a2).TryFind(func(s string) gust.Result[bool] {
+		if s == "lol" {
+			return gust.Err[bool](errors.New("invalid"))
+		}
+		return gust.Ok(false)
+	})
+	assert.True(t, result2.IsErr())
+
+	// Test TryFind with no match
+	a3 := []string{"1", "3", "5"}
+	result3 := FromSlice(a3).TryFind(func(s string) gust.Result[bool] {
+		return gust.Ok(false)
+	})
+	assert.True(t, result3.IsOk())
+	assert.True(t, result3.Unwrap().IsNone())
+
+	// Test TryFind with empty iterator
+	a4 := []string{}
+	result4 := FromSlice(a4).TryFind(func(s string) gust.Result[bool] {
+		return gust.Ok(true)
+	})
+	assert.True(t, result4.IsOk())
+	assert.True(t, result4.Unwrap().IsNone())
+}
+
+func TestTryReduce_ErrorPath(t *testing.T) {
+	// Test TryReduce with error
+	numbers := []int{10, 20, 100}
+	sum := FromSlice(numbers).TryReduce(func(x, y int) gust.Result[int] {
+		if x+y > 100 {
+			return gust.Err[int](errors.New("overflow"))
+		}
+		return gust.Ok(x + y)
+	})
+	assert.True(t, sum.IsErr())
+}
+
+func TestTryForEach_ErrorPath(t *testing.T) {
+	// Test TryForEach with error
+	data := []string{"a", "error", "c"}
+	res := TryForEach(FromSlice(data), func(x string) gust.Result[any] {
+		if x == "error" {
+			return gust.Err[any](errors.New("processing error"))
+		}
+		return gust.Ok[any](x)
+	})
+	assert.True(t, res.IsErr())
 }

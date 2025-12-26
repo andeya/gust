@@ -55,6 +55,55 @@ func TestTryToDoubleEnded(t *testing.T) {
 	// For now, sliceIterator supports double-ended, so this will succeed
 }
 
+func TestMustToDoubleEnded(t *testing.T) {
+	// Test with double-ended iterator
+	iter1 := FromSlice([]int{1, 2, 3})
+	deIter := iter1.MustToDoubleEnded()
+	assert.Equal(t, gust.Some(3), deIter.NextBack())
+	assert.Equal(t, gust.Some(2), deIter.NextBack())
+	assert.Equal(t, gust.Some(1), deIter.NextBack())
+	assert.Equal(t, gust.None[int](), deIter.NextBack())
+}
+
+func TestSeq(t *testing.T) {
+	iter := FromSlice([]int{1, 2, 3})
+	var results []int
+	for v := range iter.Seq() {
+		results = append(results, v)
+	}
+	assert.Equal(t, []int{1, 2, 3}, results)
+
+	// Test early termination
+	iter2 := FromSlice([]int{1, 2, 3, 4, 5})
+	var results2 []int
+	for v := range iter2.Seq() {
+		results2 = append(results2, v)
+		if v == 3 {
+			break
+		}
+	}
+	assert.Equal(t, []int{1, 2, 3}, results2)
+}
+
+func TestPull(t *testing.T) {
+	iter := FromSlice([]int{1, 2, 3, 4, 5})
+	next, stop := iter.Pull()
+	defer stop()
+
+	var results []int
+	for {
+		v, ok := next()
+		if !ok {
+			break
+		}
+		results = append(results, v)
+		if v == 3 {
+			break // Early termination
+		}
+	}
+	assert.Equal(t, []int{1, 2, 3}, results)
+}
+
 func TestFromSlice(t *testing.T) {
 	a := []int{1, 2, 3}
 	iter := FromSlice(a)
@@ -779,4 +828,167 @@ func TestIteratorExtZip(t *testing.T) {
 	assert.True(t, pair.IsSome())
 	assert.Equal(t, 1, pair.Unwrap().A)
 	assert.Equal(t, "a", pair.Unwrap().B)
+}
+
+func TestIterator_XTryFold(t *testing.T) {
+	iter := FromSlice([]int{1, 2, 3})
+	result := iter.XTryFold(0, func(acc any, x int) gust.Result[any] {
+		return gust.Ok(any(acc.(int) + x))
+	})
+	assert.True(t, result.IsOk())
+	assert.Equal(t, 6, result.Unwrap().(int))
+
+	// Test with error
+	iter2 := FromSlice([]int{1, 2, 3})
+	result2 := iter2.XTryFold(0, func(acc any, x int) gust.Result[any] {
+		if acc.(int)+x > 5 {
+			return gust.Err[any](errors.New("overflow"))
+		}
+		return gust.Ok(any(acc.(int) + x))
+	})
+	assert.True(t, result2.IsErr())
+}
+
+func TestIterator_XTryForEach(t *testing.T) {
+	data := FromSlice([]string{"a", "b", "c"})
+	result := data.XTryForEach(func(x string) gust.Result[any] {
+		return gust.Ok[any](x + "_processed")
+	})
+	assert.True(t, result.IsOk())
+
+	// Test with error
+	data2 := FromSlice([]string{"a", "b", "error"})
+	result2 := data2.XTryForEach(func(x string) gust.Result[any] {
+		if x == "error" {
+			return gust.Err[any](errors.New("processing error"))
+		}
+		return gust.Ok[any](x)
+	})
+	assert.True(t, result2.IsErr())
+}
+
+func TestIterator_XMap(t *testing.T) {
+	iter := FromSlice([]int{1, 2, 3})
+	mapped := iter.XMap(func(x int) any { return x * 2 })
+	result := mapped.Collect()
+	assert.Equal(t, []any{2, 4, 6}, result)
+}
+
+func TestIterator_XFlatMap(t *testing.T) {
+	iter := FromSlice([]int{1, 2})
+	flatMapped := iter.XFlatMap(func(x int) Iterator[any] {
+		return FromSlice([]any{x, x * 2})
+	})
+	result := flatMapped.Collect()
+	assert.Equal(t, []any{1, 2, 2, 4}, result)
+}
+
+func TestIterator_XFold(t *testing.T) {
+	iter := FromSlice([]int{1, 2, 3})
+	result := iter.XFold(0, func(acc any, x int) any {
+		return acc.(int) + x
+	})
+	assert.Equal(t, 6, result)
+}
+
+func TestIterator_XFilterMap(t *testing.T) {
+	iter := FromSlice([]string{"1", "two", "NaN", "four", "5"})
+	filtered := iter.XFilterMap(func(s string) gust.Option[any] {
+		if s == "1" {
+			return gust.Some(any(1))
+		}
+		if s == "5" {
+			return gust.Some(any(5))
+		}
+		return gust.None[any]()
+	})
+	result := filtered.Collect()
+	assert.Equal(t, []any{1, 5}, result)
+}
+
+func TestIterator_XMapWhile(t *testing.T) {
+	iter := FromSlice([]int{-1, 4, 0, 1})
+	mapped := iter.XMapWhile(func(x int) gust.Option[any] {
+		if x != 0 {
+			return gust.Some(any(16 / x))
+		}
+		return gust.None[any]()
+	})
+	result := mapped.Collect()
+	assert.Equal(t, []any{-16, 4}, result)
+}
+
+func TestIterator_XScan(t *testing.T) {
+	iter := FromSlice([]int{1, 2, 3})
+	scanned := iter.XScan(0, func(state *any, x int) gust.Option[any] {
+		s := (*state).(int) + x
+		*state = s
+		return gust.Some(any(s))
+	})
+	result := scanned.Collect()
+	assert.Equal(t, []any{1, 3, 6}, result)
+}
+
+func TestIterator_Intersperse(t *testing.T) {
+	iter := FromSlice([]int{0, 1, 2})
+	interspersed := iter.Intersperse(100)
+	assert.Equal(t, gust.Some(0), interspersed.Next())
+	assert.Equal(t, gust.Some(100), interspersed.Next())
+	assert.Equal(t, gust.Some(1), interspersed.Next())
+	assert.Equal(t, gust.Some(100), interspersed.Next())
+	assert.Equal(t, gust.Some(2), interspersed.Next())
+	assert.Equal(t, gust.None[int](), interspersed.Next())
+}
+
+func TestIterator_IntersperseWith(t *testing.T) {
+	iter := FromSlice([]int{0, 1, 2})
+	interspersed := iter.IntersperseWith(func() int { return 99 })
+	assert.Equal(t, gust.Some(0), interspersed.Next())
+	assert.Equal(t, gust.Some(99), interspersed.Next())
+	assert.Equal(t, gust.Some(1), interspersed.Next())
+	assert.Equal(t, gust.Some(99), interspersed.Next())
+	assert.Equal(t, gust.Some(2), interspersed.Next())
+	assert.Equal(t, gust.None[int](), interspersed.Next())
+}
+
+func TestIterator_Cycle(t *testing.T) {
+	iter := FromSlice([]int{1, 2, 3})
+	cycled := iter.Cycle()
+	assert.Equal(t, gust.Some(1), cycled.Next())
+	assert.Equal(t, gust.Some(2), cycled.Next())
+	assert.Equal(t, gust.Some(3), cycled.Next())
+	assert.Equal(t, gust.Some(1), cycled.Next()) // starts over
+	assert.Equal(t, gust.Some(2), cycled.Next())
+	assert.Equal(t, gust.Some(3), cycled.Next()) // continues cycling
+}
+
+func TestIterator_NextChunk(t *testing.T) {
+	iter := FromSlice([]int{1, 2, 3, 4, 5})
+	chunk := iter.NextChunk(2)
+	assert.True(t, chunk.IsOk())
+	assert.Equal(t, []int{1, 2}, chunk.Unwrap())
+
+	// Test with insufficient elements (request more than remaining)
+	chunk2 := iter.NextChunk(4)
+	assert.True(t, chunk2.IsErr())
+	assert.Equal(t, []int{3, 4, 5}, chunk2.UnwrapErr())
+
+	// After consuming all elements, next chunk should fail
+	chunk3 := iter.NextChunk(2)
+	assert.True(t, chunk3.IsErr())
+
+	// Test with exact chunk size
+	iter2 := FromSlice([]int{1, 2, 3})
+	chunk4 := iter2.NextChunk(3)
+	assert.True(t, chunk4.IsOk())
+	assert.Equal(t, []int{1, 2, 3}, chunk4.Unwrap())
+}
+
+func TestIterator_XMapWindows(t *testing.T) {
+	iter := FromSlice([]int{1, 2, 3, 4, 5})
+	windows := iter.XMapWindows(3, func(window []int) any {
+		return window[0] + window[1] + window[2]
+	})
+	result := windows.Collect()
+	assert.Equal(t, []any{6, 9, 12}, result)
 }
