@@ -23,8 +23,10 @@ jobs:
         with:
           go-version: 1.23.0
       - uses: actions/checkout@v3
+      - name: Install coverage merge tool
+        run: go install github.com/wadey/gocovmerge@latest
       - name: Test
-        run: make coverage
+        run: make coverage-modular
       - name: Codecov
         uses: codecov/codecov-action@v3
         with:
