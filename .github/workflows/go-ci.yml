@@ -26,14 +26,16 @@ jobs:
       - name: Test
         run: make coverage-modular
       - name: Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4.0.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          file: ./cover.out
+          files: ./cover.out
           flags: unittests
           verbose: true
           fail_ci_if_error: false  # Don't fail CI if Codecov upload fails (e.g., rate limit)
-          allow_empty: true  # Allow empty coverage reports
+          # Note: If CODECOV_TOKEN is not set, uploads may be rate-limited (429 error)
+          # To fix: Go to https://codecov.io/gh/andeya/gust/settings and copy the repository upload token
+          # Then add it as a secret named CODECOV_TOKEN in GitHub repository settings
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
         with:
