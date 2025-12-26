@@ -71,10 +71,6 @@ func (it Iterator[T]) SizeHint() (uint, gust.Option[uint]) {
 //	for v := range iter.Seq() {
 //		fmt.Println(v) // prints 1, 2, 3
 //	}
-//
-//	// Works with Go's standard library functions
-//	iter := FromSlice([]int{1, 2, 3})
-//	all := iter.Seq().All(func(v int) bool { return v > 0 })
 func (it Iterator[T]) Seq() stditer.Seq[T] {
 	return func(yield func(T) bool) {
 		for {
@@ -83,6 +79,31 @@ func (it Iterator[T]) Seq() stditer.Seq[T] {
 				return
 			}
 			if !yield(opt.Unwrap()) {
+				return
+			}
+		}
+	}
+}
+
+// Seq2 converts the Iterator[T] to Go's standard iter.Seq2[T].
+// This allows using gust iterators with Go's built-in iteration support (for loops).
+//
+// # Examples
+//
+// iter := FromSlice([]int{1, 2, 3})
+//
+//	for k, v := range iter.Seq2() {
+//		fmt.Println(k, v) // prints 0 1, 1 2, 2 3
+//	}
+func (it Iterator[T]) Seq2() stditer.Seq2[uint, T] {
+	pairIter := enumerateImpl(it.iterable)
+	return func(yield func(uint, T) bool) {
+		for {
+			opt := pairIter.Next()
+			if opt.IsNone() {
+				return
+			}
+			if !yield(opt.Unwrap().Split()) {
 				return
 			}
 		}
@@ -111,7 +132,42 @@ func (it Iterator[T]) Seq() stditer.Seq[T] {
 //		}
 //	}
 func (it Iterator[T]) Pull() (next func() (T, bool), stop func()) {
-	return stditer.Pull(it.Seq())
+	return func() (T, bool) {
+			return it.Next().Split()
+		}, func() {
+			// No need to stop here since the iterator will clean up automatically
+		}
+}
+
+// Pull2 converts the Iterator[T] to a pull-style iterator using Go's standard iter.Pull2.
+// This returns two functions: next (to pull key-value pairs) and stop (to stop iteration).
+// The caller should defer stop() to ensure proper cleanup.
+//
+// # Examples
+//
+//	iter := FromSlice([]int{1, 2, 3, 4, 5})
+//	next, stop := iter.Pull2()
+//	defer stop()
+//
+//	// Pull key-value pairs manually
+//	for {
+//		k, v, ok := next()
+//		if !ok {
+//			break
+//		}
+//		fmt.Println(k, v)
+//		if v == 3 {
+//			break // Early termination
+//		}
+//	}
+func (it Iterator[T]) Pull2() (next func() (uint, T, bool), stop func()) {
+	pairIter := enumerateImpl(it.iterable)
+	return func() (uint, T, bool) {
+			pair, ok := pairIter.Next().Split()
+			return pair.A, pair.B, ok
+		}, func() {
+			// No need to stop here since the iterator will clean up automatically
+		}
 }
 
 // Adapter methods - these return new iterators and can be chained

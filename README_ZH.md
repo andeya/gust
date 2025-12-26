@@ -238,6 +238,18 @@ for v := range gustIter.Seq() {
 }
 ```
 
+**将 gust Iterator 转换为 Go 的 `iter.Seq2[uint, T]`（索引-值对）：**
+```go
+import "github.com/andeya/gust/iter"
+
+iter := iter.FromSlice([]int{1, 2, 3})
+
+// 在 Go 标准的 for-range 循环中使用索引-值对
+for k, v := range iter.Seq2() {
+    fmt.Println(k, v) // 输出 0 1, 1 2, 2 3
+}
+```
+
 **将 gust Pair Iterator 转换为 Go 的 `iter.Seq2[K, V]`：**
 ```go
 import "github.com/andeya/gust/iter"
@@ -299,9 +311,9 @@ result := gustIter.Filter(func(p gust.Pair[string, int]) bool {
 fmt.Println(result) // [{b 2} {c 3}]
 ```
 
-**使用拉取式迭代与 gust 迭代器：**
+**使用 gust 的 `Pull()` 和 `Pull2()` 方法：**
 
-gust 提供了便捷的 `Pull()` 方法和 `Pull2()` 函数，用于将推送式迭代器转换为拉取式迭代器：
+gust 提供了便捷的 `Pull()` 和 `Pull2()` 方法，用于将迭代器转换为拉取式迭代器：
 
 ```go
 import "github.com/andeya/gust/iter"
@@ -322,6 +334,25 @@ for {
         break // 提前终止
     }
 }
+
+// 使用 Pull2() 方法与 gust Iterator（索引-值对）
+gustIter2 := iter.FromSlice([]int{10, 20, 30})
+next2, stop2 := gustIter2.Pull2()
+defer stop2()
+
+// 手动拉取索引-值对
+for {
+    k, v, ok := next2()
+    if !ok {
+        break
+    }
+    fmt.Println(k, v) // 输出 0 10, 1 20, 2 30
+}
+```
+
+**使用 gust 的 `Pull2()` 函数与 Pair Iterator：**
+```go
+import "github.com/andeya/gust/iter"
 
 // 使用 Pull2() 函数与 gust Pair Iterator
 iter1 := iter.FromSlice([]int{1, 2, 3})

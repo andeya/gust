@@ -547,6 +547,168 @@ func TestPull2(t *testing.T) {
 	}, enumResult)
 }
 
+func TestIterator_Seq2(t *testing.T) {
+	// Test basic Seq2 conversion - converts Iterator[T] to iter.Seq2[uint, T]
+	iter := FromSlice([]int{1, 2, 3})
+	var result []gust.Pair[uint, int]
+	for k, v := range iter.Seq2() {
+		result = append(result, gust.Pair[uint, int]{A: k, B: v})
+	}
+	assert.Equal(t, []gust.Pair[uint, int]{
+		{A: 0, B: 1},
+		{A: 1, B: 2},
+		{A: 2, B: 3},
+	}, result)
+
+	// Test with filtered iterator
+	filtered := FromSlice([]int{10, 20, 30, 40, 50}).Filter(func(x int) bool { return x > 20 })
+	var filteredResult []gust.Pair[uint, int]
+	for k, v := range filtered.Seq2() {
+		filteredResult = append(filteredResult, gust.Pair[uint, int]{A: k, B: v})
+	}
+	assert.Equal(t, []gust.Pair[uint, int]{
+		{A: 0, B: 30},
+		{A: 1, B: 40},
+		{A: 2, B: 50},
+	}, filteredResult)
+
+	// Test with empty iterator
+	empty := Empty[int]()
+	var emptyResult []gust.Pair[uint, int]
+	for k, v := range empty.Seq2() {
+		emptyResult = append(emptyResult, gust.Pair[uint, int]{A: k, B: v})
+	}
+	assert.Nil(t, emptyResult)
+	assert.Len(t, emptyResult, 0)
+
+	// Test early termination
+	iter = FromSlice([]int{1, 2, 3, 4, 5})
+	var earlyResult []gust.Pair[uint, int]
+	count := 0
+	for k, v := range iter.Seq2() {
+		earlyResult = append(earlyResult, gust.Pair[uint, int]{A: k, B: v})
+		count++
+		if count >= 3 {
+			break
+		}
+	}
+	assert.Equal(t, []gust.Pair[uint, int]{
+		{A: 0, B: 1},
+		{A: 1, B: 2},
+		{A: 2, B: 3},
+	}, earlyResult)
+
+	// Test with string iterator
+	strIter := FromSlice([]string{"hello", "world", "rust"})
+	var strResult []gust.Pair[uint, string]
+	for k, v := range strIter.Seq2() {
+		strResult = append(strResult, gust.Pair[uint, string]{A: k, B: v})
+	}
+	assert.Equal(t, []gust.Pair[uint, string]{
+		{A: 0, B: "hello"},
+		{A: 1, B: "world"},
+		{A: 2, B: "rust"},
+	}, strResult)
+}
+
+func TestIterator_Pull2(t *testing.T) {
+	// Test basic Pull2 functionality - converts Iterator[T] to pull-style iterator with index-value pairs
+	iter := FromSlice([]int{1, 2, 3, 4, 5})
+	next, stop := iter.Pull2()
+	defer stop()
+
+	var result []gust.Pair[uint, int]
+	for {
+		k, v, ok := next()
+		if !ok {
+			break
+		}
+		result = append(result, gust.Pair[uint, int]{A: k, B: v})
+	}
+	assert.Equal(t, []gust.Pair[uint, int]{
+		{A: 0, B: 1},
+		{A: 1, B: 2},
+		{A: 2, B: 3},
+		{A: 3, B: 4},
+		{A: 4, B: 5},
+	}, result)
+
+	// Test early termination
+	iter = FromSlice([]int{1, 2, 3, 4, 5})
+	next, stop = iter.Pull2()
+	defer stop()
+
+	result = nil
+	for {
+		k, v, ok := next()
+		if !ok {
+			break
+		}
+		result = append(result, gust.Pair[uint, int]{A: k, B: v})
+		if v == 3 {
+			break // Early termination
+		}
+	}
+	assert.Equal(t, []gust.Pair[uint, int]{
+		{A: 0, B: 1},
+		{A: 1, B: 2},
+		{A: 2, B: 3},
+	}, result)
+
+	// Test with empty iterator
+	empty := Empty[int]()
+	next, stop = empty.Pull2()
+	defer stop()
+
+	result = nil
+	for {
+		k, v, ok := next()
+		if !ok {
+			break
+		}
+		result = append(result, gust.Pair[uint, int]{A: k, B: v})
+	}
+	assert.Nil(t, result)
+	assert.Len(t, result, 0)
+
+	// Test with filtered iterator
+	filtered := FromSlice([]int{10, 20, 30, 40, 50}).Filter(func(x int) bool { return x%20 == 0 })
+	next, stop = filtered.Pull2()
+	defer stop()
+
+	result = nil
+	for {
+		k, v, ok := next()
+		if !ok {
+			break
+		}
+		result = append(result, gust.Pair[uint, int]{A: k, B: v})
+	}
+	assert.Equal(t, []gust.Pair[uint, int]{
+		{A: 0, B: 20},
+		{A: 1, B: 40},
+	}, result)
+
+	// Test with string iterator
+	strIter := FromSlice([]string{"a", "b", "c"})
+	nextStr, stopStr := strIter.Pull2()
+	defer stopStr()
+
+	var strResult []gust.Pair[uint, string]
+	for {
+		k, v, ok := nextStr()
+		if !ok {
+			break
+		}
+		strResult = append(strResult, gust.Pair[uint, string]{A: k, B: v})
+	}
+	assert.Equal(t, []gust.Pair[uint, string]{
+		{A: 0, B: "a"},
+		{A: 1, B: "b"},
+		{A: 2, B: "c"},
+	}, strResult)
+}
+
 func TestFromPull(t *testing.T) {
 	// Test with iter.Pull result
 	seq := func(yield func(int) bool) {

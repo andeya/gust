@@ -237,6 +237,18 @@ for v := range gustIter.Seq() {
 }
 ```
 
+**Convert gust Iterator to Go's `iter.Seq2[uint, T]` (index-value pairs):**
+```go
+import "github.com/andeya/gust/iter"
+
+iter := iter.FromSlice([]int{1, 2, 3})
+
+// Use in Go's standard for-range loop with index-value pairs
+for k, v := range iter.Seq2() {
+    fmt.Println(k, v) // prints 0 1, 1 2, 2 3
+}
+```
+
 **Convert gust Pair Iterator to Go's `iter.Seq2[K, V]`:**
 ```go
 import "github.com/andeya/gust/iter"
@@ -292,6 +304,45 @@ result := gustIter.Filter(func(p gust.Pair[string, int]) bool {
     return p.B > 1
 }).Collect()
 fmt.Println(result) // [{b 2} {c 3}]
+```
+
+**Using gust's `Pull()` and `Pull2()` methods:**
+
+gust provides convenient `Pull()` and `Pull2()` methods to convert iterators to pull-style iterators:
+
+```go
+import "github.com/andeya/gust/iter"
+
+// Using Pull() method with gust Iterator
+gustIter := iter.FromSlice([]int{1, 2, 3, 4, 5})
+next, stop := gustIter.Pull()
+defer stop()
+
+// Pull values manually
+for {
+    v, ok := next()
+    if !ok {
+        break
+    }
+    fmt.Println(v)
+    if v == 3 {
+        break // Early termination
+    }
+}
+
+// Using Pull2() method with gust Iterator (index-value pairs)
+gustIter2 := iter.FromSlice([]int{10, 20, 30})
+next2, stop2 := gustIter2.Pull2()
+defer stop2()
+
+// Pull index-value pairs manually
+for {
+    k, v, ok := next2()
+    if !ok {
+        break
+    }
+    fmt.Println(k, v) // prints 0 10, 1 20, 2 30
+}
 ```
 
 **Using Go's `iter.Pull` and `iter.Pull2` with gust iterators:**

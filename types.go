@@ -35,14 +35,29 @@ type Pair[A any, B any] struct {
 	B B
 }
 
+// Split splits the pair into its two components.
+func (p Pair[A, B]) Split() (A, B) {
+	return p.A, p.B
+}
+
 // VecEntry is an index-element entry of slice or array.
 type VecEntry[T any] struct {
 	Index int
 	Elem  T
 }
 
+// Split splits the vector entry into its two components.
+func (v VecEntry[T]) Split() (int, T) {
+	return v.Index, v.Elem
+}
+
 // DictEntry is a key-value entry of map.
 type DictEntry[K comparable, V any] struct {
 	Key   K
 	Value V
+}
+
+// Split splits the dictionary entry into its two components.
+func (d DictEntry[K, V]) Split() (K, V) {
+	return d.Key, d.Value
 }

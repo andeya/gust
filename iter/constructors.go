@@ -304,63 +304,6 @@ func FromSeq[T any](seq stditer.Seq[T]) (Iterator[T], func()) {
 	return FromPull(next, stop)
 }
 
-// Seq2 converts the Iterator[gust.Pair[K, V]] to Go's standard iter.Seq2[K, V].
-// This allows using gust pair iterators with Go's built-in key-value iteration support.
-//
-// # Examples
-//
-//	// Convert Zip iterator to Go Seq2
-//	iter1 := FromSlice([]int{1, 2, 3})
-//	iter2 := FromSlice([]string{"a", "b", "c"})
-//	zipped := Zip(iter1, iter2)
-//	for k, v := range Seq2(zipped) {
-//		fmt.Println(k, v) // prints 1 a, 2 b, 3 c
-//	}
-//
-//	// Works with Go's standard library functions
-//	enumerated := Enumerate(FromSlice([]string{"a", "b", "c"}))
-//	for idx, val := range Seq2(enumerated) {
-//		fmt.Println(idx, val) // prints 0 a, 1 b, 2 c
-//	}
-func Seq2[K any, V any](it Iterator[gust.Pair[K, V]]) stditer.Seq2[K, V] {
-	return func(yield func(K, V) bool) {
-		for {
-			opt := it.Next()
-			if opt.IsNone() {
-				return
-			}
-			pair := opt.Unwrap()
-			if !yield(pair.A, pair.B) {
-				return
-			}
-		}
-	}
-}
-
-// Pull2 converts the Iterator[gust.Pair[K, V]] to a pull-style iterator using Go's standard iter.Pull2.
-// This returns two functions: next (to pull key-value pairs) and stop (to stop iteration).
-// The caller should defer stop() to ensure proper cleanup.
-//
-// # Examples
-//
-//	iter1 := FromSlice([]int{1, 2, 3})
-//	iter2 := FromSlice([]string{"a", "b", "c"})
-//	zipped := Zip(iter1, iter2)
-//	next, stop := Pull2(zipped)
-//	defer stop()
-//
-//	// Pull key-value pairs manually
-//	for {
-//		k, v, ok := next()
-//		if !ok {
-//			break
-//		}
-//		fmt.Println(k, v)
-//	}
-func Pull2[K any, V any](it Iterator[gust.Pair[K, V]]) (next func() (K, V, bool), stop func()) {
-	return stditer.Pull2(Seq2(it))
-}
-
 // FromSeq2 creates an Iterator[gust.Pair[K, V]] from Go's standard iter.Seq2[K, V].
 // This allows converting Go standard key-value iterators to gust pair iterators.
 // Returns the iterator and a deferStop function that should be deferred
@@ -391,8 +334,7 @@ func Pull2[K any, V any](it Iterator[gust.Pair[K, V]]) (next func() (K, V, bool)
 //	iter, deferStop = FromSeq2(maps.All(myMap)) // maps.All returns iter.Seq2[K, V]
 //	defer deferStop()
 func FromSeq2[K any, V any](seq stditer.Seq2[K, V]) (Iterator[gust.Pair[K, V]], func()) {
-	next, stop := stditer.Pull2(seq)
-	return FromPull2(next, stop)
+	return FromPull2(stditer.Pull2(seq))
 }
 
 // FromPull creates an Iterator[T] from a pull-style iterator (next and stop functions).
@@ -455,6 +397,63 @@ func FromPull[T any](next func() (T, bool), stop func()) (Iterator[T], func()) {
 //	defer deferStop()
 func FromPull2[K any, V any](next func() (K, V, bool), stop func()) (Iterator[gust.Pair[K, V]], func()) {
 	return Iterator[gust.Pair[K, V]]{iterable: &pull2Iterable[K, V]{next: next}}, stop
+}
+
+// Seq2 converts the Iterator[gust.Pair[K, V]] to Go's standard iter.Seq2[K, V].
+// This allows using gust pair iterators with Go's built-in key-value iteration support.
+//
+// # Examples
+//
+//	// Convert Zip iterator to Go Seq2
+//	iter1 := FromSlice([]int{1, 2, 3})
+//	iter2 := FromSlice([]string{"a", "b", "c"})
+//	zipped := Zip(iter1, iter2)
+//	for k, v := range Seq2(zipped) {
+//		fmt.Println(k, v) // prints 1 a, 2 b, 3 c
+//	}
+//
+//	// Works with Go's standard library functions
+//	enumerated := Enumerate(FromSlice([]string{"a", "b", "c"}))
+//	for idx, val := range Seq2(enumerated) {
+//		fmt.Println(idx, val) // prints 0 a, 1 b, 2 c
+//	}
+func Seq2[K any, V any](it Iterator[gust.Pair[K, V]]) stditer.Seq2[K, V] {
+	return func(yield func(K, V) bool) {
+		for {
+			opt := it.Next()
+			if opt.IsNone() {
+				return
+			}
+			pair := opt.Unwrap()
+			if !yield(pair.A, pair.B) {
+				return
+			}
+		}
+	}
+}
+
+// Pull2 converts the Iterator[gust.Pair[K, V]] to a pull-style iterator using Go's standard iter.Pull2.
+// This returns two functions: next (to pull key-value pairs) and stop (to stop iteration).
+// The caller should defer stop() to ensure proper cleanup.
+//
+// # Examples
+//
+//	iter1 := FromSlice([]int{1, 2, 3})
+//	iter2 := FromSlice([]string{"a", "b", "c"})
+//	zipped := Zip(iter1, iter2)
+//	next, stop := Pull2(zipped)
+//	defer stop()
+//
+//	// Pull key-value pairs manually
+//	for {
+//		k, v, ok := next()
+//		if !ok {
+//			break
+//		}
+//		fmt.Println(k, v)
+//	}
+func Pull2[K any, V any](it Iterator[gust.Pair[K, V]]) (next func() (K, V, bool), stop func()) {
+	return stditer.Pull2(Seq2(it))
 }
 
 type pullIterable[T any] struct {
