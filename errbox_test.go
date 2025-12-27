@@ -441,3 +441,350 @@ func TestInnerErrBox_As_NilTargetPanic(t *testing.T) {
 		eb.As(nil)
 	})
 }
+
+// TestPanicError_Error tests panicError.Error() method
+func TestPanicError_Error(t *testing.T) {
+	// Test with nil error
+	{
+		pe := &panicError{
+			err:   nil,
+			stack: StackTrace{},
+		}
+		assert.Equal(t, "<nil>", pe.Error())
+	}
+
+	// Test with error but no stack trace
+	{
+		err := errors.New("test error")
+		pe := &panicError{
+			err:   err,
+			stack: StackTrace{},
+		}
+		assert.Equal(t, "test error", pe.Error())
+	}
+
+	// Test with error and stack trace
+	{
+		err := errors.New("test error")
+		stack := GetStackTrace(0)
+		pe := &panicError{
+			err:   err,
+			stack: stack,
+		}
+		// Error() should only return error message, not stack trace
+		errorMsg := pe.Error()
+		assert.Equal(t, "test error", errorMsg)
+		assert.NotContains(t, errorMsg, "\n")
+		// Verify stack trace exists but is not in Error()
+		assert.True(t, len(stack) > 0)
+	}
+}
+
+// TestPanicError_Unwrap tests panicError.Unwrap() method
+func TestPanicError_Unwrap(t *testing.T) {
+	// Test with nil error
+	{
+		pe := &panicError{
+			err:   nil,
+			stack: StackTrace{},
+		}
+		assert.Nil(t, pe.Unwrap())
+	}
+
+	// Test with error
+	{
+		err := errors.New("test error")
+		pe := &panicError{
+			err:   err,
+			stack: StackTrace{},
+		}
+		assert.Equal(t, err, pe.Unwrap())
+	}
+
+	// Test with wrapped error
+	{
+		originalErr := errors.New("original error")
+		wrappedErr := fmt.Errorf("wrapped: %w", originalErr)
+		pe := &panicError{
+			err:   wrappedErr,
+			stack: StackTrace{},
+		}
+		assert.Equal(t, wrappedErr, pe.Unwrap())
+		// Verify error chain
+		assert.True(t, errors.Is(pe.Unwrap(), originalErr))
+	}
+}
+
+// TestPanicError_StackTrace tests panicError.StackTrace() method
+func TestPanicError_StackTrace(t *testing.T) {
+	// Test with empty stack trace
+	{
+		pe := &panicError{
+			err:   errors.New("test"),
+			stack: StackTrace{},
+		}
+		stack := pe.StackTrace()
+		assert.Equal(t, 0, len(stack))
+	}
+
+	// Test with stack trace
+	{
+		stack := GetStackTrace(0)
+		pe := &panicError{
+			err:   errors.New("test"),
+			stack: stack,
+		}
+		returnedStack := pe.StackTrace()
+		assert.Equal(t, stack, returnedStack)
+		assert.True(t, len(returnedStack) > 0)
+	}
+}
+
+// TestPanicError_StackTraceCarrier tests that panicError implements StackTraceCarrier interface
+func TestPanicError_StackTraceCarrier(t *testing.T) {
+	var _ StackTraceCarrier = (*panicError)(nil)
+	stack := GetStackTrace(0)
+	pe := &panicError{
+		err:   errors.New("test"),
+		stack: stack,
+	}
+	// Verify it implements the interface
+	var carrier StackTraceCarrier = pe
+	assert.Equal(t, stack, carrier.StackTrace())
+}
+
+// TestNewPanicError tests newPanicError function with various input types
+func TestNewPanicError(t *testing.T) {
+	stack := GetStackTrace(0)
+
+	// Test with nil
+	{
+		pe := newPanicError(nil, stack)
+		assert.NotNil(t, pe)
+		assert.Nil(t, pe.err)
+		assert.Equal(t, stack, pe.stack)
+	}
+
+	// Test with error
+	{
+		err := errors.New("test error")
+		pe := newPanicError(err, stack)
+		assert.NotNil(t, pe)
+		assert.Equal(t, err, pe.err)
+		assert.Equal(t, stack, pe.stack)
+	}
+
+	// Test with *ErrBox
+	{
+		eb := BoxErr(errors.New("errbox error"))
+		pe := newPanicError(eb, stack)
+		assert.NotNil(t, pe)
+		assert.NotNil(t, pe.err)
+		assert.Equal(t, stack, pe.stack)
+		// Verify error message
+		assert.Contains(t, pe.Error(), "errbox error")
+	}
+
+	// Test with ErrBox (value)
+	{
+		eb := BoxErr(errors.New("errbox value error"))
+		pe := newPanicError(*eb, stack)
+		assert.NotNil(t, pe)
+		assert.NotNil(t, pe.err)
+		assert.Equal(t, stack, pe.stack)
+	}
+
+	// Test with nil *ErrBox
+	{
+		var eb *ErrBox
+		pe := newPanicError(eb, stack)
+		assert.NotNil(t, pe)
+		assert.Nil(t, pe.err)
+		assert.Equal(t, stack, pe.stack)
+	}
+
+	// Test with string
+	{
+		pe := newPanicError("string panic", stack)
+		assert.NotNil(t, pe)
+		assert.NotNil(t, pe.err)
+		assert.Equal(t, stack, pe.stack)
+		assert.Contains(t, pe.Error(), "string panic")
+	}
+
+	// Test with int
+	{
+		pe := newPanicError(42, stack)
+		assert.NotNil(t, pe)
+		assert.NotNil(t, pe.err)
+		assert.Equal(t, stack, pe.stack)
+		assert.Contains(t, pe.Error(), "42")
+	}
+
+	// Test with custom type
+	{
+		type CustomType struct {
+			Value string
+		}
+		ct := CustomType{Value: "custom"}
+		pe := newPanicError(ct, stack)
+		assert.NotNil(t, pe)
+		assert.NotNil(t, pe.err)
+		assert.Equal(t, stack, pe.stack)
+		assert.Contains(t, pe.Error(), "custom")
+	}
+}
+
+// TestPanicError_Format tests panicError.Format() method
+func TestPanicError_Format(t *testing.T) {
+	// Test %v (error message only)
+	{
+		err := errors.New("test error")
+		stack := GetStackTrace(0)
+		pe := &panicError{
+			err:   err,
+			stack: stack,
+		}
+		output := fmt.Sprintf("%v", pe)
+		assert.Equal(t, "test error", output)
+		assert.NotContains(t, output, "\n")
+	}
+
+	// Test %+v (error message with stack trace)
+	{
+		err := errors.New("test error")
+		stack := GetStackTrace(0)
+		pe := &panicError{
+			err:   err,
+			stack: stack,
+		}
+		output := fmt.Sprintf("%+v", pe)
+		assert.Contains(t, output, "test error")
+		assert.Contains(t, output, "\n")
+		// Should contain stack trace
+		assert.True(t, len(stack) > 0)
+	}
+
+	// Test %s (error message only)
+	{
+		err := errors.New("test error")
+		stack := GetStackTrace(0)
+		pe := &panicError{
+			err:   err,
+			stack: stack,
+		}
+		output := fmt.Sprintf("%s", pe)
+		assert.Equal(t, "test error", output)
+		assert.NotContains(t, output, "\n")
+	}
+
+	// Test with nil error
+	{
+		pe := &panicError{
+			err:   nil,
+			stack: GetStackTrace(0),
+		}
+		assert.Equal(t, "<nil>", fmt.Sprintf("%v", pe))
+		// %+v with nil error but stack trace should still show stack
+		output := fmt.Sprintf("%+v", pe)
+		assert.Contains(t, output, "<nil>")
+		// If stack exists, %+v should include it
+		if len(pe.stack) > 0 {
+			assert.Contains(t, output, "\n")
+		}
+		assert.Equal(t, "<nil>", fmt.Sprintf("%s", pe))
+	}
+
+	// Test with empty stack trace
+	{
+		err := errors.New("test error")
+		pe := &panicError{
+			err:   err,
+			stack: StackTrace{},
+		}
+		output := fmt.Sprintf("%+v", pe)
+		assert.Equal(t, "test error", output)
+		assert.NotContains(t, output, "\n")
+	}
+}
+
+// TestPanicError_Format_AllVerbs tests all format verbs for panicError
+func TestPanicError_Format_AllVerbs(t *testing.T) {
+	err := errors.New("test error")
+	stack := GetStackTrace(0)
+	pe := &panicError{
+		err:   err,
+		stack: stack,
+	}
+
+	// Test %v (error message only)
+	outputV := fmt.Sprintf("%v", pe)
+	assert.Equal(t, "test error", outputV)
+	assert.NotContains(t, outputV, "\n")
+
+	// Test %+v (error message with detailed stack trace)
+	outputPlusV := fmt.Sprintf("%+v", pe)
+	assert.Contains(t, outputPlusV, "test error")
+	assert.Contains(t, outputPlusV, "\n")
+
+	// Test %s (error message only)
+	outputS := fmt.Sprintf("%s", pe)
+	assert.Equal(t, "test error", outputS)
+	assert.NotContains(t, outputS, "\n")
+
+	// Test %+s (error message with stack trace in %s format)
+	outputPlusS := fmt.Sprintf("%+s", pe)
+	assert.Contains(t, outputPlusS, "test error")
+	assert.Contains(t, outputPlusS, "\n")
+
+	// Test unsupported verbs (should default to %s behavior)
+	outputD := fmt.Sprintf("%d", pe)
+	assert.Equal(t, "test error", outputD)
+	outputN := fmt.Sprintf("%n", pe)
+	assert.Equal(t, "test error", outputN)
+}
+
+// TestPanicError_Format_EmptyStack tests Format with empty stack trace
+func TestPanicError_Format_EmptyStack(t *testing.T) {
+	err := errors.New("test error")
+	pe := &panicError{
+		err:   err,
+		stack: StackTrace{},
+	}
+
+	// %v should only show error message
+	outputV := fmt.Sprintf("%v", pe)
+	assert.Equal(t, "test error", outputV)
+
+	// %+v with empty stack should only show error message
+	outputPlusV := fmt.Sprintf("%+v", pe)
+	assert.Equal(t, "test error", outputPlusV)
+	assert.NotContains(t, outputPlusV, "\n")
+
+	// %s should only show error message
+	outputS := fmt.Sprintf("%s", pe)
+	assert.Equal(t, "test error", outputS)
+
+	// %+s with empty stack should only show error message
+	outputPlusS := fmt.Sprintf("%+s", pe)
+	assert.Equal(t, "test error", outputPlusS)
+	assert.NotContains(t, outputPlusS, "\n")
+}
+
+// TestPanicError_Unwrap_Chain tests error unwrapping chain
+func TestPanicError_Unwrap_Chain(t *testing.T) {
+	baseErr := errors.New("base error")
+	wrappedErr := fmt.Errorf("wrapped: %w", baseErr)
+	pe := &panicError{
+		err:   wrappedErr,
+		stack: GetStackTrace(0),
+	}
+
+	// Unwrap should return the wrapped error
+	unwrapped := pe.Unwrap()
+	assert.Equal(t, wrappedErr, unwrapped)
+
+	// Error chain should be preserved
+	assert.True(t, errors.Is(pe, baseErr))
+	assert.True(t, errors.Is(pe, wrappedErr))
+}

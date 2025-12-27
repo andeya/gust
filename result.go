@@ -701,61 +701,111 @@ func (r Result[T]) UnwrapOrThrow() T {
 //   - error (regular Go errors, wrapped in ErrBox)
 //   - any other type (wrapped in ErrBox)
 //
+// When a panic is caught, Catch can optionally capture the panic stack trace
+// using PanicStackTrace() and wrap it with the error for better debugging.
+// By default, stack trace is captured (withStackTrace defaults to true).
+// Set withStackTrace to false to disable stack trace capture for better performance.
+//
 // Example:
 //
 //	```go
 //	func example() (result Result[string]) {
-//	   defer result.Catch()
+//	   defer result.Catch()  // With stack trace (default)
+//	   Err[int]("int error").UnwrapOrThrow()
+//	   return Ok[string]("ok")
+//	}
+//
+//	func exampleNoStack() (result Result[string]) {
+//	   defer result.Catch(false)  // Without stack trace
 //	   Err[int]("int error").UnwrapOrThrow()
 //	   return Ok[string]("ok")
 //	}
 //	```
-func (r *Result[T]) Catch() {
+func (r *Result[T]) Catch(withStackTrace ...bool) {
 	if r == nil {
 		// If receiver is nil, let panic propagate
 		return
 	}
-	switch p := recover().(type) {
-	case nil:
+	p := recover()
+	if p == nil {
 		// No panic occurred
-	case *ErrBox:
-		// Gust's own ErrBox type (pointer)
-		if r.t.IsSome() {
-			r.t = None[T]()
+		return
+	}
+
+	// Determine if we should capture stack trace
+	// Default to true if not specified
+	captureStack := true
+	if len(withStackTrace) > 0 {
+		captureStack = withStackTrace[0]
+	}
+
+	// Update result state
+	if r.t.IsSome() {
+		r.t = None[T]()
+	}
+
+	// Convert panic to error
+	if captureStack {
+		// Get panic stack trace
+		stack := PanicStackTrace()
+
+		// Convert panic to error with stack trace
+		var panicErr *panicError
+		switch p := p.(type) {
+		case *ErrBox:
+			// Gust's own ErrBox type (pointer)
+			if p != nil {
+				panicErr = newPanicError(p, stack)
+			} else {
+				panicErr = newPanicError(ErrBox{}, stack)
+			}
+		case ErrBox:
+			// Gust's own ErrBox type (value)
+			panicErr = newPanicError(p, stack)
+		case error:
+			// Regular error panic - wrap in ErrBox with stack trace
+			panicErr = newPanicError(p, stack)
+		default:
+			// Other types - wrap in ErrBox with stack trace
+			panicErr = newPanicError(p, stack)
 		}
-		if p != nil {
-			r.e = *p
-		} else {
-			r.e = ErrBox{}
-		}
-	case ErrBox:
-		// Gust's own ErrBox type (value)
-		if r.t.IsSome() {
-			r.t = None[T]()
-		}
-		r.e = p
-	case error:
-		// Regular error panic - wrap in ErrBox
-		if r.t.IsSome() {
-			r.t = None[T]()
-		}
-		eb := BoxErr(p)
+
+		// Wrap panicError in ErrBox
+		eb := BoxErr(panicErr)
 		if eb == nil {
 			r.e = ErrBox{}
 		} else {
 			r.e = *eb
 		}
-	default:
-		// Other types - wrap in ErrBox
-		// This ensures all panics are caught and converted to errors
-		if r.t.IsSome() {
-			r.t = None[T]()
-		}
-		eb := BoxErr(p)
-		if eb == nil {
-			r.e = ErrBox{}
-		} else {
-			r.e = *eb
+	} else {
+		// Without stack trace - directly wrap in ErrBox
+		switch p := p.(type) {
+		case *ErrBox:
+			// Gust's own ErrBox type (pointer)
+			if p != nil {
+				r.e = *p
+			} else {
+				r.e = ErrBox{}
+			}
+		case ErrBox:
+			// Gust's own ErrBox type (value)
+			r.e = p
+		case error:
+			// Regular error panic - wrap in ErrBox
+			eb := BoxErr(p)
+			if eb == nil {
+				r.e = ErrBox{}
+			} else {
+				r.e = *eb
+			}
+		default:
+			// Other types - wrap in ErrBox
+			eb := BoxErr(p)
+			if eb == nil {
+				r.e = ErrBox{}
+			} else {
+				r.e = *eb
+			}
 		}
 	}
 }

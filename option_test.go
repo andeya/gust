@@ -680,7 +680,15 @@ func TestOption_UnwrapOrThrow(t *testing.T) {
 	var result2 gust.Result[int]
 	defer func() {
 		assert.True(t, result2.IsErr())
-		assert.Equal(t, "error message", result2.Err().Error())
+		// Error() should only return error message, not stack trace
+		errMsg := result2.Err().Error()
+		assert.Contains(t, errMsg, "error message")
+		// Should NOT contain stack trace in Error()
+		assert.NotContains(t, errMsg, "\n")
+		// But %+v should contain stack trace
+		fullMsg := fmt.Sprintf("%+v", result2.Err())
+		assert.Contains(t, fullMsg, "error message")
+		assert.Contains(t, fullMsg, "\n")
 	}()
 	defer result2.Catch()
 	_ = opt2.UnwrapOrThrow("error message")

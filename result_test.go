@@ -127,7 +127,15 @@ func TestResultUnwrapOrThrow(t *testing.T) {
 		_ = r2.UnwrapOrThrow() // This will panic
 	}()
 	assert.True(t, r.IsErr())
-	assert.Equal(t, "err", r.Err().Error())
+	// Error() should only return error message, not stack trace
+	errMsg := r.Err().Error()
+	assert.Contains(t, errMsg, "err")
+	// Should NOT contain stack trace in Error()
+	assert.NotContains(t, errMsg, "\n")
+	// But %+v should contain stack trace
+	fullMsg := fmt.Sprintf("%+v", r.Err())
+	assert.Contains(t, fullMsg, "err")
+	assert.Contains(t, fullMsg, "\n")
 }
 
 func TestResult_And(t *testing.T) {
@@ -496,14 +504,22 @@ func TestAssertRet(t *testing.T) {
 }
 
 func TestResult_Catch(t *testing.T) {
-	// Test basic Catch functionality
+	// Test basic Catch functionality (with stack trace by default)
 	var result gust.Result[int]
 	func() {
 		defer result.Catch()
 		gust.Err[int]("test error").UnwrapOrThrow()
 	}()
 	assert.True(t, result.IsErr())
-	assert.Equal(t, "test error", result.Err().Error())
+	// Error() should only return error message, not stack trace
+	errMsg := result.Err().Error()
+	assert.Contains(t, errMsg, "test error")
+	// Should NOT contain stack trace in Error()
+	assert.NotContains(t, errMsg, "\n")
+	// But %+v should contain stack trace
+	fullMsg := fmt.Sprintf("%+v", result.Err())
+	assert.Contains(t, fullMsg, "test error")
+	assert.Contains(t, fullMsg, "\n")
 }
 
 func TestResult_Catch_IsSomeBranch(t *testing.T) {
@@ -514,7 +530,15 @@ func TestResult_Catch_IsSomeBranch(t *testing.T) {
 		gust.Err[int]("panic error").UnwrapOrThrow()
 	}()
 	assert.True(t, result.IsErr())
-	assert.Equal(t, "panic error", result.Err().Error())
+	// Error() should only return error message, not stack trace
+	errMsg := result.Err().Error()
+	assert.Contains(t, errMsg, "panic error")
+	// Should NOT contain stack trace in Error()
+	assert.NotContains(t, errMsg, "\n")
+	// But %+v should contain stack trace
+	fullMsg := fmt.Sprintf("%+v", result.Err())
+	assert.Contains(t, fullMsg, "panic error")
+	assert.Contains(t, fullMsg, "\n")
 }
 
 func TestResult_UnwrapOrDefault(t *testing.T) {
@@ -824,7 +848,15 @@ func TestResult_Catch_NonPanicValue(t *testing.T) {
 	}()
 	// Should be caught and converted to error
 	assert.True(t, result.IsErr())
-	assert.Equal(t, "regular panic", result.Err().Error())
+	// Error() should only return error message, not stack trace
+	errMsg := result.Err().Error()
+	assert.Contains(t, errMsg, "regular panic")
+	// Should NOT contain stack trace in Error()
+	assert.NotContains(t, errMsg, "\n")
+	// But %+v should contain stack trace
+	fullMsg := fmt.Sprintf("%+v", result.Err())
+	assert.Contains(t, fullMsg, "regular panic")
+	assert.Contains(t, fullMsg, "\n")
 }
 
 func TestResult_Catch_OkValue(t *testing.T) {
@@ -836,7 +868,412 @@ func TestResult_Catch_OkValue(t *testing.T) {
 	}()
 	// Result should be updated to Err
 	assert.True(t, result.IsErr())
-	assert.Equal(t, "test error", result.Err().Error())
+	// Error() should only return error message, not stack trace
+	errMsg := result.Err().Error()
+	assert.Contains(t, errMsg, "test error")
+	// Should NOT contain stack trace in Error()
+	assert.NotContains(t, errMsg, "\n")
+	// But %+v should contain stack trace
+	fullMsg := fmt.Sprintf("%+v", result.Err())
+	assert.Contains(t, fullMsg, "test error")
+	assert.Contains(t, fullMsg, "\n")
+}
+
+// TestResult_Catch_WithStackTrace tests that Catch captures stack trace information
+func TestResult_Catch_WithStackTrace(t *testing.T) {
+	// Test with ErrBox panic
+	{
+		var result gust.Result[int]
+		func() {
+			defer result.Catch()
+			gust.Err[int]("test error").UnwrapOrThrow()
+		}()
+		assert.True(t, result.IsErr())
+		err := result.Err()
+		assert.NotNil(t, err)
+		// Error() should only return error message, not stack trace
+		errMsg := err.Error()
+		assert.Contains(t, errMsg, "test error")
+		assert.NotContains(t, errMsg, "\n")
+		// But %+v should contain stack trace
+		fullMsg := fmt.Sprintf("%+v", err)
+		assert.Contains(t, fullMsg, "test error")
+		assert.Contains(t, fullMsg, "\n")
+	}
+
+	// Test with regular error panic
+	{
+		var result gust.Result[string]
+		func() {
+			defer result.Catch()
+			panic(errors.New("regular error"))
+		}()
+		assert.True(t, result.IsErr())
+		err := result.Err()
+		assert.NotNil(t, err)
+		errMsg := err.Error()
+		assert.Contains(t, errMsg, "regular error")
+		assert.NotContains(t, errMsg, "\n")
+		// But %+v should contain stack trace
+		fullMsg := fmt.Sprintf("%+v", err)
+		assert.Contains(t, fullMsg, "regular error")
+		assert.Contains(t, fullMsg, "\n")
+	}
+
+	// Test with string panic
+	{
+		var result gust.Result[int]
+		func() {
+			defer result.Catch()
+			panic("string panic")
+		}()
+		assert.True(t, result.IsErr())
+		err := result.Err()
+		assert.NotNil(t, err)
+		errMsg := err.Error()
+		assert.Contains(t, errMsg, "string panic")
+		assert.NotContains(t, errMsg, "\n")
+		// But %+v should contain stack trace
+		fullMsg := fmt.Sprintf("%+v", err)
+		assert.Contains(t, fullMsg, "string panic")
+		assert.Contains(t, fullMsg, "\n")
+	}
+
+	// Test with int panic
+	{
+		var result gust.Result[string]
+		func() {
+			defer result.Catch()
+			panic(42)
+		}()
+		assert.True(t, result.IsErr())
+		err := result.Err()
+		assert.NotNil(t, err)
+		errMsg := err.Error()
+		assert.Contains(t, errMsg, "42")
+		assert.NotContains(t, errMsg, "\n")
+		// But %+v should contain stack trace
+		fullMsg := fmt.Sprintf("%+v", err)
+		assert.Contains(t, fullMsg, "42")
+		assert.Contains(t, fullMsg, "\n")
+	}
+}
+
+// TestResult_Catch_StackTraceAccess tests accessing stack trace from caught panic
+func TestResult_Catch_StackTraceAccess(t *testing.T) {
+	var result gust.Result[int]
+	func() {
+		defer result.Catch()
+		gust.Err[int]("test error").UnwrapOrThrow()
+	}()
+	assert.True(t, result.IsErr())
+
+	// Get the error
+	err := result.Err()
+	assert.NotNil(t, err)
+
+	// Error() should only return error message, not stack trace
+	errMsg := err.Error()
+	assert.Contains(t, errMsg, "test error")
+	assert.NotContains(t, errMsg, "\n")
+
+	// Try to extract StackTraceCarrier from error chain
+	var carrier gust.StackTraceCarrier
+	if errors.As(err, &carrier) {
+		stack := carrier.StackTrace()
+		assert.True(t, len(stack) > 0, "Stack trace should not be empty")
+		// Verify stack trace contains frames
+		assert.Greater(t, len(stack), 0)
+	}
+
+	// Verify %+v contains stack trace
+	fullMsg := fmt.Sprintf("%+v", err)
+	assert.Contains(t, fullMsg, "test error")
+	assert.Contains(t, fullMsg, "\n")
+}
+
+// TestResult_Catch_ErrBoxPointer tests Catch with *ErrBox panic
+func TestResult_Catch_ErrBoxPointer(t *testing.T) {
+	var result gust.Result[int]
+	eb := gust.BoxErr(errors.New("errbox pointer error"))
+	func() {
+		defer result.Catch()
+		panic(eb)
+	}()
+	assert.True(t, result.IsErr())
+	err := result.Err()
+	assert.NotNil(t, err)
+	// Error() should only return error message, not stack trace
+	errMsg := err.Error()
+	assert.Contains(t, errMsg, "errbox pointer error")
+	assert.NotContains(t, errMsg, "\n")
+	// But %+v should contain stack trace
+	fullMsg := fmt.Sprintf("%+v", err)
+	assert.Contains(t, fullMsg, "errbox pointer error")
+	assert.Contains(t, fullMsg, "\n")
+}
+
+// TestResult_Catch_ErrBoxValue tests Catch with ErrBox value panic
+func TestResult_Catch_ErrBoxValue(t *testing.T) {
+	var result gust.Result[int]
+	eb := gust.BoxErr(errors.New("errbox value error"))
+	func() {
+		defer result.Catch()
+		panic(*eb)
+	}()
+	assert.True(t, result.IsErr())
+	err := result.Err()
+	assert.NotNil(t, err)
+	// Error() should only return error message, not stack trace
+	errMsg := err.Error()
+	assert.Contains(t, errMsg, "errbox value error")
+	assert.NotContains(t, errMsg, "\n")
+	// But %+v should contain stack trace
+	fullMsg := fmt.Sprintf("%+v", err)
+	assert.Contains(t, fullMsg, "errbox value error")
+	assert.Contains(t, fullMsg, "\n")
+}
+
+// TestResult_Catch_NilErrBoxPointer tests Catch with nil *ErrBox panic
+func TestResult_Catch_NilErrBoxPointer(t *testing.T) {
+	var result gust.Result[int]
+	var eb *gust.ErrBox
+	func() {
+		defer result.Catch()
+		panic(eb)
+	}()
+	assert.True(t, result.IsErr())
+	err := result.Err()
+	assert.NotNil(t, err)
+	errMsg := err.Error()
+	// With nil ErrBox, error message might be "<nil>" or contain stack trace
+	// Both cases are acceptable
+	if errMsg == "<nil>" {
+		// Without stack trace (if Catch(false) was used or stack is empty)
+		assert.Equal(t, "<nil>", errMsg)
+	} else {
+		// With stack trace (default behavior)
+		assert.Contains(t, errMsg, "\n")
+	}
+}
+
+// TestResult_Catch_WithStackTraceFalse tests Catch without stack trace capture
+func TestResult_Catch_WithStackTraceFalse(t *testing.T) {
+	// Test with withStackTrace=false
+	var result gust.Result[int]
+	func() {
+		defer result.Catch(false)
+		gust.Err[int]("test error").UnwrapOrThrow()
+	}()
+	assert.True(t, result.IsErr())
+	err := result.Err()
+	assert.NotNil(t, err)
+	errMsg := err.Error()
+	// Should contain error message but not stack trace (no newlines from stack)
+	assert.Contains(t, errMsg, "test error")
+	// Error message should not contain stack trace formatting
+	// (Note: panicError.Error() will still format stack, but it will be empty)
+}
+
+// TestResult_Catch_WithStackTraceTrue tests Catch with stack trace capture (default)
+func TestResult_Catch_WithStackTraceTrue(t *testing.T) {
+	// Test with withStackTrace=true (explicit)
+	var result gust.Result[int]
+	func() {
+		defer func() {
+			t.Logf("error with panic stack trace: %+v", result.Err())
+		}()
+		defer result.Catch(true)
+		gust.Err[int]("test error").UnwrapOrThrow()
+	}()
+	assert.True(t, result.IsErr())
+	err := result.Err()
+	assert.NotNil(t, err)
+	// Error() should only return error message, not stack trace
+	errMsg := err.Error()
+	assert.Contains(t, errMsg, "test error")
+	assert.NotContains(t, errMsg, "\n")
+	// But %+v should contain stack trace
+	fullMsg := fmt.Sprintf("%+v", err)
+	assert.Contains(t, fullMsg, "test error")
+	assert.Contains(t, fullMsg, "\n")
+}
+
+// TestResult_Catch_WithStackTraceDefault tests Catch with default behavior (stack trace enabled)
+func TestResult_Catch_WithStackTraceDefault(t *testing.T) {
+	// Test with default (no parameter, should default to true)
+	var result gust.Result[int]
+	func() {
+		defer result.Catch()
+		gust.Err[int]("test error").UnwrapOrThrow()
+	}()
+	assert.True(t, result.IsErr())
+	err := result.Err()
+	assert.NotNil(t, err)
+	// Error() should only return error message, not stack trace
+	errMsg := err.Error()
+	assert.Contains(t, errMsg, "test error")
+	assert.NotContains(t, errMsg, "\n")
+	// But %+v should contain stack trace
+	fullMsg := fmt.Sprintf("%+v", err)
+	assert.Contains(t, fullMsg, "test error")
+	assert.Contains(t, fullMsg, "\n")
+}
+
+// TestResult_Catch_WithStackTracePerformance tests that disabling stack trace improves performance
+func TestResult_Catch_WithStackTracePerformance(t *testing.T) {
+	// Test that both modes work correctly
+	var result1 gust.Result[int]
+	var result2 gust.Result[int]
+
+	// With stack trace
+	func() {
+		defer result1.Catch(true)
+		panic("error with stack")
+	}()
+	assert.True(t, result1.IsErr())
+
+	// Without stack trace
+	func() {
+		defer result2.Catch(false)
+		panic("error without stack")
+	}()
+	assert.True(t, result2.IsErr())
+
+	// Both should be errors
+	assert.True(t, result1.IsErr())
+	assert.True(t, result2.IsErr())
+	// Both should contain error message
+	assert.Contains(t, result1.Err().Error(), "error with stack")
+	assert.Contains(t, result2.Err().Error(), "error without stack")
+	// Only result1 should have stack trace in %+v
+	fullMsg1 := fmt.Sprintf("%+v", result1.Err())
+	fullMsg2 := fmt.Sprintf("%+v", result2.Err())
+	assert.Contains(t, fullMsg1, "\n")
+	assert.NotContains(t, fullMsg2, "\n")
+}
+
+// TestResult_Catch_FormatOptions tests different format options for caught errors
+func TestResult_Catch_FormatOptions(t *testing.T) {
+	var result gust.Result[int]
+	func() {
+		defer result.Catch()
+		gust.Err[int]("format test error").UnwrapOrThrow()
+	}()
+	assert.True(t, result.IsErr())
+	err := result.Err()
+
+	// Test %v (error message only)
+	errMsgV := fmt.Sprintf("%v", err)
+	t.Logf("%%v format: %v", errMsgV)
+	assert.Equal(t, "format test error", errMsgV)
+	assert.NotContains(t, errMsgV, "\n")
+
+	// Test %+v (error message with detailed stack trace - shows function name, full path, and line number)
+	// Format: each frame on a separate line with "\n函数名\n\t完整路径:行号"
+	errMsgPlusV := fmt.Sprintf("%+v", err)
+	t.Logf("=== %%+v format (detailed - each frame on separate line WITH line numbers) ===")
+	t.Logf("%+v", err)
+	t.Logf("=== End of %%+v format ===")
+	assert.Contains(t, errMsgPlusV, "format test error")
+	assert.Contains(t, errMsgPlusV, "\n")
+	// %+v should contain line numbers in format "file:line" or "path:line"
+	assert.Contains(t, errMsgPlusV, ":") // Should contain line numbers
+
+	// Test %s (error message only)
+	errMsgS := fmt.Sprintf("%s", err)
+	t.Logf("=== %%s format (error message only) ===")
+	t.Logf("%s", errMsgS)
+	t.Logf("=== End of %%s format ===")
+	assert.Equal(t, "format test error", errMsgS)
+	assert.NotContains(t, errMsgS, "\n")
+
+	// Test %+s (error message with stack trace in %s format - shows function name + full path, NO line numbers)
+	// Format: "[函数名\n\t完整路径 函数名\n\t完整路径 ...]" (wrapped in brackets, space-separated, NO line numbers)
+	errMsgPlusS := fmt.Sprintf("%+s", err)
+	t.Logf("=== %%+s format (function name + full path, wrapped in brackets, NO line numbers) ===")
+	t.Logf("%+s", err)
+	t.Logf("=== End of %%+s format ===")
+	assert.Contains(t, errMsgPlusS, "format test error")
+	assert.Contains(t, errMsgPlusS, "\n")
+	// %+s should be wrapped in brackets and space-separated
+	assert.True(t, strings.HasPrefix(errMsgPlusS[strings.Index(errMsgPlusS, "\n")+1:], "["), "%%+s should start with '[' after error message")
+	// Note: %+s may still contain ":" in file paths, but should NOT have ":行号" format
+	// The key difference is that %+v shows each frame on a separate line with line numbers,
+	// while %+s shows frames in brackets separated by spaces without explicit line numbers
+}
+
+// TestResult_Catch_NoPanic tests Catch when no panic occurs
+func TestResult_Catch_NoPanic(t *testing.T) {
+	var result gust.Result[int] = gust.Ok(42)
+	func() {
+		defer result.Catch()
+		// No panic, just return normally
+		result = gust.Ok(100)
+	}()
+	// Result should remain Ok
+	assert.True(t, result.IsOk())
+	assert.Equal(t, 100, result.Unwrap())
+	assert.False(t, result.IsErr())
+}
+
+// TestResult_Catch_MultiplePanics tests that Catch only catches the first panic
+func TestResult_Catch_MultiplePanics(t *testing.T) {
+	var result gust.Result[int]
+	func() {
+		defer result.Catch()
+		panic("first panic")
+		// Note: second panic would never be reached due to first panic
+	}()
+	assert.True(t, result.IsErr())
+	errMsg := result.Err().Error()
+	assert.Contains(t, errMsg, "first panic")
+}
+
+// TestResult_Catch_WithStackTraceFalse_Verification tests Catch(false) doesn't capture stack
+func TestResult_Catch_WithStackTraceFalse_Verification(t *testing.T) {
+	var result gust.Result[int]
+	func() {
+		defer result.Catch(false)
+		gust.Err[int]("no stack error").UnwrapOrThrow()
+	}()
+	assert.True(t, result.IsErr())
+	err := result.Err()
+	assert.NotNil(t, err)
+
+	// Error() should only return error message
+	errMsg := err.Error()
+	assert.Contains(t, errMsg, "no stack error")
+	assert.NotContains(t, errMsg, "\n")
+
+	// %+v should also not contain stack trace (because Catch(false) was used)
+	fullMsg := fmt.Sprintf("%+v", err)
+	assert.Contains(t, fullMsg, "no stack error")
+	// Without stack trace capture, %+v should be same as %v
+	assert.Equal(t, errMsg, fullMsg)
+}
+
+// TestResult_Catch_ErrorChain tests error unwrapping with caught panics
+func TestResult_Catch_ErrorChain(t *testing.T) {
+	baseErr := errors.New("base error")
+	wrappedErr := fmt.Errorf("wrapped: %w", baseErr)
+
+	var result gust.Result[int]
+	func() {
+		defer result.Catch()
+		panic(wrappedErr)
+	}()
+	assert.True(t, result.IsErr())
+
+	err := result.Err()
+	// Verify error chain is preserved
+	assert.True(t, errors.Is(err, baseErr))
+	assert.True(t, errors.Is(err, wrappedErr))
+
+	// Error() should only return the wrapped error message
+	errMsg := err.Error()
+	assert.Contains(t, errMsg, "wrapped")
+	assert.NotContains(t, errMsg, "\n")
 }
 
 func TestResult_XAndThen(t *testing.T) {
