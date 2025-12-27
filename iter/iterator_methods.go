@@ -585,7 +585,7 @@ func (it Iterator[T]) Position(predicate func(T) bool) gust.Option[uint] {
 // # Examples
 //
 //	var iter = FromSlice([]int{1, 2, 3, 4})
-//	assert.Equal(t, gust.NonErrable[uint](), iter.AdvanceBy(2))
+//	assert.True(t, iter.AdvanceBy(2).IsOk())
 //
 //go:inline
 func (it Iterator[T]) AdvanceBy(n uint) gust.VoidResult {

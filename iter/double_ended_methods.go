@@ -56,10 +56,10 @@ func (de DoubleEndedIterator[T]) NextBack() gust.Option[T] {
 // eagerly skip n elements starting from the back by calling NextBack up
 // to n times until None is encountered.
 //
-// AdvanceBackBy(n) will return NonErrable if the iterator successfully advances by
-// n elements, or a ToErrable(k) with value k if None is encountered, where k
+// AdvanceBackBy(n) will return Ok[Void](nil) if the iterator successfully advances by
+// n elements, or Err[Void](k) with value k if None is encountered, where k
 // is remaining number of steps that could not be advanced because the iterator ran out.
-// If iter is empty and n is non-zero, then this returns ToErrable(n).
+// If iter is empty and n is non-zero, then this returns Err[Void](n).
 // Otherwise, k is always less than n.
 //
 // Calling AdvanceBackBy(0) can do meaningful work.
@@ -68,10 +68,10 @@ func (de DoubleEndedIterator[T]) NextBack() gust.Option[T] {
 //
 //	var a = []int{3, 4, 5, 6}
 //	var deIter = FromSlice(a).MustToDoubleEnded()
-//	assert.Equal(t, gust.NonErrable[uint](), deIter.AdvanceBackBy(2))
+//	assert.True(t, deIter.AdvanceBackBy(2).IsOk())
 //	assert.Equal(t, gust.Some(4), deIter.NextBack())
-//	assert.Equal(t, gust.NonErrable[uint](), deIter.AdvanceBackBy(0))
-//	assert.Equal(t, gust.ToErrable[uint](99), deIter.AdvanceBackBy(100))
+//	assert.True(t, deIter.AdvanceBackBy(0).IsOk())
+//	assert.True(t, deIter.AdvanceBackBy(100).IsErr())
 func (de DoubleEndedIterator[T]) AdvanceBackBy(n uint) gust.VoidResult {
 	for i := uint(0); i < n; i++ {
 		if de.iterable.NextBack().IsNone() {

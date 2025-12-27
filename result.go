@@ -395,7 +395,7 @@ func (r Result[T]) Expect(msg string) T {
 // Unwrap returns the contained Ok value.
 // Because this function may panic, its use is generally discouraged.
 // Instead, prefer to use pattern matching and handle the error case explicitly, or call UnwrapOr or UnwrapOrElse.
-// NOTE: This panics *ErrBox (not error) to be consistent with UnwrapOrThrow() and allow Catch() to properly handle it.
+// NOTE: This panics *ErrBox (not error) to be consistent with Result.UnwrapOrThrow() and allow Result.Catch() to properly handle it.
 func (r Result[T]) Unwrap() T {
 	if r.IsErr() {
 		panic(&r.e)
@@ -680,7 +680,7 @@ func (r *Result[T]) Remaining() uint {
 // UnwrapOrThrow returns the contained T or panic returns error (*ErrBox).
 // NOTE:
 //
-//	If there is an error, that panic should be caught with `result.Catch()`
+//	If there is an error, that panic should be caught with `Result.Catch()`
 func (r Result[T]) UnwrapOrThrow() T {
 	if r.IsErr() {
 		panic(r.e)

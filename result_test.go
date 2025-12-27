@@ -719,7 +719,7 @@ func TestResult_Ref(t *testing.T) {
 	ref.Unwrap() // Should not panic
 }
 
-func TestResult_Errable(t *testing.T) {
+func TestResult_ErrToVoidResult(t *testing.T) {
 	{
 		var x = gust.Ok[string]("foo")
 		result := gust.RetVoid(x.Err())

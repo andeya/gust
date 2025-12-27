@@ -708,7 +708,7 @@ func TestOption_XOkOrElse(t *testing.T) {
 	}
 }
 
-func TestOption_ToErrable(t *testing.T) {
+func TestOption_ToResult(t *testing.T) {
 	{
 		var x = gust.Some("foo")
 		result := x.ToResult()

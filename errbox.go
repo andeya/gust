@@ -38,6 +38,8 @@ func BoxErr(val any) *ErrBox {
 		return &val
 	case *ErrBox:
 		return val
+	case innerErrBox:
+		return &ErrBox{inner: val}
 	default:
 		return &ErrBox{inner: innerErrBox{val: val}}
 	}

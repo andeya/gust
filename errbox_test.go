@@ -30,14 +30,20 @@ func TestBoxErr(t *testing.T) {
 	assert.NotNil(t, eb4)
 	assert.Equal(t, "test", eb4.Value())
 
-	// Test with int
-	eb5 := BoxErr(42)
+	// Test with innerErrBox
+	innerErrBox := innerErrBox{val: "test"}
+	eb5 := BoxErr(innerErrBox)
 	assert.NotNil(t, eb5)
-	assert.Equal(t, 42, eb5.Value())
+	assert.Equal(t, "test", eb5.Value())
+
+	// Test with int
+	eb6 := BoxErr(42)
+	assert.NotNil(t, eb6)
+	assert.Equal(t, 42, eb6.Value())
 
 	// Test with nil
-	eb6 := BoxErr(nil)
-	assert.Nil(t, eb6)
+	eb7 := BoxErr(nil)
+	assert.Nil(t, eb7)
 }
 
 func TestErrBox_Value(t *testing.T) {
@@ -277,7 +283,7 @@ func TestErrBox_GoString(t *testing.T) {
 	assert.Contains(t, eb3.GoString(), "42")
 }
 
-// TestToError tests the toError function indirectly through Errable.ToError
+// TestToError tests the ToError function
 func TestToError(t *testing.T) {
 	// Test toError with error type (through VoidResult.ToError)
 	err := errors.New("test error")

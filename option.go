@@ -565,7 +565,6 @@ func (o *Option[T]) Remaining() uint {
 // ToResult converts from `Option[T]` to `VoidResult` (Result[Void]).
 // If Option is Some, returns Err[Void] with the value wrapped in ErrBox.
 // If Option is None, returns Ok[Void](nil).
-// This provides a smooth migration path from Option.ToErrable().
 //
 // Example:
 //
@@ -583,7 +582,7 @@ func (o Option[T]) ToResult() VoidResult {
 // UnwrapOrThrow returns the contained T or panic returns error (*ErrBox).
 // NOTE:
 //
-//	If there is an error, that panic should be caught with `result.Catch()`
+//	If there is an error, that panic should be caught with `Result.Catch()`
 //
 //go:inline
 func (r Option[T]) UnwrapOrThrow(err any) T {
