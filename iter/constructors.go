@@ -499,3 +499,220 @@ func (p *pull2Iterable[K, V]) Next() gust.Option[gust.Pair[K, V]] {
 func (p *pull2Iterable[K, V]) SizeHint() (uint, gust.Option[uint]) {
 	return DefaultSizeHint[gust.Pair[K, V]]()
 }
+
+// BitSetLike is an interface for bit set implementations.
+// This allows FromBitSet to work with any bit set implementation
+// without depending on a specific package.
+type BitSetLike interface {
+	// Size returns the number of bits in the bit set.
+	Size() int
+	// Get returns the value of the bit at the specified offset.
+	//
+	// Returns:
+	//   - true if the bit at offset is set to 1
+	//   - false if the bit at offset is set to 0
+	//   - false if offset is out of range (offset < 0 or offset >= Size())
+	Get(offset int) bool
+}
+
+// FromBitSet creates an iterator over all bits in a bit set,
+// yielding pairs of (offset, bool) where offset is the bit position
+// and bool indicates whether the bit is set.
+//
+// # Examples
+//
+//	// Assuming you have a BitSet implementation
+//	type MyBitSet struct {
+//		bits []byte
+//	}
+//	func (b *MyBitSet) Size() int { return len(b.bits) * 8 }
+//	func (b *MyBitSet) Get(offset int) bool {
+//		if offset < 0 || offset >= b.Size() {
+//			return false
+//		}
+//		byteIdx := offset / 8
+//		bitIdx := offset % 8
+//		return (b.bits[byteIdx] & (1 << (7 - bitIdx))) != 0
+//	}
+//
+//	bitset := &MyBitSet{bits: []byte{0b10101010}}
+//	iter := FromBitSet(bitset)
+//	pair := iter.Next()
+//	assert.True(t, pair.IsSome())
+//	assert.Equal(t, 0, pair.Unwrap().A)  // offset
+//	assert.Equal(t, true, pair.Unwrap().B) // bit value
+//
+//	// Filter only set bits
+//	setBits := FromBitSet(bitset).
+//		Filter(func(p gust.Pair[int, bool]) bool { return p.B }).
+//		Map(func(p gust.Pair[int, bool]) int { return p.A }).
+//		Collect()
+func FromBitSet(bitset BitSetLike) Iterator[gust.Pair[int, bool]] {
+	size := bitset.Size()
+	if size <= 0 {
+		return Empty[gust.Pair[int, bool]]()
+	}
+	return Iterator[gust.Pair[int, bool]]{
+		iterable: &bitsetIterable{bitset: bitset, size: size, offset: 0},
+	}
+}
+
+type bitsetIterable struct {
+	bitset BitSetLike
+	size   int
+	offset int
+}
+
+func (b *bitsetIterable) Next() gust.Option[gust.Pair[int, bool]] {
+	if b.offset >= b.size {
+		return gust.None[gust.Pair[int, bool]]()
+	}
+	offset := b.offset
+	value := b.bitset.Get(offset)
+	b.offset++
+	return gust.Some(gust.Pair[int, bool]{A: offset, B: value})
+}
+
+func (b *bitsetIterable) SizeHint() (uint, gust.Option[uint]) {
+	remaining := uint(b.size - b.offset)
+	return remaining, gust.Some(remaining)
+}
+
+// FromBitSetOnes creates an iterator over only the bits that are set to true (1)
+// in a bit set, yielding the offset of each set bit.
+//
+// # Examples
+//
+//	bitset := &MyBitSet{bits: []byte{0b10101010}}
+//	iter := FromBitSetOnes(bitset)
+//	assert.Equal(t, gust.Some(0), iter.Next())  // first set bit
+//	assert.Equal(t, gust.Some(2), iter.Next())  // second set bit
+//	assert.Equal(t, gust.Some(4), iter.Next())  // third set bit
+//	assert.Equal(t, gust.Some(6), iter.Next())  // fourth set bit
+//	assert.Equal(t, gust.None[int](), iter.Next())
+//
+//	// Chain with other iterator methods
+//	sum := FromBitSetOnes(bitset).
+//		Filter(func(offset int) bool { return offset > 2 }).
+//		Fold(0, func(acc, offset int) int { return acc + offset })
+func FromBitSetOnes(bitset BitSetLike) Iterator[int] {
+	return Map(
+		filterImpl(FromBitSet(bitset), func(p gust.Pair[int, bool]) bool { return p.B }),
+		func(p gust.Pair[int, bool]) int { return p.A },
+	)
+}
+
+// FromBitSetZeros creates an iterator over only the bits that are set to false (0)
+// in a bit set, yielding the offset of each unset bit.
+//
+// # Examples
+//
+//	bitset := &MyBitSet{bits: []byte{0b10101010}}
+//	iter := FromBitSetZeros(bitset)
+//	assert.Equal(t, gust.Some(1), iter.Next())  // first unset bit
+//	assert.Equal(t, gust.Some(3), iter.Next())  // second unset bit
+//	assert.Equal(t, gust.Some(5), iter.Next())  // third unset bit
+//	assert.Equal(t, gust.Some(7), iter.Next())  // fourth unset bit
+//	assert.Equal(t, gust.None[int](), iter.Next())
+func FromBitSetZeros(bitset BitSetLike) Iterator[int] {
+	return Map(
+		filterImpl(FromBitSet(bitset), func(p gust.Pair[int, bool]) bool { return !p.B }),
+		func(p gust.Pair[int, bool]) int { return p.A },
+	)
+}
+
+// FromBitSetBytes creates an iterator over all bits in a byte slice,
+// treating the bytes as a bit set and yielding pairs of (offset, bool)
+// where offset is the bit position (0-indexed from the first byte, first bit)
+// and bool indicates whether the bit is set.
+//
+// Bits are ordered from the most significant bit (MSB) to the least significant bit (LSB)
+// within each byte, and bytes are ordered from first to last.
+//
+// # Examples
+//
+//	bytes := []byte{0b10101010, 0b11001100}
+//	iter := FromBitSetBytes(bytes)
+//	pair := iter.Next()
+//	assert.True(t, pair.IsSome())
+//	assert.Equal(t, 0, pair.Unwrap().A)  // offset
+//	assert.Equal(t, true, pair.Unwrap().B) // bit value (MSB of first byte)
+//
+//	// Get all set bit offsets
+//	setBits := FromBitSetBytes(bytes).
+//		Filter(func(p gust.Pair[int, bool]) bool { return p.B }).
+//		Map(func(p gust.Pair[int, bool]) int { return p.A }).
+//		Collect()
+//	// setBits contains [0, 2, 4, 6, 8, 9, 12, 13]
+//
+//	// Count set bits
+//	count := FromBitSetBytes(bytes).
+//		Filter(func(p gust.Pair[int, bool]) bool { return p.B }).
+//		Count()
+func FromBitSetBytes(bytes []byte) Iterator[gust.Pair[int, bool]] {
+	if len(bytes) == 0 {
+		return Empty[gust.Pair[int, bool]]()
+	}
+	return Iterator[gust.Pair[int, bool]]{
+		iterable: &bitSetBytesIterable{bytes: bytes, size: len(bytes) * 8, offset: 0},
+	}
+}
+
+type bitSetBytesIterable struct {
+	bytes  []byte
+	size   int
+	offset int
+}
+
+func (b *bitSetBytesIterable) Next() gust.Option[gust.Pair[int, bool]] {
+	if b.offset >= b.size {
+		return gust.None[gust.Pair[int, bool]]()
+	}
+	offset := b.offset
+	byteIdx := offset / 8
+	bitIdx := offset % 8
+	value := (b.bytes[byteIdx] & (1 << (7 - bitIdx))) != 0
+	b.offset++
+	return gust.Some(gust.Pair[int, bool]{A: offset, B: value})
+}
+
+func (b *bitSetBytesIterable) SizeHint() (uint, gust.Option[uint]) {
+	remaining := uint(b.size - b.offset)
+	return remaining, gust.Some(remaining)
+}
+
+// FromBitSetBytesOnes creates an iterator over only the bits that are set to true (1)
+// in a byte slice (treated as a bit set), yielding the offset of each set bit.
+//
+// # Examples
+//
+//	bytes := []byte{0b10101010, 0b11001100}
+//	iter := FromBitSetBytesOnes(bytes)
+//	assert.Equal(t, gust.Some(0), iter.Next())  // first set bit
+//	assert.Equal(t, gust.Some(2), iter.Next())  // second set bit
+//	assert.Equal(t, gust.Some(4), iter.Next())  // third set bit
+//	// ... continues with all set bits
+func FromBitSetBytesOnes(bytes []byte) Iterator[int] {
+	return Map(
+		filterImpl(FromBitSetBytes(bytes), func(p gust.Pair[int, bool]) bool { return p.B }),
+		func(p gust.Pair[int, bool]) int { return p.A },
+	)
+}
+
+// FromBitSetBytesZeros creates an iterator over only the bits that are set to false (0)
+// in a byte slice (treated as a bit set), yielding the offset of each unset bit.
+//
+// # Examples
+//
+//	bytes := []byte{0b10101010, 0b11001100}
+//	iter := FromBitSetBytesZeros(bytes)
+//	assert.Equal(t, gust.Some(1), iter.Next())  // first unset bit
+//	assert.Equal(t, gust.Some(3), iter.Next())  // second unset bit
+//	assert.Equal(t, gust.Some(5), iter.Next())  // third unset bit
+//	// ... continues with all unset bits
+func FromBitSetBytesZeros(bytes []byte) Iterator[int] {
+	return Map(
+		filterImpl(FromBitSetBytes(bytes), func(p gust.Pair[int, bool]) bool { return !p.B }),
+		func(p gust.Pair[int, bool]) int { return p.A },
+	)
+}

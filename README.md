@@ -174,11 +174,13 @@ fmt.Println(sum) // 56 (4 + 16 + 36)
 ```
 
 **Available Methods:**
+- **Constructors**: `FromSlice()`, `FromElements()`, `FromRange()`, `FromFunc()`, `FromIterable()`, `Empty()`, `Once()`, `Repeat()` - Create iterators from various sources
+- **BitSet Iterators**: `FromBitSet()`, `FromBitSetOnes()`, `FromBitSetZeros()`, `FromBitSetBytes()`, `FromBitSetBytesOnes()`, `FromBitSetBytesZeros()` - Iterate over bits in bit sets or byte slices
+- **Go Integration**: `FromSeq()`, `FromSeq2()`, `FromPull()`, `FromPull2()` - Convert from Go's standard iterators; `Seq()`, `Seq2()`, `Pull()`, `Pull2()` - Convert to Go's standard iterators
 - **Adapters**: `Map`, `Filter`, `Chain`, `Zip`, `Enumerate`, `Skip`, `Take`, `StepBy`, `FlatMap`, `Flatten`
 - **Consumers**: `Fold`, `Reduce`, `Collect`, `Count`, `All`, `Any`, `Find`, `Sum`, `Product`, `Partition`
 - **Advanced**: `Scan`, `Intersperse`, `Peekable`, `ArrayChunks`, `FindMap`, `MapWhile`
 - **Double-Ended**: `NextBack`, `Rfold`, `TryRfold`, `Rfind`
-- **Go Integration**: `Seq()` converts to Go's `iter.Seq[T]`, `FromSeq()` creates from Go's `iter.Seq[T]`
 - And 60+ more methods from Rust's Iterator trait!
 
 **Note:** For type-changing operations (e.g., `Map` from `string` to `int`), use the function-style API:
@@ -196,6 +198,42 @@ iter.FromSlice(numbers).Filter(func(x int) bool { return x > 0 }).Map(func(x int
 - ✅ Lazy evaluation
 - ✅ Type-safe transformations
 - ✅ Zero-copy where possible
+
+#### Iterator Constructors
+
+Create iterators from various sources:
+
+```go
+import "github.com/andeya/gust/iter"
+
+// From slice
+iter1 := iter.FromSlice([]int{1, 2, 3})
+
+// From individual elements
+iter2 := iter.FromElements(1, 2, 3)
+
+// From range [start, end)
+iter3 := iter.FromRange(0, 5) // 0, 1, 2, 3, 4
+
+// From function
+count := 0
+iter4 := iter.FromFunc(func() gust.Option[int] {
+    if count < 3 {
+        count++
+        return gust.Some(count)
+    }
+    return gust.None[int]()
+})
+
+// Empty iterator
+iter5 := iter.Empty[int]()
+
+// Single value
+iter6 := iter.Once(42)
+
+// Infinite repeat
+iter7 := iter.Repeat("hello") // "hello", "hello", "hello", ...
+```
 
 #### Go Standard Iterator Integration
 
@@ -321,6 +359,51 @@ evens, odds := iter.FromSlice(numbers).
 
 fmt.Println("Evens:", evens) // [2 4 6 8 10]
 fmt.Println("Odds:", odds)   // [1 3 5 7 9]
+```
+
+### BitSet Iteration
+
+Iterate over bits in bit sets or byte slices with full iterator support:
+
+```go
+import "github.com/andeya/gust/iter"
+
+// Iterate over bits in a byte slice
+bytes := []byte{0b10101010, 0b11001100}
+
+// Get all set bit offsets
+setBits := iter.FromBitSetBytesOnes(bytes).
+    Filter(func(offset int) bool { return offset > 5 }).
+    Collect()
+fmt.Println(setBits) // [6 8 9 12 13]
+
+// Count set bits
+count := iter.FromBitSetBytesOnes(bytes).Count()
+fmt.Println(count) // 8
+
+// Sum of offsets of set bits
+sum := iter.FromBitSetBytesOnes(bytes).
+    Fold(0, func(acc, offset int) int { return acc + offset })
+fmt.Println(sum) // 54 (0+2+4+6+8+9+12+13)
+
+// Works with any BitSetLike implementation
+type MyBitSet struct {
+    bits []byte
+}
+
+func (b *MyBitSet) Size() int { return len(b.bits) * 8 }
+func (b *MyBitSet) Get(offset int) bool {
+    if offset < 0 || offset >= b.Size() {
+        return false
+    }
+    byteIdx := offset / 8
+    bitIdx := offset % 8
+    return (b.bits[byteIdx] & (1 << (7 - bitIdx))) != 0
+}
+
+bitset := &MyBitSet{bits: []byte{0b10101010}}
+ones := iter.FromBitSetOnes(bitset).Collect()
+fmt.Println(ones) // [0 2 4 6]
 ```
 
 ## 📦 Additional Packages

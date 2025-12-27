@@ -176,6 +176,9 @@ fmt.Println(sum) // 56 (4 + 16 + 36)
 ```
 
 **可用方法：**
+- **构造函数**: `FromSlice()`, `FromElements()`, `FromRange()`, `FromFunc()`, `FromIterable()`, `Empty()`, `Once()`, `Repeat()` - 从各种数据源创建迭代器
+- **位集合迭代器**: `FromBitSet()`, `FromBitSetOnes()`, `FromBitSetZeros()`, `FromBitSetBytes()`, `FromBitSetBytesOnes()`, `FromBitSetBytesZeros()` - 迭代位集合或字节切片中的位
+- **Go 集成**: `FromSeq()`, `FromSeq2()`, `FromPull()`, `FromPull2()` - 从 Go 标准迭代器转换；`Seq()`, `Seq2()`, `Pull()`, `Pull2()` - 转换为 Go 标准迭代器
 - **适配器**: `Map`, `Filter`, `Chain`, `Zip`, `Enumerate`, `Skip`, `Take`, `StepBy`, `FlatMap`, `Flatten`
 - **消费者**: `Fold`, `Reduce`, `Collect`, `Count`, `All`, `Any`, `Find`, `Sum`, `Product`, `Partition`
 - **高级**: `Scan`, `Intersperse`, `Peekable`, `ArrayChunks`, `FindMap`, `MapWhile`
@@ -197,6 +200,42 @@ iter.FromSlice(numbers).Filter(func(x int) bool { return x > 0 }).Map(func(x int
 - ✅ 惰性求值
 - ✅ 类型安全的转换
 - ✅ 尽可能零拷贝
+
+#### 迭代器构造函数
+
+从各种数据源创建迭代器：
+
+```go
+import "github.com/andeya/gust/iter"
+
+// 从切片创建
+iter1 := iter.FromSlice([]int{1, 2, 3})
+
+// 从单个元素创建
+iter2 := iter.FromElements(1, 2, 3)
+
+// 从范围创建 [start, end)
+iter3 := iter.FromRange(0, 5) // 0, 1, 2, 3, 4
+
+// 从函数创建
+count := 0
+iter4 := iter.FromFunc(func() gust.Option[int] {
+    if count < 3 {
+        count++
+        return gust.Some(count)
+    }
+    return gust.None[int]()
+})
+
+// 空迭代器
+iter5 := iter.Empty[int]()
+
+// 单值迭代器
+iter6 := iter.Once(42)
+
+// 无限重复
+iter7 := iter.Repeat("hello") // "hello", "hello", "hello", ...
+```
 
 #### Go 标准迭代器集成
 
@@ -322,6 +361,51 @@ evens, odds := iter.FromSlice(numbers).
 
 fmt.Println("Evens:", evens) // [2 4 6 8 10]
 fmt.Println("Odds:", odds)   // [1 3 5 7 9]
+```
+
+### 位集合迭代
+
+使用完整的迭代器支持迭代位集合或字节切片中的位：
+
+```go
+import "github.com/andeya/gust/iter"
+
+// 迭代字节切片中的位
+bytes := []byte{0b10101010, 0b11001100}
+
+// 获取所有设置为 1 的位的偏移量
+setBits := iter.FromBitSetBytesOnes(bytes).
+    Filter(func(offset int) bool { return offset > 5 }).
+    Collect()
+fmt.Println(setBits) // [6 8 9 12 13]
+
+// 统计设置为 1 的位的数量
+count := iter.FromBitSetBytesOnes(bytes).Count()
+fmt.Println(count) // 8
+
+// 设置为 1 的位的偏移量之和
+sum := iter.FromBitSetBytesOnes(bytes).
+    Fold(0, func(acc, offset int) int { return acc + offset })
+fmt.Println(sum) // 54 (0+2+4+6+8+9+12+13)
+
+// 适用于任何实现了 BitSetLike 接口的类型
+type MyBitSet struct {
+    bits []byte
+}
+
+func (b *MyBitSet) Size() int { return len(b.bits) * 8 }
+func (b *MyBitSet) Get(offset int) bool {
+    if offset < 0 || offset >= b.Size() {
+        return false
+    }
+    byteIdx := offset / 8
+    bitIdx := offset % 8
+    return (b.bits[byteIdx] & (1 << (7 - bitIdx))) != 0
+}
+
+bitset := &MyBitSet{bits: []byte{0b10101010}}
+ones := iter.FromBitSetOnes(bitset).Collect()
+fmt.Println(ones) // [0 2 4 6]
 ```
 
 ## 📦 附加包

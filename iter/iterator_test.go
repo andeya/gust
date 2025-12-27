@@ -9,6 +9,24 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// mockBitSet is a simple implementation of BitSetLike for testing
+type mockBitSet struct {
+	bits []byte
+}
+
+func (m *mockBitSet) Size() int {
+	return len(m.bits) * 8
+}
+
+func (m *mockBitSet) Get(offset int) bool {
+	if offset < 0 || offset >= m.Size() {
+		return false
+	}
+	byteIdx := offset / 8
+	bitIdx := offset % 8
+	return (m.bits[byteIdx] & (1 << (7 - bitIdx))) != 0
+}
+
 type easyIterable struct {
 	values []int
 	index  int
@@ -1210,4 +1228,244 @@ func TestIterator_XMapWindows(t *testing.T) {
 	})
 	result := windows.Collect()
 	assert.Equal(t, []any{6, 9, 12}, result)
+}
+
+func TestFromBitSet(t *testing.T) {
+	// Test with a simple bit set: 0b10101010 = 0xAA
+	bitset := &mockBitSet{bits: []byte{0b10101010}}
+	iter := FromBitSet(bitset)
+
+	// Check first few bits
+	pair := iter.Next()
+	assert.True(t, pair.IsSome())
+	assert.Equal(t, 0, pair.Unwrap().A)    // offset
+	assert.Equal(t, true, pair.Unwrap().B) // bit value (MSB)
+
+	pair = iter.Next()
+	assert.True(t, pair.IsSome())
+	assert.Equal(t, 1, pair.Unwrap().A)
+	assert.Equal(t, false, pair.Unwrap().B)
+
+	pair = iter.Next()
+	assert.True(t, pair.IsSome())
+	assert.Equal(t, 2, pair.Unwrap().A)
+	assert.Equal(t, true, pair.Unwrap().B)
+
+	// Collect all pairs
+	iter = FromBitSet(bitset)
+	allPairs := iter.Collect()
+	assert.Len(t, allPairs, 8)
+	assert.Equal(t, gust.Pair[int, bool]{A: 0, B: true}, allPairs[0])
+	assert.Equal(t, gust.Pair[int, bool]{A: 1, B: false}, allPairs[1])
+	assert.Equal(t, gust.Pair[int, bool]{A: 2, B: true}, allPairs[2])
+	assert.Equal(t, gust.Pair[int, bool]{A: 3, B: false}, allPairs[3])
+	assert.Equal(t, gust.Pair[int, bool]{A: 4, B: true}, allPairs[4])
+	assert.Equal(t, gust.Pair[int, bool]{A: 5, B: false}, allPairs[5])
+	assert.Equal(t, gust.Pair[int, bool]{A: 6, B: true}, allPairs[6])
+	assert.Equal(t, gust.Pair[int, bool]{A: 7, B: false}, allPairs[7])
+
+	// Test empty bit set
+	emptyBitset := &mockBitSet{bits: []byte{}}
+	emptyIter := FromBitSet(emptyBitset)
+	assert.Equal(t, gust.None[gust.Pair[int, bool]](), emptyIter.Next())
+
+	// Test SizeHint
+	iter = FromBitSet(bitset)
+	lower, upper := iter.SizeHint()
+	assert.Equal(t, uint(8), lower)
+	assert.True(t, upper.IsSome())
+	assert.Equal(t, uint(8), upper.Unwrap())
+}
+
+func TestFromBitSetOnes(t *testing.T) {
+	// Test with 0b10101010 = 0xAA (bits at positions 0, 2, 4, 6 are set)
+	bitset := &mockBitSet{bits: []byte{0b10101010}}
+	iter := FromBitSetOnes(bitset)
+
+	ones := iter.Collect()
+	assert.Equal(t, []int{0, 2, 4, 6}, ones)
+
+	// Test with multiple bytes: 0b10101010, 0b11001100
+	bitset2 := &mockBitSet{bits: []byte{0b10101010, 0b11001100}}
+	iter2 := FromBitSetOnes(bitset2)
+	ones2 := iter2.Collect()
+	// First byte: positions 0, 2, 4, 6
+	// Second byte: positions 8, 9, 12, 13 (8+0, 8+1, 8+4, 8+5)
+	assert.Equal(t, []int{0, 2, 4, 6, 8, 9, 12, 13}, ones2)
+
+	// Test empty bit set
+	emptyBitset := &mockBitSet{bits: []byte{}}
+	emptyIter := FromBitSetOnes(emptyBitset)
+	assert.Equal(t, gust.None[int](), emptyIter.Next())
+}
+
+func TestFromBitSetZeros(t *testing.T) {
+	// Test with 0b10101010 = 0xAA (bits at positions 1, 3, 5, 7 are unset)
+	bitset := &mockBitSet{bits: []byte{0b10101010}}
+	iter := FromBitSetZeros(bitset)
+
+	zeros := iter.Collect()
+	assert.Equal(t, []int{1, 3, 5, 7}, zeros)
+
+	// Test with all bits set: 0b11111111
+	allSetBitset := &mockBitSet{bits: []byte{0b11111111}}
+	allSetIter := FromBitSetZeros(allSetBitset)
+	assert.Equal(t, gust.None[int](), allSetIter.Next())
+
+	// Test with no bits set: 0b00000000
+	noSetBitset := &mockBitSet{bits: []byte{0b00000000}}
+	noSetIter := FromBitSetZeros(noSetBitset)
+	allZeros := noSetIter.Collect()
+	assert.Equal(t, []int{0, 1, 2, 3, 4, 5, 6, 7}, allZeros)
+}
+
+func TestFromBitSetBytes(t *testing.T) {
+	// Test with a single byte: 0b10101010 = 0xAA
+	bytes := []byte{0b10101010}
+	iter := FromBitSetBytes(bytes)
+
+	// Check first few bits
+	pair := iter.Next()
+	assert.True(t, pair.IsSome())
+	assert.Equal(t, 0, pair.Unwrap().A)
+	assert.Equal(t, true, pair.Unwrap().B)
+
+	pair = iter.Next()
+	assert.True(t, pair.IsSome())
+	assert.Equal(t, 1, pair.Unwrap().A)
+	assert.Equal(t, false, pair.Unwrap().B)
+
+	// Collect all pairs
+	iter = FromBitSetBytes(bytes)
+	allPairs := iter.Collect()
+	assert.Len(t, allPairs, 8)
+	assert.Equal(t, gust.Pair[int, bool]{A: 0, B: true}, allPairs[0])
+	assert.Equal(t, gust.Pair[int, bool]{A: 7, B: false}, allPairs[7])
+
+	// Test with multiple bytes
+	bytes2 := []byte{0b10101010, 0b11001100}
+	iter2 := FromBitSetBytes(bytes2)
+	allPairs2 := iter2.Collect()
+	assert.Len(t, allPairs2, 16)
+	assert.Equal(t, gust.Pair[int, bool]{A: 0, B: true}, allPairs2[0])    // First byte, MSB
+	assert.Equal(t, gust.Pair[int, bool]{A: 7, B: false}, allPairs2[7])   // First byte, LSB
+	assert.Equal(t, gust.Pair[int, bool]{A: 8, B: true}, allPairs2[8])    // Second byte, MSB
+	assert.Equal(t, gust.Pair[int, bool]{A: 15, B: false}, allPairs2[15]) // Second byte, LSB
+
+	// Test empty bytes
+	emptyBytes := []byte{}
+	emptyIter := FromBitSetBytes(emptyBytes)
+	assert.Equal(t, gust.None[gust.Pair[int, bool]](), emptyIter.Next())
+
+	// Test SizeHint
+	iter = FromBitSetBytes(bytes)
+	lower, upper := iter.SizeHint()
+	assert.Equal(t, uint(8), lower)
+	assert.True(t, upper.IsSome())
+	assert.Equal(t, uint(8), upper.Unwrap())
+}
+
+func TestFromBitSetBytesOnes(t *testing.T) {
+	// Test with 0b10101010 = 0xAA (bits at positions 0, 2, 4, 6 are set)
+	bytes := []byte{0b10101010}
+	iter := FromBitSetBytesOnes(bytes)
+
+	ones := iter.Collect()
+	assert.Equal(t, []int{0, 2, 4, 6}, ones)
+
+	// Test with multiple bytes: 0b10101010, 0b11001100
+	bytes2 := []byte{0b10101010, 0b11001100}
+	iter2 := FromBitSetBytesOnes(bytes2)
+	ones2 := iter2.Collect()
+	// First byte: positions 0, 2, 4, 6
+	// Second byte: positions 8, 9, 12, 13 (8+0, 8+1, 8+4, 8+5)
+	assert.Equal(t, []int{0, 2, 4, 6, 8, 9, 12, 13}, ones2)
+
+	// Test empty bytes
+	emptyBytes := []byte{}
+	emptyIter := FromBitSetBytesOnes(emptyBytes)
+	assert.Equal(t, gust.None[int](), emptyIter.Next())
+
+	// Test with all bits set
+	allSetBytes := []byte{0b11111111}
+	allSetIter := FromBitSetBytesOnes(allSetBytes)
+	allOnes := allSetIter.Collect()
+	assert.Equal(t, []int{0, 1, 2, 3, 4, 5, 6, 7}, allOnes)
+}
+
+func TestFromBitSetBytesZeros(t *testing.T) {
+	// Test with 0b10101010 = 0xAA (bits at positions 1, 3, 5, 7 are unset)
+	bytes := []byte{0b10101010}
+	iter := FromBitSetBytesZeros(bytes)
+
+	zeros := iter.Collect()
+	assert.Equal(t, []int{1, 3, 5, 7}, zeros)
+
+	// Test with all bits set: 0b11111111
+	allSetBytes := []byte{0b11111111}
+	allSetIter := FromBitSetBytesZeros(allSetBytes)
+	assert.Equal(t, gust.None[int](), allSetIter.Next())
+
+	// Test with no bits set: 0b00000000
+	noSetBytes := []byte{0b00000000}
+	noSetIter := FromBitSetBytesZeros(noSetBytes)
+	allZeros := noSetIter.Collect()
+	assert.Equal(t, []int{0, 1, 2, 3, 4, 5, 6, 7}, allZeros)
+
+	// Test empty bytes
+	emptyBytes := []byte{}
+	emptyIter := FromBitSetBytesZeros(emptyBytes)
+	assert.Equal(t, gust.None[int](), emptyIter.Next())
+}
+
+func TestBitSetIteratorChaining(t *testing.T) {
+	// Test chaining with Filter, Map, Take, etc.
+	bitset := &mockBitSet{bits: []byte{0b10101010, 0b11001100}}
+
+	// Get offsets of set bits that are greater than 5
+	result := FromBitSetOnes(bitset).
+		Filter(func(offset int) bool { return offset > 5 }).
+		Collect()
+	assert.Equal(t, []int{6, 8, 9, 12, 13}, result)
+
+	// Sum of offsets of set bits
+	sum := FromBitSetOnes(bitset).
+		Fold(0, func(acc, offset int) int { return acc + offset })
+	assert.Equal(t, 54, sum) // 0+2+4+6+8+9+12+13 = 54
+
+	// Count set bits
+	count := FromBitSetOnes(bitset).Count()
+	assert.Equal(t, uint(8), count)
+
+	// Take first 3 set bits
+	firstThree := FromBitSetOnes(bitset).
+		Take(3).
+		Collect()
+	assert.Equal(t, []int{0, 2, 4}, firstThree)
+}
+
+func TestBytesIteratorChaining(t *testing.T) {
+	// Test chaining with Filter, Map, Take, etc.
+	bytes := []byte{0b10101010, 0b11001100}
+
+	// Get offsets of set bits that are greater than 5
+	result := FromBitSetBytesOnes(bytes).
+		Filter(func(offset int) bool { return offset > 5 }).
+		Collect()
+	assert.Equal(t, []int{6, 8, 9, 12, 13}, result)
+
+	// Sum of offsets of set bits
+	sum := FromBitSetBytesOnes(bytes).
+		Fold(0, func(acc, offset int) int { return acc + offset })
+	assert.Equal(t, 54, sum) // 0+2+4+6+8+9+12+13 = 54
+
+	// Count set bits
+	count := FromBitSetBytesOnes(bytes).Count()
+	assert.Equal(t, uint(8), count)
+
+	// Take first 3 set bits
+	firstThree := FromBitSetBytesOnes(bytes).
+		Take(3).
+		Collect()
+	assert.Equal(t, []int{0, 2, 4}, firstThree)
 }
