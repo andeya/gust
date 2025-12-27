@@ -198,6 +198,43 @@ iter.FromSlice(numbers).Filter(func(x int) bool { return x > 0 }).Map(func(x int
 - ✅ 类型安全的转换
 - ✅ 尽可能零拷贝
 
+#### Go 标准迭代器集成
+
+gust 迭代器与 Go 1.23+ 标准迭代器无缝集成：
+
+**将 gust Iterator 转换为 Go 的 `iter.Seq[T]`：**
+```go
+import "github.com/andeya/gust/iter"
+
+numbers := []int{1, 2, 3, 4, 5}
+gustIter := iter.FromSlice(numbers).Filter(func(x int) bool { return x%2 == 0 })
+
+// 在 Go 标准的 for-range 循环中使用
+for v := range gustIter.Seq() {
+    fmt.Println(v) // 输出 2, 4
+}
+```
+
+**将 Go 的 `iter.Seq[T]` 转换为 gust Iterator：**
+```go
+import "github.com/andeya/gust/iter"
+
+// 创建 Go 标准迭代器序列
+goSeq := func(yield func(int) bool) {
+    for i := 0; i < 5; i++ {
+        if !yield(i) {
+            return
+        }
+    }
+}
+
+// 转换为 gust Iterator 并使用 gust 方法
+gustIter, deferStop := iter.FromSeq(goSeq)
+defer deferStop()
+result := gustIter.Map(func(x int) int { return x * 2 }).Collect()
+fmt.Println(result) // [0 2 4 6 8]
+```
+
 ### 4. 双端迭代器
 
 从两端迭代：
@@ -219,178 +256,7 @@ if val := deIter.NextBack(); val.IsSome() {
 }
 ```
 
-## 📖 更多示例
-
-### Go 标准迭代器集成
-
-gust 迭代器与 Go 1.23+ 标准迭代器无缝集成：
-
-**将 gust Iterator 转换为 Go 的 `iter.Seq[T]`：**
-```go
-import "github.com/andeya/gust/iter"
-
-numbers := []int{1, 2, 3, 4, 5}
-gustIter := iter.FromSlice(numbers).Filter(func(x int) bool { return x%2 == 0 })
-
-// 在 Go 标准的 for-range 循环中使用
-for v := range gustIter.Seq() {
-    fmt.Println(v) // 输出 2, 4
-}
-```
-
-**将 gust Iterator 转换为 Go 的 `iter.Seq2[uint, T]`（索引-值对）：**
-```go
-import "github.com/andeya/gust/iter"
-
-iter := iter.FromSlice([]int{1, 2, 3})
-
-// 在 Go 标准的 for-range 循环中使用索引-值对
-for k, v := range iter.Seq2() {
-    fmt.Println(k, v) // 输出 0 1, 1 2, 2 3
-}
-```
-
-**将 gust Pair Iterator 转换为 Go 的 `iter.Seq2[K, V]`：**
-```go
-import "github.com/andeya/gust/iter"
-
-iter1 := iter.FromSlice([]int{1, 2, 3})
-iter2 := iter.FromSlice([]string{"a", "b", "c"})
-zipped := iter.Zip(iter1, iter2)
-
-// 在 Go 标准的 for-range 循环中使用键值对
-for k, v := range iter.Seq2(zipped) {
-    fmt.Println(k, v) // 输出 1 a, 2 b, 3 c
-}
-```
-
-**将 Go 的 `iter.Seq[T]` 转换为 gust Iterator：**
-```go
-import "github.com/andeya/gust/iter"
-
-// 创建 Go 标准迭代器序列
-goSeq := func(yield func(int) bool) {
-    for i := 0; i < 5; i++ {
-        if !yield(i) {
-            return
-        }
-    }
-}
-
-// 转换为 gust Iterator 并使用 gust 方法
-gustIter, deferStop := iter.FromSeq(goSeq)
-defer deferStop()
-result := gustIter.
-    Filter(func(x int) bool { return x > 1 }).
-    Map(func(x int) int { return x * x }).
-    Collect()
-
-fmt.Println(result) // [4 9 16]
-```
-
-**将 Go 的 `iter.Seq2[K, V]` 转换为 gust Pair Iterator：**
-```go
-import "github.com/andeya/gust/iter"
-
-// 创建 Go 标准键值对迭代器
-m := map[string]int{"a": 1, "b": 2, "c": 3}
-goSeq2 := func(yield func(string, int) bool) {
-    for k, v := range m {
-        if !yield(k, v) {
-            return
-        }
-    }
-}
-
-// 转换为 gust Iterator 并使用 gust 方法
-gustIter, deferStop := iter.FromSeq2(goSeq2)
-defer deferStop()
-result := gustIter.Filter(func(p gust.Pair[string, int]) bool {
-    return p.B > 1
-}).Collect()
-fmt.Println(result) // [{b 2} {c 3}]
-```
-
-**使用 gust 的 `Pull()` 和 `Pull2()` 方法：**
-
-gust 提供了便捷的 `Pull()` 和 `Pull2()` 方法，用于将迭代器转换为拉取式迭代器：
-
-```go
-import "github.com/andeya/gust/iter"
-
-// 使用 Pull() 方法与 gust Iterator
-gustIter := iter.FromSlice([]int{1, 2, 3, 4, 5})
-next, stop := gustIter.Pull()
-defer stop()
-
-// 手动拉取值
-for {
-    v, ok := next()
-    if !ok {
-        break
-    }
-    fmt.Println(v)
-    if v == 3 {
-        break // 提前终止
-    }
-}
-
-// 使用 Pull2() 方法与 gust Iterator（索引-值对）
-gustIter2 := iter.FromSlice([]int{10, 20, 30})
-next2, stop2 := gustIter2.Pull2()
-defer stop2()
-
-// 手动拉取索引-值对
-for {
-    k, v, ok := next2()
-    if !ok {
-        break
-    }
-    fmt.Println(k, v) // 输出 0 10, 1 20, 2 30
-}
-```
-
-**使用 gust 的 `Pull2()` 函数与 Pair Iterator：**
-```go
-import "github.com/andeya/gust/iter"
-
-// 使用 Pull2() 函数与 gust Pair Iterator
-iter1 := iter.FromSlice([]int{1, 2, 3})
-iter2 := iter.FromSlice([]string{"a", "b", "c"})
-zipped := iter.Zip(iter1, iter2)
-next2, stop2 := iter.Pull2(zipped)
-defer stop2()
-
-// 手动拉取键值对
-for {
-    k, v, ok := next2()
-    if !ok {
-        break
-    }
-    fmt.Println(k, v)
-}
-```
-
-**替代方案：使用 Go 标准的 `iter.Pull` 和 `iter.Pull2`：**
-
-你也可以直接使用 Go 标准库的函数：
-
-```go
-import (
-    "iter"
-    gustiter "github.com/andeya/gust/iter"
-)
-
-// 使用 iter.Pull 与 gust Iterator
-gustIter := gustiter.FromSlice([]int{1, 2, 3, 4, 5})
-next, stop := iter.Pull(gustIter.Seq())
-defer stop()
-
-// 使用 iter.Pull2 与 gust Pair Iterator
-zipped := gustiter.Zip(iter1, iter2)
-next2, stop2 := iter.Pull2(gustiter.Seq2(zipped))
-defer stop2()
-```
+## 📖 示例
 
 ### 解析和过滤错误处理
 
@@ -458,24 +324,58 @@ fmt.Println("Evens:", evens) // [2 4 6 8 10]
 fmt.Println("Odds:", odds)   // [1 3 5 7 9]
 ```
 
-## 🎯 使用场景
-
-- **错误处理**: 用 `Result[T]` 替换 `(T, error)`，实现更简洁、可链式的错误处理
-- **可选值**: 使用 `Option[T]` 替代 `*T`，实现 nil 安全和明确的可选语义
-- **数据处理**: 链式迭代器操作，实现优雅的惰性求值数据转换
-- **API 响应**: 明确处理可选/错误情况，无需 nil 检查
-- **配置**: 使用 `Option` 处理可选配置字段，保证类型安全
-- **数据验证**: 结合 `Result` 和 `Option` 构建健壮的输入验证管道
-
 ## 📦 附加包
+
+gust 提供了多个工具包来扩展其功能：
 
 - **`gust/dict`** - 通用 map 工具（Filter, Map, Keys, Values 等）
 - **`gust/vec`** - 通用 slice 工具
 - **`gust/valconv`** - 类型安全的值转换
 - **`gust/digit`** - 数字转换工具
-- **`gust/sync`** - 通用同步原语（Mutex, RWMutex 等）
+- **`gust/opt`** - `Option[T]` 辅助函数（Map, AndThen, Zip, Unzip, Assert 等）
+- **`gust/ret`** - `Result[T]` 辅助函数（Map, AndThen, Assert, Flatten 等）
+- **`gust/iter`** - Rust 风格迭代器实现（参见上面的[迭代器部分](#3-iterator---go-中的-rust-风格迭代)）
 
-### Dict 工具示例
+### 快速示例
+
+**Dict 工具：**
+```go
+import "github.com/andeya/gust/dict"
+
+m := map[string]int{"a": 1, "b": 2, "c": 3}
+value := dict.Get(m, "b").UnwrapOr(0) // 2
+filtered := dict.Filter(m, func(k string, v int) bool { return v > 1 })
+```
+
+**Vec 工具：**
+```go
+import "github.com/andeya/gust/vec"
+
+numbers := []int{1, 2, 3, 4, 5}
+doubled := vec.MapAlone(numbers, func(x int) int { return x * 2 })
+```
+
+**Opt 工具：**
+```go
+import "github.com/andeya/gust/opt"
+
+some := gust.Some(5)
+doubled := opt.Map(some, func(x int) int { return x * 2 })
+```
+
+**Ret 工具：**
+```go
+import "github.com/andeya/gust/ret"
+
+result := gust.Ok(10)
+doubled := ret.Map(result, func(x int) int { return x * 2 })
+```
+
+更多详细信息，请参阅[完整文档](https://pkg.go.dev/github.com/andeya/gust)和[示例](./examples/)。
+
+### 详细示例
+
+#### Dict 工具
 
 ```go
 import "github.com/andeya/gust/dict"
@@ -499,24 +399,33 @@ mapped := dict.MapValue(m, func(k string, v int) int {
 fmt.Println(mapped) // map[a:2 b:4 c:6]
 ```
 
-### Vec 工具示例
-
+#### Vec 工具
 ```go
 import "github.com/andeya/gust/vec"
 
-// 映射 slice 元素
 numbers := []int{1, 2, 3, 4, 5}
-doubled := vec.MapAlone(numbers, func(x int) int {
-    return x * 2
-})
+doubled := vec.MapAlone(numbers, func(x int) int { return x * 2 })
 fmt.Println(doubled) // [2 4 6 8 10]
+```
 
-// 将 []any 转换为特定类型
-anySlice := []any{1, 2, 3, 4, 5}
-intSlice := vec.MapAlone(anySlice, func(v any) int {
-    return v.(int)
+#### Opt 工具
+```go
+import "github.com/andeya/gust/opt"
+
+some := gust.Some(5)
+doubled := opt.Map(some, func(x int) int { return x * 2 })
+zipped := opt.Zip(gust.Some(1), gust.Some("hello"))
+```
+
+#### Ret 工具
+```go
+import "github.com/andeya/gust/ret"
+
+result := gust.Ok(10)
+doubled := ret.Map(result, func(x int) int { return x * 2 })
+chained := ret.AndThen(gust.Ok(5), func(x int) gust.Result[int] {
+    return gust.Ok(x * 2)
 })
-fmt.Println(intSlice) // [1 2 3 4 5]
 ```
 
 ## 🔗 资源
@@ -527,9 +436,9 @@ fmt.Println(intSlice) // [1 2 3 4 5]
 - 🐛 [问题追踪](https://github.com/andeya/gust/issues) - 报告 bug 或请求功能
 - 💬 [讨论](https://github.com/andeya/gust/discussions) - 提问和分享想法
 
-## 📋 Go 版本
+## 📋 要求
 
-需要 **Go 1.19+**（支持泛型）
+需要 **Go 1.23+**（支持泛型和标准迭代器）
 
 ## 🤝 贡献
 

@@ -197,30 +197,7 @@ iter.FromSlice(numbers).Filter(func(x int) bool { return x > 0 }).Map(func(x int
 - ✅ Type-safe transformations
 - ✅ Zero-copy where possible
 
-### 4. Double-Ended Iterator
-
-Iterate from both ends:
-
-```go
-import "github.com/andeya/gust/iter"
-
-numbers := []int{1, 2, 3, 4, 5}
-deIter := iter.FromSlice(numbers).MustToDoubleEnded()
-
-// Iterate from front
-if val := deIter.Next(); val.IsSome() {
-    fmt.Println("Front:", val.Unwrap()) // Front: 1
-}
-
-// Iterate from back
-if val := deIter.NextBack(); val.IsSome() {
-    fmt.Println("Back:", val.Unwrap()) // Back: 5
-}
-```
-
-## 📖 More Examples
-
-### Go Standard Iterator Integration
+#### Go Standard Iterator Integration
 
 gust iterators seamlessly integrate with Go 1.23+ standard iterators:
 
@@ -234,32 +211,6 @@ gustIter := iter.FromSlice(numbers).Filter(func(x int) bool { return x%2 == 0 })
 // Use in Go's standard for-range loop
 for v := range gustIter.Seq() {
     fmt.Println(v) // prints 2, 4
-}
-```
-
-**Convert gust Iterator to Go's `iter.Seq2[uint, T]` (index-value pairs):**
-```go
-import "github.com/andeya/gust/iter"
-
-iter := iter.FromSlice([]int{1, 2, 3})
-
-// Use in Go's standard for-range loop with index-value pairs
-for k, v := range iter.Seq2() {
-    fmt.Println(k, v) // prints 0 1, 1 2, 2 3
-}
-```
-
-**Convert gust Pair Iterator to Go's `iter.Seq2[K, V]`:**
-```go
-import "github.com/andeya/gust/iter"
-
-iter1 := iter.FromSlice([]int{1, 2, 3})
-iter2 := iter.FromSlice([]string{"a", "b", "c"})
-zipped := iter.Zip(iter1, iter2)
-
-// Use in Go's standard for-range loop with key-value pairs
-for k, v := range iter.Seq2(zipped) {
-    fmt.Println(k, v) // prints 1 a, 2 b, 3 c
 }
 ```
 
@@ -283,111 +234,28 @@ result := gustIter.Map(func(x int) int { return x * 2 }).Collect()
 fmt.Println(result) // [0 2 4 6 8]
 ```
 
-**Convert Go's `iter.Seq2[K, V]` to gust Pair Iterator:**
-```go
-import "github.com/andeya/gust/iter"
+### 4. Double-Ended Iterator
 
-// Create a custom Go key-value iterator
-m := map[string]int{"a": 1, "b": 2, "c": 3}
-goSeq2 := func(yield func(string, int) bool) {
-    for k, v := range m {
-        if !yield(k, v) {
-            return
-        }
-    }
-}
-
-// Convert to gust Iterator and use gust methods
-gustIter, deferStop := iter.FromSeq2(goSeq2)
-defer deferStop()
-result := gustIter.Filter(func(p gust.Pair[string, int]) bool {
-    return p.B > 1
-}).Collect()
-fmt.Println(result) // [{b 2} {c 3}]
-```
-
-**Using gust's `Pull()` and `Pull2()` methods:**
-
-gust provides convenient `Pull()` and `Pull2()` methods to convert iterators to pull-style iterators:
+Iterate from both ends:
 
 ```go
 import "github.com/andeya/gust/iter"
 
-// Using Pull() method with gust Iterator
-gustIter := iter.FromSlice([]int{1, 2, 3, 4, 5})
-next, stop := gustIter.Pull()
-defer stop()
+numbers := []int{1, 2, 3, 4, 5}
+deIter := iter.FromSlice(numbers).MustToDoubleEnded()
 
-// Pull values manually
-for {
-    v, ok := next()
-    if !ok {
-        break
-    }
-    fmt.Println(v)
-    if v == 3 {
-        break // Early termination
-    }
+// Iterate from front
+if val := deIter.Next(); val.IsSome() {
+    fmt.Println("Front:", val.Unwrap()) // Front: 1
 }
 
-// Using Pull2() method with gust Iterator (index-value pairs)
-gustIter2 := iter.FromSlice([]int{10, 20, 30})
-next2, stop2 := gustIter2.Pull2()
-defer stop2()
-
-// Pull index-value pairs manually
-for {
-    k, v, ok := next2()
-    if !ok {
-        break
-    }
-    fmt.Println(k, v) // prints 0 10, 1 20, 2 30
+// Iterate from back
+if val := deIter.NextBack(); val.IsSome() {
+    fmt.Println("Back:", val.Unwrap()) // Back: 5
 }
 ```
 
-**Using Go's `iter.Pull` and `iter.Pull2` with gust iterators:**
-
-The Go standard library provides `iter.Pull` and `iter.Pull2` functions to convert push-style iterators to pull-style iterators. These work seamlessly with gust iterators:
-
-```go
-import (
-    "iter"
-    gustiter "github.com/andeya/gust/iter"
-)
-
-// Using iter.Pull with gust Iterator
-gustIter := gustiter.FromSlice([]int{1, 2, 3, 4, 5})
-next, stop := iter.Pull(gustIter.Seq())
-defer stop()
-
-// Pull values manually
-for {
-    v, ok := next()
-    if !ok {
-        break
-    }
-    fmt.Println(v)
-    if v == 3 {
-        break // Early termination
-    }
-}
-
-// Using iter.Pull2 with gust Pair Iterator
-iter1 := gustiter.FromSlice([]int{1, 2, 3})
-iter2 := gustiter.FromSlice([]string{"a", "b", "c"})
-zipped := gustiter.Zip(iter1, iter2)
-next2, stop2 := iter.Pull2(gustiter.Seq2(zipped))
-defer stop2()
-
-// Pull key-value pairs manually
-for {
-    k, v, ok := next2()
-    if !ok {
-        break
-    }
-    fmt.Println(k, v)
-}
-```
+## 📖 Examples
 
 ### Parse and Filter with Error Handling
 
@@ -455,24 +323,58 @@ fmt.Println("Evens:", evens) // [2 4 6 8 10]
 fmt.Println("Odds:", odds)   // [1 3 5 7 9]
 ```
 
-## 🎯 Use Cases
-
-- **Error Handling**: Replace `(T, error)` with `Result[T]` for cleaner, chainable error handling
-- **Optional Values**: Use `Option[T]` instead of `*T` for nil safety and explicit optional semantics
-- **Data Processing**: Chain iterator operations for elegant, lazy-evaluated data transformations
-- **API Responses**: Handle optional/error cases explicitly without nil checks
-- **Configuration**: Use `Option` for optional config fields with type safety
-- **Data Validation**: Combine `Result` and `Option` for robust input validation pipelines
-
 ## 📦 Additional Packages
+
+gust provides several utility packages to extend its functionality:
 
 - **`gust/dict`** - Generic map utilities (Filter, Map, Keys, Values, etc.)
 - **`gust/vec`** - Generic slice utilities  
 - **`gust/valconv`** - Type-safe value conversion
 - **`gust/digit`** - Number conversion utilities
-- **`gust/sync`** - Generic sync primitives (Mutex, RWMutex, etc.)
+- **`gust/opt`** - Helper functions for `Option[T]` (Map, AndThen, Zip, Unzip, Assert, etc.)
+- **`gust/ret`** - Helper functions for `Result[T]` (Map, AndThen, Assert, Flatten, etc.)
+- **`gust/iter`** - Rust-like iterator implementation (see [Iterator section](#3-iterator---rust-like-iteration-in-go) above)
 
-### Dict Utilities Example
+### Quick Examples
+
+**Dict utilities:**
+```go
+import "github.com/andeya/gust/dict"
+
+m := map[string]int{"a": 1, "b": 2, "c": 3}
+value := dict.Get(m, "b").UnwrapOr(0) // 2
+filtered := dict.Filter(m, func(k string, v int) bool { return v > 1 })
+```
+
+**Vec utilities:**
+```go
+import "github.com/andeya/gust/vec"
+
+numbers := []int{1, 2, 3, 4, 5}
+doubled := vec.MapAlone(numbers, func(x int) int { return x * 2 })
+```
+
+**Opt utilities:**
+```go
+import "github.com/andeya/gust/opt"
+
+some := gust.Some(5)
+doubled := opt.Map(some, func(x int) int { return x * 2 })
+```
+
+**Ret utilities:**
+```go
+import "github.com/andeya/gust/ret"
+
+result := gust.Ok(10)
+doubled := ret.Map(result, func(x int) int { return x * 2 })
+```
+
+For more details, see the [full documentation](https://pkg.go.dev/github.com/andeya/gust) and [examples](./examples/).
+
+### Detailed Examples
+
+#### Dict Utilities
 
 ```go
 import "github.com/andeya/gust/dict"
@@ -496,24 +398,33 @@ mapped := dict.MapValue(m, func(k string, v int) int {
 fmt.Println(mapped) // map[a:2 b:4 c:6]
 ```
 
-### Vec Utilities Example
-
+#### Vec Utilities
 ```go
 import "github.com/andeya/gust/vec"
 
-// Map slice elements
 numbers := []int{1, 2, 3, 4, 5}
-doubled := vec.MapAlone(numbers, func(x int) int {
-    return x * 2
-})
+doubled := vec.MapAlone(numbers, func(x int) int { return x * 2 })
 fmt.Println(doubled) // [2 4 6 8 10]
+```
 
-// Convert []any to specific type
-anySlice := []any{1, 2, 3, 4, 5}
-intSlice := vec.MapAlone(anySlice, func(v any) int {
-    return v.(int)
+#### Opt Utilities
+```go
+import "github.com/andeya/gust/opt"
+
+some := gust.Some(5)
+doubled := opt.Map(some, func(x int) int { return x * 2 })
+zipped := opt.Zip(gust.Some(1), gust.Some("hello"))
+```
+
+#### Ret Utilities
+```go
+import "github.com/andeya/gust/ret"
+
+result := gust.Ok(10)
+doubled := ret.Map(result, func(x int) int { return x * 2 })
+chained := ret.AndThen(gust.Ok(5), func(x int) gust.Result[int] {
+    return gust.Ok(x * 2)
 })
-fmt.Println(intSlice) // [1 2 3 4 5]
 ```
 
 ## 🔗 Resources
@@ -524,9 +435,9 @@ fmt.Println(intSlice) // [1 2 3 4 5]
 - 🐛 [Issue Tracker](https://github.com/andeya/gust/issues) - Report bugs or request features
 - 💬 [Discussions](https://github.com/andeya/gust/discussions) - Ask questions and share ideas
 
-## 📋 Go Version
+## 📋 Requirements
 
-Requires **Go 1.19+** (for generics support)
+Requires **Go 1.23+** (for generics and standard iterator support)
 
 ## 🤝 Contributing
 
