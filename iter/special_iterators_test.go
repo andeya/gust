@@ -70,6 +70,19 @@ func TestPeekableInheritsIteratorMethods(t *testing.T) {
 	assert.Equal(t, gust.Some(2), filtered2.Next())
 }
 
+// TestCloned_NilPointer tests Cloned with nil pointer (covers special_iterators.go:126-129)
+func TestCloned_NilPointer(t *testing.T) {
+	ptrs := []*int{nil, intPtr(1), nil, intPtr(2)}
+	iter := Cloned(FromSlice(ptrs))
+	result := iter.Collect()
+	// nil pointers should be converted to zero values
+	assert.Equal(t, []int{0, 1, 0, 2}, result)
+}
+
+func intPtr(i int) *int {
+	return &i
+}
+
 func TestCloned(t *testing.T) {
 	a := []string{"hello", "world"}
 	ptrs := make([]*string, len(a))

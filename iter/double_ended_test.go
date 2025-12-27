@@ -58,10 +58,12 @@ func TestSliceIteratorAdvanceBackBy(t *testing.T) {
 	iter := FromSlice(a)
 	deIter := iter.MustToDoubleEnded()
 
-	assert.Equal(t, gust.NonErrable[uint](), deIter.AdvanceBackBy(2))
+	assert.True(t, deIter.AdvanceBackBy(2).IsOk())
 	assert.Equal(t, gust.Some(4), deIter.NextBack())
-	assert.Equal(t, gust.NonErrable[uint](), deIter.AdvanceBackBy(0))
-	assert.Equal(t, gust.ToErrable[uint](99), deIter.AdvanceBackBy(100))
+	assert.True(t, deIter.AdvanceBackBy(0).IsOk())
+	result := deIter.AdvanceBackBy(100)
+	assert.True(t, result.IsErr())
+	assert.Equal(t, uint(99), result.ErrVal())
 }
 
 func TestSliceIteratorNthBack(t *testing.T) {

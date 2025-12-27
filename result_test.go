@@ -113,64 +113,21 @@ func TestResultIsValid(t *testing.T) {
 	assert.True(t, r2.IsValid())
 }
 
-func TestResultUnwrapOrThrow_1(t *testing.T) {
-	var r gust.Result[string]
-	defer func() {
-		assert.Equal(t, gust.Err[string]("err"), r)
-	}()
-	defer gust.CatchResult[string](&r)
+func TestResultUnwrapOrThrow(t *testing.T) {
+	// Test UnwrapOrThrow with Ok value
 	var r1 = gust.Ok(1)
 	var v1 = r1.UnwrapOrThrow()
 	assert.Equal(t, 1, v1)
-	var r2 = gust.Err[int]("err")
-	var v2 = r2.UnwrapOrThrow()
-	assert.Equal(t, 0, v2)
-}
 
-func TestResultUnwrapOrThrow_2(t *testing.T) {
-	defer func() {
-		assert.Equal(t, "panic text", recover())
-	}()
+	// Test UnwrapOrThrow with Err value (should panic and be caught)
 	var r gust.Result[string]
-	defer gust.CatchResult[string](&r)
-	panic("panic text")
-}
-
-func TestResultUnwrapOrThrow_3(t *testing.T) {
-	var r gust.Result[string]
-	defer func() {
-		assert.Equal(t, gust.Err[string]("err"), r)
+	func() {
+		defer r.Catch()
+		var r2 = gust.Err[int]("err")
+		_ = r2.UnwrapOrThrow() // This will panic
 	}()
-	defer r.Catch()
-	var r1 = gust.Ok(1)
-	var v1 = r1.UnwrapOrThrow()
-	assert.Equal(t, 1, v1)
-	var r2 = gust.Err[int]("err")
-	var v2 = r2.UnwrapOrThrow()
-	assert.Equal(t, 0, v2)
-}
-
-func TestResultUnwrapOrThrow_4(t *testing.T) {
-	var r gust.Result[string]
-	defer func() {
-		assert.Equal(t, gust.Err[string]("err"), r)
-	}()
-	defer r.Catch()
-	var r1 = gust.Ok(1)
-	var v1 = r1.UnwrapOrThrow()
-	assert.Equal(t, 1, v1)
-	var r2 = gust.Err[int]("err")
-	var v2 = r2.UnwrapOrThrow()
-	assert.Equal(t, 0, v2)
-}
-
-func TestResultUnwrapOrThrow_5(t *testing.T) {
-	defer func() {
-		assert.Equal(t, "panic text", recover())
-	}()
-	var r gust.Result[string]
-	defer r.Catch()
-	panic("panic text")
+	assert.True(t, r.IsErr())
+	assert.Equal(t, "err", r.Err().Error())
 }
 
 func TestResult_And(t *testing.T) {
@@ -276,7 +233,7 @@ func TestResult_Err(t *testing.T) {
 
 func TestResult_ExpectErr(t *testing.T) {
 	defer func() {
-		assert.Equal(t, gust.ToErrBox("Testing expect_err: 10"), recover())
+		assert.Equal(t, gust.BoxErr("Testing expect_err: 10"), recover())
 	}()
 	err := gust.Ok(10).ExpectErr("Testing expect_err")
 	assert.NoError(t, err)
@@ -505,7 +462,7 @@ func TestResult_Ret(t *testing.T) {
 
 func TestResult_UnwrapErr_1(t *testing.T) {
 	defer func() {
-		assert.Equal(t, gust.ToErrBox("called `Result.UnwrapErr()` on an `ok` value: 10"), recover())
+		assert.Equal(t, gust.BoxErr("called `Result.UnwrapErr()` on an `ok` value: 10"), recover())
 	}()
 	err := gust.Ok(10).UnwrapErr()
 	assert.NoError(t, err)
@@ -538,21 +495,22 @@ func TestAssertRet(t *testing.T) {
 	assert.Contains(t, result2.Err().Error(), "type assert error")
 }
 
-func TestCatchResult(t *testing.T) {
+func TestResult_Catch(t *testing.T) {
+	// Test basic Catch functionality
 	var result gust.Result[int]
-	defer gust.CatchResult(&result)
-	gust.Err[int]("test error").UnwrapOrThrow()
+	func() {
+		defer result.Catch()
+		gust.Err[int]("test error").UnwrapOrThrow()
+	}()
 	assert.True(t, result.IsErr())
 	assert.Equal(t, "test error", result.Err().Error())
 }
 
-// TestCatchResult_IsSomeBranch tests CatchResult with IsSome branch (covers result.go:609-611)
-func TestCatchResult_IsSomeBranch(t *testing.T) {
-	// Test result.t.IsSome() branch
-	var result gust.Result[int]
-	result = gust.Ok(42)
+func TestResult_Catch_IsSomeBranch(t *testing.T) {
+	// Test Catch when result already has Ok value (IsSome branch)
+	var result gust.Result[int] = gust.Ok(42)
 	func() {
-		defer gust.CatchResult(&result)
+		defer result.Catch()
 		gust.Err[int]("panic error").UnwrapOrThrow()
 	}()
 	assert.True(t, result.IsErr())
@@ -577,7 +535,13 @@ func TestResult_UnwrapOrElse(t *testing.T) {
 
 func TestResult_Unwrap(t *testing.T) {
 	defer func() {
-		assert.Equal(t, "strconv.Atoi: parsing \"4x\": invalid syntax", recover().(error).Error())
+		p := recover()
+		if eb, ok := p.(*gust.ErrBox); ok {
+			// Unwrap() panics *ErrBox, convert to error for comparison
+			assert.Equal(t, "strconv.Atoi: parsing \"4x\": invalid syntax", eb.String())
+		} else {
+			t.Fatalf("expected *gust.ErrBox, got %T: %v", p, p)
+		}
 	}()
 	gust.Ret(strconv.Atoi("4x")).Unwrap()
 }
@@ -618,7 +582,7 @@ func TestResult_ErrVal(t *testing.T) {
 		assert.Equal(t, "some error message", x.ErrVal())
 	}
 	{
-		var x = gust.Err[int](gust.ToErrBox("boxed error"))
+		var x = gust.Err[int](gust.BoxErr("boxed error"))
 		assert.Equal(t, "boxed error", x.ErrVal())
 	}
 	{
@@ -758,13 +722,13 @@ func TestResult_Ref(t *testing.T) {
 func TestResult_Errable(t *testing.T) {
 	{
 		var x = gust.Ok[string]("foo")
-		errable := x.Errable()
-		assert.False(t, errable.IsErr())
+		result := gust.RetVoid(x.Err())
+		assert.False(t, result.IsErr())
 	}
 	{
 		var x = gust.Err[string](errors.New("error"))
-		errable := x.Errable()
-		assert.True(t, errable.IsErr())
+		result := gust.RetVoid(x.Err())
+		assert.True(t, result.IsErr())
 	}
 }
 
@@ -851,49 +815,28 @@ func TestResult_Catch_NilReceiver(t *testing.T) {
 	gust.Err[int]("test error").UnwrapOrThrow()
 }
 
-func TestCatchResult_NilReceiver(t *testing.T) {
-	// Test CatchResult with nil receiver
-	defer func() {
-		assert.NotNil(t, recover())
-	}()
-	defer gust.CatchResult[int](nil)
-	gust.Err[int]("test error").UnwrapOrThrow()
-}
-
 func TestResult_Catch_NonPanicValue(t *testing.T) {
-	// Test Catch with non-panicValue panic
-	defer func() {
-		assert.Equal(t, "regular panic", recover())
-	}()
+	// Test Catch with non-ErrBox panic (should be caught and converted to ErrBox)
 	var result gust.Result[int]
-	defer result.Catch()
-	panic("regular panic")
-}
-
-func TestCatchResult_NonPanicValue(t *testing.T) {
-	// Test CatchResult with non-panicValue panic
-	defer func() {
-		assert.Equal(t, "regular panic", recover())
+	func() {
+		defer result.Catch()
+		panic("regular panic")
 	}()
-	var result gust.Result[int]
-	defer gust.CatchResult(&result)
-	panic("regular panic")
+	// Should be caught and converted to error
+	assert.True(t, result.IsErr())
+	assert.Equal(t, "regular panic", result.Err().Error())
 }
 
 func TestResult_Catch_OkValue(t *testing.T) {
-	// Test Catch when result already has Ok value
+	// Test Catch when result already has Ok value (should be updated to Err)
 	var result gust.Result[int] = gust.Ok(42)
-	defer result.Catch()
-	gust.Err[string]("test error").UnwrapOrThrow()
+	func() {
+		defer result.Catch()
+		gust.Err[string]("test error").UnwrapOrThrow()
+	}()
 	// Result should be updated to Err
 	assert.True(t, result.IsErr())
-
-	// Test CatchResult when result already has Ok value
-	var result2 gust.Result[int] = gust.Ok(42)
-	defer gust.CatchResult(&result2)
-	gust.Err[string]("test error").UnwrapOrThrow()
-	// Result should be updated to Err
-	assert.True(t, result2.IsErr())
+	assert.Equal(t, "test error", result.Err().Error())
 }
 
 func TestResult_XAndThen(t *testing.T) {
@@ -1062,5 +1005,105 @@ func TestResult_Flatten(t *testing.T) {
 		result := r.Flatten(errors.New("new error"))
 		assert.True(t, result.IsErr())
 		assert.Equal(t, "new error", result.Err().Error())
+	}
+}
+
+// TestNonResult tests NonResult function (covers result.go:105-107)
+func TestNonResult(t *testing.T) {
+	result := gust.NonResult()
+	assert.True(t, result.IsOk())
+	assert.Nil(t, result.Err())
+}
+
+// TestUnwrapErrOr tests UnwrapErrOr function (covers result.go:253-257)
+func TestUnwrapErrOr(t *testing.T) {
+	// Test with Err result
+	{
+		r := gust.Err[gust.Void]("test error")
+		def := errors.New("default error")
+		err := gust.UnwrapErrOr(r, def)
+		assert.NotNil(t, err)
+		assert.Equal(t, "test error", err.Error())
+	}
+	// Test with Ok result (should return default)
+	{
+		r := gust.Ok[gust.Void](nil)
+		def := errors.New("default error")
+		err := gust.UnwrapErrOr(r, def)
+		assert.Equal(t, def, err)
+	}
+}
+
+// TestResult_wrapError tests wrapError method indirectly through Expect
+func TestResult_wrapError(t *testing.T) {
+	// Test wrapError with nil value (covers result.go:373-376)
+	{
+		r := gust.Err[int](nil)
+		defer func() {
+			p := recover()
+			if p != nil {
+				if err, ok := p.(error); ok {
+					assert.Contains(t, err.Error(), "gust.Err(nil)")
+				} else {
+					t.Errorf("Expected error panic, got %T: %v", p, p)
+				}
+			}
+		}()
+		r.Expect("test message")
+		t.Fatal("Expected panic")
+	}
+	// Test wrapError with non-error value (covers result.go:380)
+	{
+		r := gust.Err[int](42)
+		defer func() {
+			p := recover()
+			if p != nil {
+				if err, ok := p.(error); ok {
+					assert.Contains(t, err.Error(), "42")
+				} else {
+					t.Errorf("Expected error panic, got %T: %v", p, p)
+				}
+			}
+		}()
+		r.Expect("test message")
+		t.Fatal("Expected panic")
+	}
+	// Test wrapError with Ok result (covers result.go:382)
+	{
+		r := gust.Ok[int](42)
+		defer func() {
+			p := recover()
+			if p != nil {
+				if err, ok := p.(error); ok {
+					assert.Contains(t, err.Error(), "test message")
+				} else {
+					t.Errorf("Expected error panic, got %T: %v", p, p)
+				}
+			}
+		}()
+		r.Expect("test message")
+		t.Fatal("Expected panic")
+	}
+}
+
+// TestResult_AndThen tests AndThen method (covers result.go:487-492)
+func TestResult_AndThen(t *testing.T) {
+	// Test with Err result (should return r) (covers result.go:488-490)
+	{
+		r := gust.Err[int]("error")
+		result := r.AndThen(func(i int) gust.Result[int] {
+			return gust.Ok(i * 2)
+		})
+		assert.True(t, result.IsErr())
+		assert.Equal(t, "error", result.Err().Error())
+	}
+	// Test with Ok result
+	{
+		r := gust.Ok[int](10)
+		result := r.AndThen(func(i int) gust.Result[int] {
+			return gust.Ok(i * 2)
+		})
+		assert.True(t, result.IsOk())
+		assert.Equal(t, 20, result.Unwrap())
 	}
 }

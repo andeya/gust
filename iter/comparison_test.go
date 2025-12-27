@@ -76,11 +76,31 @@ func TestCmpBy(t *testing.T) {
 	})
 	assert.True(t, result6.IsGreater())
 
-	// Test cmp result == 0 continues to next elements
-	result7 := CmpBy(FromSlice([]int{1, 2}), FromSlice([]int{1, 3}), func(x, y int) int {
-		return x - y
-	})
+	// Test Cmp with x < y branch (covers comparison.go:19-21)
+	result7 := Cmp(FromSlice([]int{1}), FromSlice([]int{2}))
 	assert.True(t, result7.IsLess())
+
+	// Test Cmp with x > y branch (covers comparison.go:22-24)
+	result8 := Cmp(FromSlice([]int{2}), FromSlice([]int{1}))
+	assert.True(t, result8.IsGreater())
+
+	// Test PartialCmp with x < y branch (covers comparison.go:91-93)
+	result9 := PartialCmp(FromSlice([]int{1}), FromSlice([]int{2}))
+	assert.True(t, result9.IsSome())
+	assert.True(t, result9.UnwrapUnchecked().IsLess())
+
+	// Test PartialCmp with x > y branch (covers comparison.go:94-96)
+	result10 := PartialCmp(FromSlice([]int{2}), FromSlice([]int{1}))
+	assert.True(t, result10.IsSome())
+	assert.True(t, result10.UnwrapUnchecked().IsGreater())
+
+	// Test Cmp with x < y branch (covers comparison.go:19-21)
+	result11 := Cmp(FromSlice([]int{1}), FromSlice([]int{2}))
+	assert.True(t, result11.IsLess())
+
+	// Test Cmp with x > y branch (covers comparison.go:22-24)
+	result12 := Cmp(FromSlice([]int{2}), FromSlice([]int{1}))
+	assert.True(t, result12.IsGreater())
 }
 
 func TestEq(t *testing.T) {

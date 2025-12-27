@@ -60,7 +60,7 @@ func (r ChunkResult[T]) safeGetE() T {
 // Unwrap returns the contained T value.
 func (r ChunkResult[T]) Unwrap() T {
 	if r.IsErr() {
-		panic(gust.ToErrBox(r.safeGetE()))
+		panic(gust.BoxErr(r.safeGetE()))
 	}
 	return r.safeGetT()
 }
@@ -70,5 +70,5 @@ func (r ChunkResult[T]) UnwrapErr() T {
 	if r.IsErr() {
 		return r.safeGetE()
 	}
-	panic(gust.ToErrBox(gust.Some(r.safeGetT())))
+	panic(gust.BoxErr(gust.Some(r.safeGetT())))
 }

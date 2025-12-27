@@ -1,7 +1,6 @@
 package gust
 
 import (
-	"fmt"
 	"reflect"
 )
 
@@ -40,37 +39,4 @@ func initNilPtr(v reflect.Value) (done bool) {
 		v.Set(v2)
 		v = v.Elem()
 	}
-}
-
-type panicValue[T any] struct {
-	value *T
-}
-
-func (p panicValue[T]) ValueOrDefault() T {
-	if p.value == nil {
-		var t T
-		return t
-	}
-	return *p.value
-}
-
-func (p panicValue[T]) String() string {
-	if p.value == nil {
-		return fmt.Sprintf("%v", p.value)
-	}
-	return fmt.Sprintf("%v", *p.value)
-}
-
-func (p panicValue[T]) GoString() string {
-	if p.value == nil {
-		return fmt.Sprintf("%#v", p.value)
-	}
-	return fmt.Sprintf("%#v", *p.value)
-}
-
-func (p panicValue[T]) Error() string {
-	if p.value == nil {
-		return fmt.Sprintf("%v", p.value)
-	}
-	return fmt.Sprintf("%v", *p.value)
 }

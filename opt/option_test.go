@@ -60,6 +60,15 @@ func TestOption_MapOr_1(t *testing.T) {
 	}
 }
 
+// TestOption_Map_None tests Map with None option (covers opt/option.go:60-64)
+func TestOption_Map_None(t *testing.T) {
+	var x gust.Option[int]
+	result := opt.Map(x, func(v int) string {
+		return strconv.Itoa(v)
+	})
+	assert.True(t, result.IsNone())
+}
+
 func TestOption_Map_1(t *testing.T) {
 	var maybeSomeString = gust.Some("Hello, World!")
 	var maybeSomeLen = opt.Map(maybeSomeString, func(s string) int { return len(s) })

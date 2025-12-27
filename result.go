@@ -7,6 +7,28 @@ import (
 	"reflect"
 )
 
+type (
+	// Result can be used to improve `func()(T,error)`,
+	// represents either success (T) or failure (error).
+	Result[T any] struct {
+		t Option[T]
+		e ErrBox
+	}
+
+	// VoidResult is an alias for Result[Void], representing a result that only indicates success or failure.
+	// This is equivalent to Rust's Result<(), E> and provides a simpler API than Result[Void].
+	//
+	// Example:
+	//
+	//	```go
+	//	var result gust.VoidResult = gust.RetVoid(err)
+	//	if result.IsErr() {
+	//		fmt.Println(result.Err())
+	//	}
+	//	```
+	VoidResult = Result[Void]
+)
+
 // Ret wraps a result.
 //
 //go:inline
@@ -17,6 +39,23 @@ func Ret[T any](some T, err error) Result[T] {
 	return Ok(some)
 }
 
+// RetVoid wraps an error as VoidResult (Result[Void]).
+// Returns Ok[Void](nil) if err is nil, otherwise returns Err[Void](err).
+//
+// Example:
+//
+//	```go
+//	var result gust.VoidResult = gust.RetVoid(err)
+//	```
+//
+//go:inline
+func RetVoid(err any) VoidResult {
+	if err == nil {
+		return Ok[Void](nil)
+	}
+	return Err[Void](err)
+}
+
 // Ok wraps a successful result.
 //
 //go:inline
@@ -25,11 +64,26 @@ func Ok[T any](ok T) Result[T] {
 }
 
 // Err wraps a failure result.
+// NOTE: Even if err is nil, Err(nil) still represents an error state.
+// This follows declarative programming principles: calling Err() explicitly declares an error result,
+// regardless of the error value. This is consistent with Rust's Result::Err(()) semantics.
+//
+// Example:
+//
+//	```go
+//	result := gust.Err[string](nil)  // This is an error state, even though err is nil
+//	if result.IsErr() {
+//		fmt.Println("This will be printed")
+//	}
+//	```
 //
 //go:inline
 func Err[T any](err any) Result[T] {
-	e := toError(err)
-	return Result[T]{e: &e}
+	eb := BoxErr(err)
+	if eb == nil {
+		return Result[T]{e: ErrBox{}}
+	}
+	return Result[T]{e: *eb}
 }
 
 // FmtErr wraps a failure result with a formatted error.
@@ -37,6 +91,19 @@ func Err[T any](err any) Result[T] {
 //go:inline
 func FmtErr[T any](format string, a ...any) Result[T] {
 	return Err[T](fmt.Errorf(format, a...))
+}
+
+// NonResult returns Ok[Void](nil).
+//
+// Example:
+//
+//	```go
+//	var result gust.VoidResult = gust.NonResult()
+//	```
+//
+//go:inline
+func NonResult() VoidResult {
+	return Ok[Void](nil)
 }
 
 // AssertRet returns the Result[T] of asserting `i` to type `T`
@@ -48,13 +115,6 @@ func AssertRet[T any](i any) Result[T] {
 	return Ok(value)
 }
 
-// Result can be used to improve `func()(T,error)`,
-// represents either success (T) or failure (error).
-type Result[T any] struct {
-	t Option[T]
-	e *error
-}
-
 // Ref returns the pointer of the object.
 //
 //go:inline
@@ -63,6 +123,8 @@ func (r Result[T]) Ref() *Result[T] {
 }
 
 // safeGetT safely gets the T value.
+//
+//go:inline
 func (r Result[T]) safeGetT() T {
 	if r.t.IsSome() {
 		return r.t.UnwrapUnchecked()
@@ -72,30 +134,37 @@ func (r Result[T]) safeGetT() T {
 }
 
 // safeGetE safely gets the error value.
+//
+//go:inline
 func (r Result[T]) safeGetE() error {
-	if r.e != nil {
-		return *r.e
-	}
-	return nil
+	return (&r.e).ToError()
 }
 
 // IsValid returns true if the object is initialized.
+//
+//go:inline
 func (r *Result[T]) IsValid() bool {
-	return r != nil && (r.e != nil || r.t.IsSome())
+	return r != nil && (!r.e.IsEmpty() || r.t.IsSome())
 }
 
 // IsErr returns true if the result is error.
+// NOTE: This is determined by whether t.IsSome() is false, not by e.IsEmpty().
+// This ensures that Err(nil) is correctly identified as an error state,
+// following declarative programming principles where Err() explicitly declares an error result.
 //
 //go:inline
 func (r Result[T]) IsErr() bool {
-	return r.e != nil
+	return !r.t.IsSome()
 }
 
 // IsOk returns true if the result is Ok.
+// NOTE: This is determined by whether t.IsSome() is true, not by e.IsEmpty().
+// This ensures that Err(nil) is correctly identified as an error state,
+// following declarative programming principles where Err() explicitly declares an error result.
 //
 //go:inline
 func (r Result[T]) IsOk() bool {
-	return !r.IsErr()
+	return r.t.IsSome()
 }
 
 // String returns the string representation.
@@ -107,21 +176,15 @@ func (r Result[T]) String() string {
 }
 
 // Split returns the tuple (T, error).
+//
+//go:inline
 func (r Result[T]) Split() (T, error) {
 	return r.safeGetT(), r.safeGetE()
 }
 
-// Errable converts from `Result[T]` to `Errable[error]`.
+// IsOkAnd returns true if the result is Ok and the value inside it matches a predicate.
 //
 //go:inline
-func (r Result[T]) Errable() Errable[error] {
-	if r.IsErr() {
-		return ToErrable[error](r.safeGetE())
-	}
-	return NonErrable[error]()
-}
-
-// IsOkAnd returns true if the result is Ok and the value inside it matches a predicate.
 func (r Result[T]) IsOkAnd(f func(T) bool) bool {
 	if r.IsOk() {
 		return f(r.safeGetT())
@@ -130,44 +193,78 @@ func (r Result[T]) IsOkAnd(f func(T) bool) bool {
 }
 
 // IsErrAnd returns true if the result is error and the value inside it matches a predicate.
+//
+//go:inline
 func (r Result[T]) IsErrAnd(f func(error) bool) bool {
 	if r.IsErr() {
-		return f(r.safeGetE())
+		return f((&r.e).ToError())
 	}
 	return false
 }
 
 // Ok converts from `Result[T]` to `Option[T]`.
+//
+//go:inline
 func (r Result[T]) Ok() Option[T] {
 	return r.t
 }
 
 // XOk converts from `Result[T]` to `Option[any]`.
+//
+//go:inline
 func (r Result[T]) XOk() Option[any] {
 	return r.t.ToX()
 }
 
 // Err returns error.
+//
+//go:inline
 func (r Result[T]) Err() error {
+	return r.safeGetE()
+}
+
+// ToError converts VoidResult to a standard Go error.
+// Returns nil if IsOk() is true, otherwise returns the error.
+//
+// Example:
+//
+//	```go
+//	var result gust.VoidResult = gust.RetVoid(err)
+//	if err := gust.ToError(result); err != nil {
+//		return err
+//	}
+//	```
+//
+//go:inline
+func ToError(r VoidResult) error {
+	return r.Err()
+}
+
+// UnwrapErrOr returns the contained error value or a provided default for VoidResult.
+//
+// Example:
+//
+//	```go
+//	var result gust.VoidResult = gust.RetVoid(err)
+//	err := gust.UnwrapErrOr(result, errors.New("default error"))
+//	```
+//
+//go:inline
+func UnwrapErrOr(r VoidResult, def error) error {
 	if r.IsErr() {
-		return r.safeGetE()
+		return r.Err()
 	}
-	return nil
+	return def
 }
 
 // ErrVal returns error inner value.
+//
+//go:inline
 func (r Result[T]) ErrVal() any {
-	if r.IsOk() {
-		return nil
+	if r.IsErr() {
+		return (&r.e).Value()
 	}
-	e := r.safeGetE()
-	if ev, ok := any(e).(*ErrBox); ok {
-		if ev != nil {
-			return ev.val
-		}
-		return nil
-	}
-	return e
+	return nil
 }
 
 // ToX converts from `Result[T]` to Result[any].
@@ -175,28 +272,31 @@ func (r Result[T]) ErrVal() any {
 //go:inline
 func (r Result[T]) ToX() Result[any] {
 	if r.IsErr() {
-		e := r.safeGetE()
-		return Err[any](e)
+		return Result[any]{t: None[any](), e: r.e}
 	}
 	return Ok[any](r.safeGetT())
 }
 
 // Map maps a Result[T] to Result[T] by applying a function to a contained Ok value, leaving an error untouched.
 // This function can be used to compose the results of two functions.
+//
+//go:inline
 func (r Result[T]) Map(f func(T) T) Result[T] {
 	if r.IsOk() {
 		return Ok[T](f(r.safeGetT()))
 	}
-	return Err[T](r.safeGetE())
+	return Result[T]{t: None[T](), e: r.e}
 }
 
 // XMap maps a Result[T] to Result[any] by applying a function to a contained Ok value, leaving an error untouched.
 // This function can be used to compose the results of two functions.
+//
+//go:inline
 func (r Result[T]) XMap(f func(T) any) Result[any] {
 	if r.IsOk() {
 		return Ok[any](f(r.safeGetT()))
 	}
-	return Err[any](r.safeGetE())
+	return Result[any]{t: None[any](), e: r.e}
 }
 
 // MapOr returns the provided default (if error), or applies a function to the contained value (if no error),
@@ -237,6 +337,8 @@ func (r Result[T]) XMapOrElse(defaultFn func(error) any, f func(T) any) any {
 
 // MapErr maps a Result[T] to Result[T] by applying a function to a contained error, leaving an Ok value untouched.
 // This function can be used to pass through a successful result while handling an error.
+//
+//go:inline
 func (r Result[T]) MapErr(op func(error) (newErr any)) Result[T] {
 	if r.IsErr() {
 		return Err[T](op(r.safeGetE()))
@@ -245,6 +347,8 @@ func (r Result[T]) MapErr(op func(error) (newErr any)) Result[T] {
 }
 
 // Inspect calls the provided closure with a reference to the contained value (if no error).
+//
+//go:inline
 func (r Result[T]) Inspect(f func(T)) Result[T] {
 	if r.IsOk() {
 		f(r.safeGetT())
@@ -253,6 +357,8 @@ func (r Result[T]) Inspect(f func(T)) Result[T] {
 }
 
 // InspectErr calls the provided closure with a reference to the contained error (if error).
+//
+//go:inline
 func (r Result[T]) InspectErr(f func(error)) Result[T] {
 	if r.IsErr() {
 		f(r.safeGetE())
@@ -262,11 +368,18 @@ func (r Result[T]) InspectErr(f func(error)) Result[T] {
 
 // wrapError wraps an error with a message.
 func (r Result[T]) wrapError(msg string) error {
-	e := r.safeGetE()
-	if err, ok := any(e).(error); ok {
-		return ToErrBox(fmt.Errorf("%s: %w", msg, err))
+	if r.IsErr() {
+		val := (&r.e).Value()
+		if val == nil {
+			// Err(nil) case: provide a descriptive error message
+			return BoxErr(fmt.Errorf("%s: gust.Err(nil)", msg)).ToError()
+		}
+		if err, ok := val.(error); ok {
+			return BoxErr(fmt.Errorf("%s: %w", msg, err)).ToError()
+		}
+		return BoxErr(fmt.Errorf("%s: %v", msg, val)).ToError()
 	}
-	return ToErrBox(fmt.Errorf("%s: %v", msg, e))
+	return BoxErr(msg).ToError()
 }
 
 // Expect returns the contained Ok value.
@@ -282,9 +395,10 @@ func (r Result[T]) Expect(msg string) T {
 // Unwrap returns the contained Ok value.
 // Because this function may panic, its use is generally discouraged.
 // Instead, prefer to use pattern matching and handle the error case explicitly, or call UnwrapOr or UnwrapOrElse.
+// NOTE: This panics *ErrBox (not error) to be consistent with UnwrapOrThrow() and allow Catch() to properly handle it.
 func (r Result[T]) Unwrap() T {
 	if r.IsErr() {
-		panic(ToErrBox(r.safeGetE()))
+		panic(&r.e)
 	}
 	return r.safeGetT()
 }
@@ -307,21 +421,25 @@ func (r Result[T]) UnwrapUnchecked() T {
 // ExpectErr returns the contained error.
 // Panics if the value is not an error, with a panic message including the
 // passed message, and the content of the [`Ok`].
+//
+//go:inline
 func (r Result[T]) ExpectErr(msg string) error {
 	if r.IsErr() {
 		return r.safeGetE()
 	}
-	panic(ToErrBox(fmt.Sprintf("%s: %v", msg, r.safeGetT())))
+	panic(BoxErr(fmt.Sprintf("%s: %v", msg, r.safeGetT())))
 }
 
 // UnwrapErr returns the contained error.
 // Panics if the value is not an error, with a custom panic message provided
 // by the [`Ok`]'s value.
+//
+//go:inline
 func (r Result[T]) UnwrapErr() error {
 	if r.IsErr() {
 		return r.safeGetE()
 	}
-	panic(ToErrBox(fmt.Sprintf("called `Result.UnwrapErr()` on an `ok` value: %v", r.safeGetT())))
+	panic(BoxErr(fmt.Sprintf("called `Result.UnwrapErr()` on an `ok` value: %v", r.safeGetT())))
 }
 
 // And returns `r` if `r` is `Err`, otherwise returns `r2`.
@@ -349,7 +467,7 @@ func (r Result[T]) And2(v2 T, err2 error) Result[T] {
 //go:inline
 func (r Result[T]) XAnd(res Result[any]) Result[any] {
 	if r.IsErr() {
-		return Err[any](r.safeGetE())
+		return Result[any]{t: None[any](), e: r.e}
 	}
 	return res
 }
@@ -461,7 +579,10 @@ func (r Result[T]) ContainsErr(err any) bool {
 	if r.IsOk() {
 		return false
 	}
-	return errors.Is(r.safeGetE(), toError(err))
+	if r.IsErr() {
+		return errors.Is((&r.e).ToError(), BoxErr(err).ToError())
+	}
+	return false
 }
 
 // Flatten converts from `(gust.Result[T], error)` to gust.Result[T].
@@ -501,7 +622,7 @@ func (r Result[T]) AsPtr() *T {
 // MarshalJSON implements the json.Marshaler interface.
 func (r Result[T]) MarshalJSON() ([]byte, error) {
 	if r.IsErr() {
-		return nil, toError(r.safeGetE())
+		return nil, r.safeGetE()
 	}
 	return json.Marshal(r.safeGetT())
 }
@@ -515,11 +636,15 @@ func (r *Result[T]) UnmarshalJSON(b []byte) error {
 	err := json.Unmarshal(b, &t)
 	if err != nil {
 		r.t = None[T]()
-		e := toError(err)
-		r.e = &e
+		eb := BoxErr(err)
+		if eb == nil {
+			r.e = ErrBox{}
+		} else {
+			r.e = *eb
+		}
 	} else {
 		r.t = Some(t)
-		r.e = nil
+		r.e = ErrBox{}
 	}
 	return err
 }
@@ -552,18 +677,23 @@ func (r *Result[T]) Remaining() uint {
 	return r.t.Remaining()
 }
 
-// UnwrapOrThrow returns the contained T or panic returns error (panicValue[*any]).
+// UnwrapOrThrow returns the contained T or panic returns error (*ErrBox).
 // NOTE:
 //
-//	If there is an error, that panic should be caught with `CatchResult[U]`
+//	If there is an error, that panic should be caught with `result.Catch()`
 func (r Result[T]) UnwrapOrThrow() T {
 	if r.IsErr() {
-		panic(panicValue[error]{r.e})
+		panic(r.e)
 	}
 	return r.safeGetT()
 }
 
-// Catch catches panic caused by `Result[U].UnwrapOrThrow()` or `Errable[error].TryThrow()` and sets error to `*Result[T]`
+// Catch catches any panic and converts it to a Result error.
+// It catches:
+//   - *ErrBox (gust's own error type)
+//   - error (regular Go errors, wrapped in ErrBox)
+//   - any other type (wrapped in ErrBox)
+//
 // Example:
 //
 //	```go
@@ -574,43 +704,51 @@ func (r Result[T]) UnwrapOrThrow() T {
 //	}
 //	```
 func (r *Result[T]) Catch() {
+	if r == nil {
+		// If receiver is nil, let panic propagate
+		return
+	}
 	switch p := recover().(type) {
 	case nil:
-	case panicValue[error]:
-		if r == nil {
-			panic(p.ValueOrDefault())
-		}
+		// No panic occurred
+	case *ErrBox:
+		// Gust's own ErrBox type (pointer)
 		if r.t.IsSome() {
 			r.t = None[T]()
 		}
-		r.e = p.value
-	default:
-		panic(p)
-	}
-}
-
-// CatchResult catches panic caused by `Result[T].UnwrapOrThrow()` or `Errable[error].TryThrow()` and sets error to `*Result[U]`
-// Example:
-//
-//	```go
-//	func example() (result Result[string]) {
-//	   defer CatchResult(&result)
-//	   Err[int]("int error").UnwrapOrThrow()
-//	   return Ok[string]("ok")
-//	}
-//	```
-func CatchResult[U any](result *Result[U]) {
-	switch p := recover().(type) {
-	case nil:
-	case panicValue[error]:
-		if result == nil {
-			panic(p.ValueOrDefault())
+		if p != nil {
+			r.e = *p
+		} else {
+			r.e = ErrBox{}
 		}
-		if result.t.IsSome() {
-			result.t = None[U]()
+	case ErrBox:
+		// Gust's own ErrBox type (value)
+		if r.t.IsSome() {
+			r.t = None[T]()
 		}
-		result.e = p.value
+		r.e = p
+	case error:
+		// Regular error panic - wrap in ErrBox
+		if r.t.IsSome() {
+			r.t = None[T]()
+		}
+		eb := BoxErr(p)
+		if eb == nil {
+			r.e = ErrBox{}
+		} else {
+			r.e = *eb
+		}
 	default:
-		panic(p)
+		// Other types - wrap in ErrBox
+		// This ensures all panics are caught and converted to errors
+		if r.t.IsSome() {
+			r.t = None[T]()
+		}
+		eb := BoxErr(p)
+		if eb == nil {
+			r.e = ErrBox{}
+		} else {
+			r.e = *eb
+		}
 	}
 }

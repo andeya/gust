@@ -315,6 +315,34 @@ func TestMaxBy(t *testing.T) {
 		return 0
 	})
 	assert.Equal(t, gust.Some(2), max2)
+
+	// Test maxByImpl compare(acc, x) < 0 branch (covers min_max.go:118)
+	// When compare returns < 0, it should return x (new maximum)
+	ascending := []int{1, 2, 3, 4, 5}
+	max3 := FromSlice(ascending).MaxBy(func(x, y int) int {
+		if x < y {
+			return -1
+		}
+		if x > y {
+			return 1
+		}
+		return 0
+	})
+	assert.Equal(t, gust.Some(5), max3)
+
+	// Test maxByImpl compare(acc, x) >= 0 branch (covers min_max.go:121)
+	// When compare returns >= 0, it should return acc (keep current maximum)
+	descending := []int{5, 4, 3, 2, 1}
+	max4 := FromSlice(descending).MaxBy(func(x, y int) int {
+		if x < y {
+			return -1
+		}
+		if x > y {
+			return 1
+		}
+		return 0
+	})
+	assert.Equal(t, gust.Some(5), max4)
 }
 
 func TestMinByKey(t *testing.T) {
@@ -369,6 +397,34 @@ func TestMinBy(t *testing.T) {
 		return 0
 	})
 	assert.Equal(t, gust.Some(2), min2)
+
+	// Test minByImpl compare(acc, x) > 0 branch (covers min_max.go:162)
+	// When compare returns > 0, it should return x (new minimum)
+	descending := []int{5, 4, 3, 2, 1}
+	min3 := FromSlice(descending).MinBy(func(x, y int) int {
+		if x < y {
+			return -1
+		}
+		if x > y {
+			return 1
+		}
+		return 0
+	})
+	assert.Equal(t, gust.Some(1), min3)
+
+	// Test minByImpl compare(acc, x) <= 0 branch (covers min_max.go:165)
+	// When compare returns <= 0, it should return acc (keep current minimum)
+	ascending := []int{1, 2, 3, 4, 5}
+	min4 := FromSlice(ascending).MinBy(func(x, y int) int {
+		if x < y {
+			return -1
+		}
+		if x > y {
+			return 1
+		}
+		return 0
+	})
+	assert.Equal(t, gust.Some(1), min4)
 }
 
 func TestFromRange(t *testing.T) {
@@ -452,10 +508,12 @@ func TestAdvanceBy(t *testing.T) {
 	a := []int{1, 2, 3, 4}
 	iter := FromSlice(a)
 
-	assert.Equal(t, gust.NonErrable[uint](), iter.AdvanceBy(2))
+	assert.True(t, iter.AdvanceBy(2).IsOk())
 	assert.Equal(t, gust.Some(3), iter.Next())
-	assert.Equal(t, gust.NonErrable[uint](), iter.AdvanceBy(0))
-	assert.Equal(t, gust.ToErrable[uint](99), iter.AdvanceBy(100))
+	assert.True(t, iter.AdvanceBy(0).IsOk())
+	result := iter.AdvanceBy(100)
+	assert.True(t, result.IsErr())
+	assert.Equal(t, uint(99), result.ErrVal())
 }
 
 func TestNth(t *testing.T) {
@@ -982,6 +1040,167 @@ func TestIterator_NextChunk(t *testing.T) {
 	chunk4 := iter2.NextChunk(3)
 	assert.True(t, chunk4.IsOk())
 	assert.Equal(t, []int{1, 2, 3}, chunk4.Unwrap())
+
+	// Test with n == 0 (covers consumers.go:49-51)
+	iter3 := FromSlice([]int{1, 2, 3})
+	chunk5 := iter3.NextChunk(0)
+	assert.True(t, chunk5.IsOk())
+	assert.Equal(t, []int{}, chunk5.Unwrap())
+
+	// Test ChunkResult.UnwrapErr with Ok result (should panic) (covers chunk_result.go:69-73)
+	chunk6 := iter3.NextChunk(1)
+	assert.True(t, chunk6.IsOk())
+	defer func() {
+		p := recover()
+		assert.NotNil(t, p)
+	}()
+	chunk6.UnwrapErr()
+}
+
+// TestChunkResult_UnwrapErr tests ChunkResult.UnwrapErr method (covers chunk_result.go:69-73)
+func TestChunkResult_UnwrapErr(t *testing.T) {
+	// Test with Err result (should return error value)
+	iter := FromSlice([]int{1, 2, 3})
+	chunk := iter.NextChunk(5) // Request more than available
+	assert.True(t, chunk.IsErr())
+	errVal := chunk.UnwrapErr()
+	assert.Equal(t, []int{1, 2, 3}, errVal)
+
+	// Test with Ok result (should panic)
+	iter2 := FromSlice([]int{1, 2})
+	chunk2 := iter2.NextChunk(2)
+	assert.True(t, chunk2.IsOk())
+	defer func() {
+		p := recover()
+		assert.NotNil(t, p)
+	}()
+	chunk2.UnwrapErr()
+}
+
+// TestChunkResult_EdgeCases tests edge cases for ChunkResult methods
+func TestChunkResult_EdgeCases(t *testing.T) {
+	// Test zero-value ChunkResult (covers safeGetT when r.t.IsSome() is false, and safeGetE when r.e == nil)
+	var zeroChunk ChunkResult[[]int]
+	assert.False(t, zeroChunk.IsErr())
+	assert.True(t, zeroChunk.IsOk())
+
+	// Test Unwrap() with zero-value (should return zero value of T)
+	zeroVal := zeroChunk.Unwrap()
+	assert.Nil(t, zeroVal)
+	assert.Equal(t, []int(nil), zeroVal)
+
+	// Test UnwrapErr() with zero-value Ok result (should panic)
+	defer func() {
+		p := recover()
+		assert.NotNil(t, p)
+	}()
+	zeroChunk.UnwrapErr()
+}
+
+// TestChunkResult_UnwrapPanic tests Unwrap() panic when IsErr() is true (covers chunk_result.go:62-63)
+func TestChunkResult_UnwrapPanic(t *testing.T) {
+	// Create an Err ChunkResult manually to test Unwrap() panic path
+	errVal := []int{1, 2, 3}
+	errChunk := ChunkResult[[]int]{e: &errVal}
+	assert.True(t, errChunk.IsErr())
+	assert.False(t, errChunk.IsOk())
+
+	// Test Unwrap() with Err result (should panic)
+	defer func() {
+		p := recover()
+		assert.NotNil(t, p)
+		// Verify panic is *ErrBox
+		eb, ok := p.(*gust.ErrBox)
+		assert.True(t, ok)
+		assert.NotNil(t, eb)
+	}()
+	errChunk.Unwrap()
+}
+
+// TestIterator_WrapperMethods tests wrapper methods to cover iterator_methods.go wrapper functions
+func TestIterator_WrapperMethods(t *testing.T) {
+	// Test XFindMap (covers iterator_methods.go:416-418)
+	iter1 := FromSlice([]string{"lol", "NaN", "2", "5"})
+	result1 := iter1.XFindMap(func(s string) gust.Option[any] {
+		if v, err := strconv.Atoi(s); err == nil {
+			return gust.Some[any](v)
+		}
+		return gust.None[any]()
+	})
+	assert.True(t, result1.IsSome())
+	assert.Equal(t, 2, result1.UnwrapUnchecked())
+
+	// Test FindMap (covers iterator_methods.go:434-436)
+	iter2 := FromSlice([]string{"lol", "NaN", "2", "5"})
+	result2 := iter2.FindMap(func(s string) gust.Option[string] {
+		if v, err := strconv.Atoi(s); err == nil {
+			return gust.Some(strconv.Itoa(v))
+		}
+		return gust.None[string]()
+	})
+	assert.True(t, result2.IsSome())
+	assert.Equal(t, "2", result2.UnwrapUnchecked())
+
+	// Test XFold (covers iterator_methods.go:492-494)
+	iter3 := FromSlice([]int{1, 2, 3})
+	sum1 := iter3.XFold(0, func(acc any, x int) any {
+		return acc.(int) + x
+	})
+	assert.Equal(t, 6, sum1)
+
+	// Test Fold (covers iterator_methods.go:520-522)
+	iter4 := FromSlice([]int{1, 2, 3})
+	sum2 := iter4.Fold(0, func(acc int, x int) int {
+		return acc + x
+	})
+	assert.Equal(t, 6, sum2)
+
+	// Test XTryFold (covers iterator_methods.go:552-554)
+	iter5 := FromSlice([]int{1, 2, 3})
+	result3 := iter5.XTryFold(0, func(acc any, x int) gust.Result[any] {
+		return gust.Ok[any](acc.(int) + x)
+	})
+	assert.True(t, result3.IsOk())
+	assert.Equal(t, 6, result3.UnwrapUnchecked())
+
+	// Test FilterMap (covers iterator_methods.go:699-701)
+	iter6 := FromSlice([]string{"1", "two", "3", "four"})
+	filtered := iter6.FilterMap(func(s string) gust.Option[string] {
+		if v, err := strconv.Atoi(s); err == nil {
+			return gust.Some(strconv.Itoa(v))
+		}
+		return gust.None[string]()
+	})
+	result4 := filtered.Collect()
+	assert.Equal(t, []string{"1", "3"}, result4)
+
+	// Test MapWhile (covers iterator_methods.go:713-715)
+	iter7 := FromSlice([]int{1, 2, 3, 4, 5})
+	mapped := iter7.MapWhile(func(x int) gust.Option[int] {
+		if x < 4 {
+			return gust.Some(x * 2)
+		}
+		return gust.None[int]()
+	})
+	result5 := mapped.Collect()
+	assert.Equal(t, []int{2, 4, 6}, result5)
+
+	// Test Scan (covers iterator_methods.go:746-748)
+	iter8 := FromSlice([]int{1, 2, 3})
+	scanned := iter8.Scan(0, func(acc *int, x int) gust.Option[int] {
+		*acc = *acc + x
+		return gust.Some(*acc)
+	})
+	result6 := scanned.Collect()
+	assert.Equal(t, []int{1, 3, 6}, result6)
+
+	// Test MapWindows (covers iterator_methods.go:776-778)
+	iter9 := FromSlice([]int{1, 2, 3, 4, 5})
+	windows := iter9.MapWindows(3, func(window []int) int {
+		return window[0] + window[1] + window[2]
+	})
+	result7 := windows.Collect()
+	assert.Equal(t, []int{6, 9, 12}, result7)
 }
 
 func TestIterator_XMapWindows(t *testing.T) {

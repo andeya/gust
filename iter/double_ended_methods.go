@@ -72,13 +72,13 @@ func (de DoubleEndedIterator[T]) NextBack() gust.Option[T] {
 //	assert.Equal(t, gust.Some(4), deIter.NextBack())
 //	assert.Equal(t, gust.NonErrable[uint](), deIter.AdvanceBackBy(0))
 //	assert.Equal(t, gust.ToErrable[uint](99), deIter.AdvanceBackBy(100))
-func (de DoubleEndedIterator[T]) AdvanceBackBy(n uint) gust.Errable[uint] {
+func (de DoubleEndedIterator[T]) AdvanceBackBy(n uint) gust.VoidResult {
 	for i := uint(0); i < n; i++ {
 		if de.iterable.NextBack().IsNone() {
-			return gust.ToErrable[uint](n - i)
+			return gust.Err[gust.Void](n - i)
 		}
 	}
-	return gust.NonErrable[uint]()
+	return gust.Ok[gust.Void](nil)
 }
 
 // NthBack returns the nth element from the end of the iterator.

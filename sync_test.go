@@ -160,7 +160,7 @@ func TestLazyValuePanic1(t *testing.T) {
 func TestLazyValuePanic2(t *testing.T) {
 	defer func() {
 		if p := recover(); p != nil {
-			assert.Equal(t, gust.ToErrBox(gust.ErrLazyValueWithoutInit), p)
+			assert.Equal(t, gust.BoxErr(gust.ErrLazyValueWithoutInit), p)
 		} else {
 			t.Fatalf("should painc")
 		}

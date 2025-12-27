@@ -100,7 +100,7 @@ func MapOr[T any, U any](r gust.Result[T], defaultOk U, f func(T) U) U {
 	return defaultOk
 }
 
-// MapOr2 maps a value and an error as a gust.Result[U] by applying a function to the value.
+// MapOr2 maps a value and an error to U by applying a function to the value, or returns the default if error.
 //
 // # Examples
 //
@@ -126,7 +126,7 @@ func MapOrElse[T any, U any](r gust.Result[T], defaultFn func(error) U, f func(T
 	return defaultFn(r.Err())
 }
 
-// MapOrElse2 maps a value and an error as a gust.Result[U] by applying a function to the value.
+// MapOrElse2 maps a value and an error to U by applying a function to the value, or applies the default function if error.
 //
 // # Examples
 //

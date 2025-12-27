@@ -27,13 +27,13 @@ func lastImpl[T any](iter Iterable[T]) gust.Option[T] {
 }
 
 //go:inline
-func advanceByImpl[T any](iter Iterable[T], n uint) gust.Errable[uint] {
+func advanceByImpl[T any](iter Iterable[T], n uint) gust.VoidResult {
 	for i := uint(0); i < n; i++ {
 		if iter.Next().IsNone() {
-			return gust.ToErrable[uint](n - i)
+			return gust.Err[gust.Void](n - i)
 		}
 	}
-	return gust.NonErrable[uint]()
+	return gust.Ok[gust.Void](nil)
 }
 
 //go:inline

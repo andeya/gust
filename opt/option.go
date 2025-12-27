@@ -90,7 +90,7 @@ func And[T any, U any](o gust.Option[T], optb gust.Option[U]) gust.Option[U] {
 	return gust.None[U]()
 }
 
-// AndThen returns [`None`] if the option is [`None`], otherwise calls `f` with the
+// AndThen returns [`None`] if the option is [`None`], otherwise calls `f` with the wrapped value.
 func AndThen[T any, U any](o gust.Option[T], f func(T) gust.Option[U]) gust.Option[U] {
 	if o.IsNone() {
 		return gust.None[U]()

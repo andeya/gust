@@ -195,7 +195,7 @@ func (o Option[T]) IsNone() bool {
 // Panics if the value is none with a custom panic message provided by `msg`.
 func (o Option[T]) Expect(msg string) T {
 	if o.IsNone() {
-		panic(ToErrBox(msg))
+		panic(BoxErr(msg))
 	}
 	return o.UnwrapUnchecked()
 }
@@ -207,7 +207,7 @@ func (o Option[T]) Unwrap() T {
 		return o.UnwrapUnchecked()
 	}
 	var t T
-	panic(ToErrBox(fmt.Sprintf("call Option[%T].Unwrap() on none", t)))
+	panic(BoxErr(fmt.Sprintf("call Option[%T].Unwrap() on none", t)))
 }
 
 // UnwrapOr returns the contained value or a provided fallback value.
@@ -562,18 +562,28 @@ func (o *Option[T]) Remaining() uint {
 	return 1
 }
 
-// ToErrable converts from `Option[T]` to `Errable[T]`.
-func (o Option[T]) ToErrable() Errable[T] {
+// ToResult converts from `Option[T]` to `VoidResult` (Result[Void]).
+// If Option is Some, returns Err[Void] with the value wrapped in ErrBox.
+// If Option is None, returns Ok[Void](nil).
+// This provides a smooth migration path from Option.ToErrable().
+//
+// Example:
+//
+//	```go
+//	var opt gust.Option[string] = gust.Some("value")
+//	var result gust.VoidResult = opt.ToResult()
+//	```
+func (o Option[T]) ToResult() VoidResult {
 	if o.IsSome() {
-		return ToErrable[T](o.UnwrapUnchecked())
+		return Err[Void](o.UnwrapUnchecked())
 	}
-	return NonErrable[T]()
+	return Ok[Void](nil)
 }
 
-// UnwrapOrThrow returns the contained T or panic returns error (panicValue[*any]).
+// UnwrapOrThrow returns the contained T or panic returns error (*ErrBox).
 // NOTE:
 //
-//	If there is an error, that panic should be caught with `CatchResult[U]`
+//	If there is an error, that panic should be caught with `result.Catch()`
 //
 //go:inline
 func (r Option[T]) UnwrapOrThrow(err any) T {

@@ -436,7 +436,7 @@ func (o *LazyValue[T]) markInit() {
 	atomic.StoreUint32(&o.done, 1)
 }
 
-const ErrLazyValueWithoutInit = "*LazyValue[T]: onceInit function is nil"
+const ErrLazyValueWithoutInit = "*gust.LazyValue[T]: onceInit function is nil"
 
 // TryGetValue concurrency-safe get the Result[T].
 func (o *LazyValue[T]) TryGetValue() Result[T] {

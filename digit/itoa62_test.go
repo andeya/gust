@@ -965,3 +965,56 @@ func TestTryFromString_ReflectPath_AllKinds(t *testing.T) {
 		t.Errorf("TryFromString[string, float64]('3.14', 10, 64) should work, got error: %v", result5.UnwrapErr())
 	}
 }
+
+// TestFormatBits_BaseZero tests formatBits with base == 0 (should panic)
+func TestFormatBits_BaseZero(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("formatBits should panic for base == 0")
+		}
+	}()
+	FormatUint(100, 0) // base == 0 should panic
+}
+
+// TestFormatBits_NegativeZero tests formatBits with negative zero (neg=true, u=0)
+func TestFormatBits_NegativeZero(t *testing.T) {
+	// Test FormatInt with 0 (should not have negative sign)
+	got := FormatInt(0, 10)
+	if got != "0" {
+		t.Errorf("FormatInt(0, 10) = %q, want \"0\"", got)
+	}
+
+	// Test FormatInt with -0 (should still be "0", not "-0")
+	got2 := FormatInt(-0, 10)
+	if got2 != "0" {
+		t.Errorf("FormatInt(-0, 10) = %q, want \"0\"", got2)
+	}
+}
+
+// TestFormatBits_Host32bit_MultipleLoops tests Host32bit branch with multiple u >= 1e9 loops
+func TestFormatBits_Host32bit_MultipleLoops(t *testing.T) {
+	if Host32bit {
+		// Test with number that requires multiple iterations of u >= 1e9 loop
+		// 1e18 = 1e9 * 1e9, so it will loop twice
+		veryLargeNum := uint64(1e18)
+		got := FormatUint(veryLargeNum, 10)
+		expected := "1000000000000000000"
+		if got != expected {
+			t.Errorf("FormatUint(1e18, 10) = %q, want %q", got, expected)
+		}
+
+		// Test with even larger number that requires more loops
+		// Use maximum uint64 value to test with very large numbers
+		// Note: 1e27 exceeds uint64 range, so we use maxUint64 instead
+		maxUint64 := uint64(18446744073709551615)
+		got2 := FormatUint(maxUint64, 10)
+		if len(got2) == 0 {
+			t.Error("FormatUint(maxUint64, 10) should return non-empty string")
+		}
+		// Verify it's the correct string representation
+		expectedMax := "18446744073709551615"
+		if got2 != expectedMax {
+			t.Errorf("FormatUint(maxUint64, 10) = %q, want %q", got2, expectedMax)
+		}
+	}
+}

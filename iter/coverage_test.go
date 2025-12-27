@@ -442,7 +442,7 @@ func TestAdvanceBackByTooMany(t *testing.T) {
 	deIter := iter.MustToDoubleEnded()
 	result := deIter.AdvanceBackBy(100)
 	assert.True(t, result.IsErr())
-	assert.Equal(t, uint(97), result.UnwrapErr()) // 100 - 3 = 97
+	assert.Equal(t, uint(97), result.ErrVal()) // 100 - 3 = 97
 }
 
 // TestNthBackEdgeCases tests NthBack edge cases
@@ -823,7 +823,7 @@ func TestAdvanceByTooMany(t *testing.T) {
 	iter := FromSlice([]int{1, 2, 3})
 	result := iter.AdvanceBy(100)
 	assert.True(t, result.IsErr())
-	assert.Equal(t, uint(97), result.UnwrapErr()) // 100 - 3 = 97
+	assert.Equal(t, uint(97), result.ErrVal()) // 100 - 3 = 97
 }
 
 // TestNthEmpty tests Nth with empty iterator
@@ -1136,7 +1136,7 @@ func TestAdvanceBackByEmpty(t *testing.T) {
 	deIter := iter.MustToDoubleEnded()
 	result := deIter.AdvanceBackBy(5)
 	assert.True(t, result.IsErr())
-	assert.Equal(t, uint(5), result.UnwrapErr())
+	assert.Equal(t, uint(5), result.ErrVal())
 }
 
 // TestNthBackEmpty tests NthBack with empty iterator
