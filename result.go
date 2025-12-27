@@ -40,20 +40,20 @@ func Ret[T any](some T, err error) Result[T] {
 }
 
 // RetVoid wraps an error as VoidResult (Result[Void]).
-// Returns Ok[Void](nil) if err is nil, otherwise returns Err[Void](err).
+// Returns Ok[Void](nil) if maybeError is nil, otherwise returns Err[Void](maybeError).
 //
 // Example:
 //
 //	```go
-//	var result gust.VoidResult = gust.RetVoid(err)
+//	var result gust.VoidResult = gust.RetVoid(maybeError)
 //	```
 //
 //go:inline
-func RetVoid(err any) VoidResult {
-	if err == nil {
+func RetVoid(maybeError any) VoidResult {
+	if maybeError == nil {
 		return Ok[Void](nil)
 	}
-	return Err[Void](err)
+	return Err[Void](maybeError)
 }
 
 // Ok wraps a successful result.
@@ -61,6 +61,19 @@ func RetVoid(err any) VoidResult {
 //go:inline
 func Ok[T any](ok T) Result[T] {
 	return Result[T]{t: Some(ok)}
+}
+
+// OkVoid returns Ok[Void](nil).
+//
+// Example:
+//
+//	```go
+//	var result gust.VoidResult = gust.OkVoid()
+//	```
+//
+//go:inline
+func OkVoid() VoidResult {
+	return Ok[Void](nil)
 }
 
 // Err wraps a failure result.
@@ -86,24 +99,18 @@ func Err[T any](err any) Result[T] {
 	return Result[T]{e: *eb}
 }
 
+// ErrVoid wraps a failure result as VoidResult.
+//
+//go:inline
+func ErrVoid(err any) VoidResult {
+	return Err[Void](err)
+}
+
 // FmtErr wraps a failure result with a formatted error.
 //
 //go:inline
 func FmtErr[T any](format string, a ...any) Result[T] {
 	return Err[T](fmt.Errorf(format, a...))
-}
-
-// NonResult returns Ok[Void](nil).
-//
-// Example:
-//
-//	```go
-//	var result gust.VoidResult = gust.NonResult()
-//	```
-//
-//go:inline
-func NonResult() VoidResult {
-	return Ok[Void](nil)
 }
 
 // AssertRet returns the Result[T] of asserting `i` to type `T`

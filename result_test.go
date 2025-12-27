@@ -1008,11 +1008,51 @@ func TestResult_Flatten(t *testing.T) {
 	}
 }
 
-// TestNonResult tests NonResult function (covers result.go:105-107)
-func TestNonResult(t *testing.T) {
-	result := gust.NonResult()
+// TestOkVoid tests OkVoid function (covers result.go:105-107)
+func TestOkVoid(t *testing.T) {
+	result := gust.OkVoid()
 	assert.True(t, result.IsOk())
 	assert.Nil(t, result.Err())
+}
+
+// TestErrVoid tests ErrVoid function (covers result.go:102-107)
+func TestErrVoid(t *testing.T) {
+	// Test with error value
+	{
+		err := errors.New("test error")
+		result := gust.ErrVoid(err)
+		assert.True(t, result.IsErr())
+		assert.False(t, result.IsOk())
+		assert.NotNil(t, result.Err())
+		assert.Equal(t, "test error", result.Err().Error())
+	}
+	// Test with string error
+	{
+		result := gust.ErrVoid("string error")
+		assert.True(t, result.IsErr())
+		assert.False(t, result.IsOk())
+		assert.NotNil(t, result.Err())
+		assert.Equal(t, "string error", result.Err().Error())
+	}
+	// Test with nil error (should still be error state, following declarative programming principles)
+	{
+		result := gust.ErrVoid(nil)
+		assert.True(t, result.IsErr())
+		assert.False(t, result.IsOk())
+		// Even if err is nil, ErrVoid(nil) still represents an error state
+		// This follows declarative programming principles consistent with Err[T](nil)
+	}
+	// Test that ErrVoid is equivalent to Err[Void]
+	{
+		err := errors.New("comparison error")
+		result1 := gust.ErrVoid(err)
+		result2 := gust.Err[gust.Void](err)
+		assert.Equal(t, result1.IsErr(), result2.IsErr())
+		assert.Equal(t, result1.IsOk(), result2.IsOk())
+		if result1.IsErr() && result2.IsErr() {
+			assert.Equal(t, result1.Err().Error(), result2.Err().Error())
+		}
+	}
 }
 
 // TestUnwrapErrOr tests UnwrapErrOr function (covers result.go:253-257)
