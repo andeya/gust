@@ -5,8 +5,11 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/andeya/gust"
+	"github.com/andeya/gust/errutil"
 	"github.com/andeya/gust/iterator"
+	"github.com/andeya/gust/option"
+	"github.com/andeya/gust/pair"
+	"github.com/andeya/gust/result"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,33 +36,38 @@ type easyIterable struct {
 	index  int
 }
 
-func (c *easyIterable) Next() gust.Option[int] {
+func (c *easyIterable) Next() option.Option[int] {
 	if c.index >= len(c.values) {
-		return gust.None[int]()
+		return option.None[int]()
 	}
 	val := c.values[c.index]
 	c.index++
-	return gust.Some(val)
+	return option.Some(val)
+}
+
+func (c *easyIterable) SizeHint() (uint, option.Option[uint]) {
+	remaining := uint(len(c.values) - c.index)
+	return remaining, option.Some(remaining)
 }
 
 func TestFromIterable(t *testing.T) {
 	// Test with Iterator[T] - should return the same iterator
 	iter1 := iterator.FromSlice([]int{1, 2, 3})
-	var gustIter1 gust.Iterable[int] = iter1
-	iter2 := iterator.FromIterable(gustIter1)
-	assert.Equal(t, gust.Some(1), iter2.Next())
-	assert.Equal(t, gust.Some(2), iter2.Next())
-	assert.Equal(t, gust.Some(3), iter2.Next())
-	assert.Equal(t, gust.None[int](), iter2.Next())
+	var iterIter1 iterator.Iterable[int] = iter1
+	iter2 := iterator.FromIterable(iterIter1)
+	assert.Equal(t, option.Some(1), iter2.Next())
+	assert.Equal(t, option.Some(2), iter2.Next())
+	assert.Equal(t, option.Some(3), iter2.Next())
+	assert.Equal(t, option.None[int](), iter2.Next())
 
-	// Test with gust.Iterable[T] that is not Iterator[T]
+	// Test with iterator.Iterable[T] that is not Iterator[T]
 	custom := &easyIterable{values: []int{10, 20, 30}, index: 0}
-	var gustIter2 gust.Iterable[int] = custom
-	iter3 := iterator.FromIterable(gustIter2)
-	assert.Equal(t, gust.Some(10), iter3.Next())
-	assert.Equal(t, gust.Some(20), iter3.Next())
-	assert.Equal(t, gust.Some(30), iter3.Next())
-	assert.Equal(t, gust.None[int](), iter3.Next())
+	var iterIter2 iterator.Iterable[int] = custom
+	iter3 := iterator.FromIterable(iterIter2)
+	assert.Equal(t, option.Some(10), iter3.Next())
+	assert.Equal(t, option.Some(20), iter3.Next())
+	assert.Equal(t, option.Some(30), iter3.Next())
+	assert.Equal(t, option.None[int](), iter3.Next())
 }
 
 func TestTryToDoubleEnded(t *testing.T) {
@@ -68,7 +76,7 @@ func TestTryToDoubleEnded(t *testing.T) {
 	deOpt := iter1.TryToDoubleEnded()
 	assert.True(t, deOpt.IsSome())
 	deIter := deOpt.Unwrap()
-	assert.Equal(t, gust.Some(3), deIter.NextBack())
+	assert.Equal(t, option.Some(3), deIter.NextBack())
 
 	// Test with non-double-ended iterator (would need a custom iterator)
 	// For now, sliceIterator supports double-ended, so this will succeed
@@ -78,10 +86,10 @@ func TestMustToDoubleEnded(t *testing.T) {
 	// Test with double-ended iterator
 	iter1 := iterator.FromSlice([]int{1, 2, 3})
 	deIter := iter1.MustToDoubleEnded()
-	assert.Equal(t, gust.Some(3), deIter.NextBack())
-	assert.Equal(t, gust.Some(2), deIter.NextBack())
-	assert.Equal(t, gust.Some(1), deIter.NextBack())
-	assert.Equal(t, gust.None[int](), deIter.NextBack())
+	assert.Equal(t, option.Some(3), deIter.NextBack())
+	assert.Equal(t, option.Some(2), deIter.NextBack())
+	assert.Equal(t, option.Some(1), deIter.NextBack())
+	assert.Equal(t, option.None[int](), deIter.NextBack())
 }
 
 func TestSeq(t *testing.T) {
@@ -127,10 +135,10 @@ func TestFromSlice(t *testing.T) {
 	a := []int{1, 2, 3}
 	iter := iterator.FromSlice(a)
 
-	assert.Equal(t, gust.Some(1), iter.Next())
-	assert.Equal(t, gust.Some(2), iter.Next())
-	assert.Equal(t, gust.Some(3), iter.Next())
-	assert.Equal(t, gust.None[int](), iter.Next())
+	assert.Equal(t, option.Some(1), iter.Next())
+	assert.Equal(t, option.Some(2), iter.Next())
+	assert.Equal(t, option.Some(3), iter.Next())
+	assert.Equal(t, option.None[int](), iter.Next())
 }
 
 func TestCount(t *testing.T) {
@@ -143,29 +151,29 @@ func TestCount(t *testing.T) {
 
 func TestLast(t *testing.T) {
 	a := []int{1, 2, 3}
-	assert.Equal(t, gust.Some(3), iterator.FromSlice(a).Last())
+	assert.Equal(t, option.Some(3), iterator.FromSlice(a).Last())
 
 	b := []int{1, 2, 3, 4, 5}
-	assert.Equal(t, gust.Some(5), iterator.FromSlice(b).Last())
+	assert.Equal(t, option.Some(5), iterator.FromSlice(b).Last())
 }
 
 func TestMap(t *testing.T) {
 	a := []int{1, 2, 3}
 	iter := iterator.Map(iterator.FromSlice(a), func(x int) int { return 2 * x })
 
-	assert.Equal(t, gust.Some(2), iter.Next())
-	assert.Equal(t, gust.Some(4), iter.Next())
-	assert.Equal(t, gust.Some(6), iter.Next())
-	assert.Equal(t, gust.None[int](), iter.Next())
+	assert.Equal(t, option.Some(2), iter.Next())
+	assert.Equal(t, option.Some(4), iter.Next())
+	assert.Equal(t, option.Some(6), iter.Next())
+	assert.Equal(t, option.None[int](), iter.Next())
 }
 
 func TestFilter(t *testing.T) {
 	a := []int{0, 1, 2}
 	iter := iterator.FromSlice(a).Filter(func(x int) bool { return x > 0 })
 
-	assert.Equal(t, gust.Some(1), iter.Next())
-	assert.Equal(t, gust.Some(2), iter.Next())
-	assert.Equal(t, gust.None[int](), iter.Next())
+	assert.Equal(t, option.Some(1), iter.Next())
+	assert.Equal(t, option.Some(2), iter.Next())
+	assert.Equal(t, option.None[int](), iter.Next())
 }
 
 func TestChain(t *testing.T) {
@@ -173,13 +181,13 @@ func TestChain(t *testing.T) {
 	s2 := iterator.FromSlice([]int{4, 5, 6})
 	iter := s1.Chain(s2)
 
-	assert.Equal(t, gust.Some(1), iter.Next())
-	assert.Equal(t, gust.Some(2), iter.Next())
-	assert.Equal(t, gust.Some(3), iter.Next())
-	assert.Equal(t, gust.Some(4), iter.Next())
-	assert.Equal(t, gust.Some(5), iter.Next())
-	assert.Equal(t, gust.Some(6), iter.Next())
-	assert.Equal(t, gust.None[int](), iter.Next())
+	assert.Equal(t, option.Some(1), iter.Next())
+	assert.Equal(t, option.Some(2), iter.Next())
+	assert.Equal(t, option.Some(3), iter.Next())
+	assert.Equal(t, option.Some(4), iter.Next())
+	assert.Equal(t, option.Some(5), iter.Next())
+	assert.Equal(t, option.Some(6), iter.Next())
+	assert.Equal(t, option.None[int](), iter.Next())
 }
 
 func TestZip(t *testing.T) {
@@ -187,37 +195,37 @@ func TestZip(t *testing.T) {
 	s2 := iterator.FromSlice([]int{4, 5, 6})
 	iter := iterator.Zip(s1, s2)
 
-	assert.Equal(t, gust.Some(gust.Pair[int, int]{A: 1, B: 4}), iter.Next())
-	assert.Equal(t, gust.Some(gust.Pair[int, int]{A: 2, B: 5}), iter.Next())
-	assert.Equal(t, gust.Some(gust.Pair[int, int]{A: 3, B: 6}), iter.Next())
-	assert.Equal(t, gust.None[gust.Pair[int, int]](), iter.Next())
+	assert.Equal(t, option.Some(pair.Pair[int, int]{A: 1, B: 4}), iter.Next())
+	assert.Equal(t, option.Some(pair.Pair[int, int]{A: 2, B: 5}), iter.Next())
+	assert.Equal(t, option.Some(pair.Pair[int, int]{A: 3, B: 6}), iter.Next())
+	assert.Equal(t, option.None[pair.Pair[int, int]](), iter.Next())
 }
 
 func TestEnumerate(t *testing.T) {
 	a := iterator.FromSlice([]int{10, 20, 30})
 	iter := iterator.Enumerate(a)
 
-	assert.Equal(t, gust.Some(gust.Pair[uint, int]{A: 0, B: 10}), iter.Next())
-	assert.Equal(t, gust.Some(gust.Pair[uint, int]{A: 1, B: 20}), iter.Next())
-	assert.Equal(t, gust.Some(gust.Pair[uint, int]{A: 2, B: 30}), iter.Next())
-	assert.Equal(t, gust.None[gust.Pair[uint, int]](), iter.Next())
+	assert.Equal(t, option.Some(pair.Pair[uint, int]{A: 0, B: 10}), iter.Next())
+	assert.Equal(t, option.Some(pair.Pair[uint, int]{A: 1, B: 20}), iter.Next())
+	assert.Equal(t, option.Some(pair.Pair[uint, int]{A: 2, B: 30}), iter.Next())
+	assert.Equal(t, option.None[pair.Pair[uint, int]](), iter.Next())
 }
 
 func TestSkip(t *testing.T) {
 	a := []int{1, 2, 3}
 	iter := iterator.FromSlice(a).Skip(2)
 
-	assert.Equal(t, gust.Some(3), iter.Next())
-	assert.Equal(t, gust.None[int](), iter.Next())
+	assert.Equal(t, option.Some(3), iter.Next())
+	assert.Equal(t, option.None[int](), iter.Next())
 }
 
 func TestTake(t *testing.T) {
 	a := []int{1, 2, 3}
 	iter := iterator.FromSlice(a).Take(2)
 
-	assert.Equal(t, gust.Some(1), iter.Next())
-	assert.Equal(t, gust.Some(2), iter.Next())
-	assert.Equal(t, gust.None[int](), iter.Next())
+	assert.Equal(t, option.Some(1), iter.Next())
+	assert.Equal(t, option.Some(2), iter.Next())
+	assert.Equal(t, option.None[int](), iter.Next())
 }
 
 func TestFold(t *testing.T) {
@@ -228,7 +236,7 @@ func TestFold(t *testing.T) {
 
 func TestReduce(t *testing.T) {
 	reduced := iterator.FromRange(1, 10).Reduce(func(acc int, e int) int { return acc + e })
-	assert.Equal(t, gust.Some(45), reduced)
+	assert.Equal(t, option.Some(45), reduced)
 }
 
 func TestCollect(t *testing.T) {
@@ -258,14 +266,14 @@ func TestAny(t *testing.T) {
 
 func TestFind(t *testing.T) {
 	a := []int{1, 2, 3}
-	assert.Equal(t, gust.Some(2), iterator.FromSlice(a).Find(func(x int) bool { return x == 2 }))
-	assert.Equal(t, gust.None[int](), iterator.FromSlice(a).Find(func(x int) bool { return x == 5 }))
+	assert.Equal(t, option.Some(2), iterator.FromSlice(a).Find(func(x int) bool { return x == 2 }))
+	assert.Equal(t, option.None[int](), iterator.FromSlice(a).Find(func(x int) bool { return x == 5 }))
 }
 
 func TestPosition(t *testing.T) {
 	a := []int{1, 2, 3}
-	assert.Equal(t, gust.Some(uint(1)), iterator.FromSlice(a).Position(func(x int) bool { return x == 2 }))
-	assert.Equal(t, gust.None[uint](), iterator.FromSlice(a).Position(func(x int) bool { return x == 5 }))
+	assert.Equal(t, option.Some(uint(1)), iterator.FromSlice(a).Position(func(x int) bool { return x == 2 }))
+	assert.Equal(t, option.None[uint](), iterator.FromSlice(a).Position(func(x int) bool { return x == 5 }))
 }
 
 func TestMax_EdgeCases(t *testing.T) {
@@ -301,8 +309,8 @@ func TestMax_EdgeCases(t *testing.T) {
 func TestMax(t *testing.T) {
 	a := []int{1, 2, 3}
 	b := []int{}
-	assert.Equal(t, gust.Some(3), iterator.Max(iterator.FromSlice(a)))
-	assert.Equal(t, gust.None[int](), iterator.Max(iterator.FromSlice(b)))
+	assert.Equal(t, option.Some(3), iterator.Max(iterator.FromSlice(a)))
+	assert.Equal(t, option.None[int](), iterator.Max(iterator.FromSlice(b)))
 }
 
 func TestMin_EdgeCases(t *testing.T) {
@@ -338,8 +346,8 @@ func TestMin_EdgeCases(t *testing.T) {
 func TestMin(t *testing.T) {
 	a := []int{1, 2, 3}
 	b := []int{}
-	assert.Equal(t, gust.Some(1), iterator.Min(iterator.FromSlice(a)))
-	assert.Equal(t, gust.None[int](), iterator.Min(iterator.FromSlice(b)))
+	assert.Equal(t, option.Some(1), iterator.Min(iterator.FromSlice(a)))
+	assert.Equal(t, option.None[int](), iterator.Min(iterator.FromSlice(b)))
 }
 
 func TestMaxByKey_EdgeCases(t *testing.T) {
@@ -379,7 +387,7 @@ func TestMaxByKey(t *testing.T) {
 		}
 		return x
 	})
-	assert.Equal(t, gust.Some(-10), max)
+	assert.Equal(t, option.Some(-10), max)
 
 	// Test with empty iterator
 	empty := []int{}
@@ -397,7 +405,7 @@ func TestMaxBy(t *testing.T) {
 		}
 		return 0
 	})
-	assert.Equal(t, gust.Some(5), max)
+	assert.Equal(t, option.Some(5), max)
 
 	// Test with empty iterator
 	empty := []int{}
@@ -422,7 +430,7 @@ func TestMaxBy(t *testing.T) {
 		}
 		return 0
 	})
-	assert.Equal(t, gust.Some(2), max2)
+	assert.Equal(t, option.Some(2), max2)
 
 	// Test maxByImpl compare(acc, x) < 0 branch (covers min_max.go:118)
 	// When compare returns < 0, it should return x (new maximum)
@@ -436,7 +444,7 @@ func TestMaxBy(t *testing.T) {
 		}
 		return 0
 	})
-	assert.Equal(t, gust.Some(5), max3)
+	assert.Equal(t, option.Some(5), max3)
 
 	// Test maxByImpl compare(acc, x) >= 0 branch (covers min_max.go:121)
 	// When compare returns >= 0, it should return acc (keep current maximum)
@@ -450,7 +458,7 @@ func TestMaxBy(t *testing.T) {
 		}
 		return 0
 	})
-	assert.Equal(t, gust.Some(5), max4)
+	assert.Equal(t, option.Some(5), max4)
 }
 
 func TestMinByKey_EdgeCases(t *testing.T) {
@@ -490,7 +498,7 @@ func TestMinByKey(t *testing.T) {
 		}
 		return x
 	})
-	assert.Equal(t, gust.Some(0), min)
+	assert.Equal(t, option.Some(0), min)
 
 	// Test with empty iterator
 	empty := []int{}
@@ -508,7 +516,7 @@ func TestMinBy(t *testing.T) {
 		}
 		return 0
 	})
-	assert.Equal(t, gust.Some(-10), min)
+	assert.Equal(t, option.Some(-10), min)
 
 	// Test with empty iterator
 	empty := []int{}
@@ -533,7 +541,7 @@ func TestMinBy(t *testing.T) {
 		}
 		return 0
 	})
-	assert.Equal(t, gust.Some(2), min2)
+	assert.Equal(t, option.Some(2), min2)
 
 	// Test minByImpl compare(acc, x) > 0 branch (covers min_max.go:162)
 	// When compare returns > 0, it should return x (new minimum)
@@ -547,7 +555,7 @@ func TestMinBy(t *testing.T) {
 		}
 		return 0
 	})
-	assert.Equal(t, gust.Some(1), min3)
+	assert.Equal(t, option.Some(1), min3)
 
 	// Test minByImpl compare(acc, x) <= 0 branch (covers min_max.go:165)
 	// When compare returns <= 0, it should return acc (keep current minimum)
@@ -561,58 +569,58 @@ func TestMinBy(t *testing.T) {
 		}
 		return 0
 	})
-	assert.Equal(t, gust.Some(1), min4)
+	assert.Equal(t, option.Some(1), min4)
 }
 
 func TestFromRange(t *testing.T) {
 	iter := iterator.FromRange(0, 5)
-	assert.Equal(t, gust.Some(0), iter.Next())
-	assert.Equal(t, gust.Some(1), iter.Next())
-	assert.Equal(t, gust.Some(2), iter.Next())
-	assert.Equal(t, gust.Some(3), iter.Next())
-	assert.Equal(t, gust.Some(4), iter.Next())
-	assert.Equal(t, gust.None[int](), iter.Next())
+	assert.Equal(t, option.Some(0), iter.Next())
+	assert.Equal(t, option.Some(1), iter.Next())
+	assert.Equal(t, option.Some(2), iter.Next())
+	assert.Equal(t, option.Some(3), iter.Next())
+	assert.Equal(t, option.Some(4), iter.Next())
+	assert.Equal(t, option.None[int](), iter.Next())
 }
 
 func TestFromElements(t *testing.T) {
 	iter := iterator.FromElements(1, 2, 3)
-	assert.Equal(t, gust.Some(1), iter.Next())
-	assert.Equal(t, gust.Some(2), iter.Next())
-	assert.Equal(t, gust.Some(3), iter.Next())
-	assert.Equal(t, gust.None[int](), iter.Next())
+	assert.Equal(t, option.Some(1), iter.Next())
+	assert.Equal(t, option.Some(2), iter.Next())
+	assert.Equal(t, option.Some(3), iter.Next())
+	assert.Equal(t, option.None[int](), iter.Next())
 }
 
 func TestOnce(t *testing.T) {
 	iter := iterator.Once(42)
-	assert.Equal(t, gust.Some(42), iter.Next())
-	assert.Equal(t, gust.None[int](), iter.Next())
+	assert.Equal(t, option.Some(42), iter.Next())
+	assert.Equal(t, option.None[int](), iter.Next())
 }
 
 func TestEmpty(t *testing.T) {
 	iter := iterator.Empty[int]()
-	assert.Equal(t, gust.None[int](), iter.Next())
+	assert.Equal(t, option.None[int](), iter.Next())
 }
 
 func TestFromFunc(t *testing.T) {
 	count := 0
-	iter := iterator.FromFunc(func() gust.Option[int] {
+	iter := iterator.FromFunc(func() option.Option[int] {
 		if count < 3 {
 			count++
-			return gust.Some(count)
+			return option.Some(count)
 		}
-		return gust.None[int]()
+		return option.None[int]()
 	})
-	assert.Equal(t, gust.Some(1), iter.Next())
-	assert.Equal(t, gust.Some(2), iter.Next())
-	assert.Equal(t, gust.Some(3), iter.Next())
-	assert.Equal(t, gust.None[int](), iter.Next())
+	assert.Equal(t, option.Some(1), iter.Next())
+	assert.Equal(t, option.Some(2), iter.Next())
+	assert.Equal(t, option.Some(3), iter.Next())
+	assert.Equal(t, option.None[int](), iter.Next())
 }
 
 func TestRepeat(t *testing.T) {
 	iter := iterator.Repeat(42)
-	assert.Equal(t, gust.Some(42), iter.Next())
-	assert.Equal(t, gust.Some(42), iter.Next())
-	assert.Equal(t, gust.Some(42), iter.Next())
+	assert.Equal(t, option.Some(42), iter.Next())
+	assert.Equal(t, option.Some(42), iter.Next())
+	assert.Equal(t, option.Some(42), iter.Next())
 	// Should repeat forever
 }
 
@@ -628,17 +636,17 @@ func TestSkipWhile(t *testing.T) {
 	a := []int{-1, 0, 1}
 	iter := iterator.FromSlice(a).SkipWhile(func(x int) bool { return x < 0 })
 
-	assert.Equal(t, gust.Some(0), iter.Next())
-	assert.Equal(t, gust.Some(1), iter.Next())
-	assert.Equal(t, gust.None[int](), iter.Next())
+	assert.Equal(t, option.Some(0), iter.Next())
+	assert.Equal(t, option.Some(1), iter.Next())
+	assert.Equal(t, option.None[int](), iter.Next())
 }
 
 func TestTakeWhile(t *testing.T) {
 	a := []int{-1, 0, 1}
 	iter := iterator.FromSlice(a).TakeWhile(func(x int) bool { return x < 0 })
 
-	assert.Equal(t, gust.Some(-1), iter.Next())
-	assert.Equal(t, gust.None[int](), iter.Next())
+	assert.Equal(t, option.Some(-1), iter.Next())
+	assert.Equal(t, option.None[int](), iter.Next())
 }
 
 func TestAdvanceBy(t *testing.T) {
@@ -646,7 +654,7 @@ func TestAdvanceBy(t *testing.T) {
 	iter := iterator.FromSlice(a)
 
 	assert.True(t, iter.AdvanceBy(2).IsOk())
-	assert.Equal(t, gust.Some(3), iter.Next())
+	assert.Equal(t, option.Some(3), iter.Next())
 	assert.True(t, iter.AdvanceBy(0).IsOk())
 	result := iter.AdvanceBy(100)
 	assert.True(t, result.IsErr())
@@ -655,32 +663,32 @@ func TestAdvanceBy(t *testing.T) {
 
 func TestNth(t *testing.T) {
 	a := []int{1, 2, 3}
-	assert.Equal(t, gust.Some(2), iterator.FromSlice(a).Nth(1))
+	assert.Equal(t, option.Some(2), iterator.FromSlice(a).Nth(1))
 
 	b := []int{1, 2, 3}
 	iter := iterator.FromSlice(b)
-	assert.Equal(t, gust.Some(2), iter.Nth(1))
-	assert.Equal(t, gust.Some(3), iter.Nth(0))
+	assert.Equal(t, option.Some(2), iter.Nth(1))
+	assert.Equal(t, option.Some(3), iter.Nth(0))
 
 	c := []int{1, 2, 3}
-	assert.Equal(t, gust.None[int](), iterator.FromSlice(c).Nth(10))
+	assert.Equal(t, option.None[int](), iterator.FromSlice(c).Nth(10))
 }
 
 func TestFilterMap(t *testing.T) {
 	a := []string{"1", "two", "NaN", "four", "5"}
-	iter := iterator.FilterMap(iterator.FromSlice(a), func(s string) gust.Option[int] {
+	iter := iterator.FilterMap(iterator.FromSlice(a), func(s string) option.Option[int] {
 		if s == "1" {
-			return gust.Some(1)
+			return option.Some(1)
 		}
 		if s == "5" {
-			return gust.Some(5)
+			return option.Some(5)
 		}
-		return gust.None[int]()
+		return option.None[int]()
 	})
 
-	assert.Equal(t, gust.Some(1), iter.Next())
-	assert.Equal(t, gust.Some(5), iter.Next())
-	assert.Equal(t, gust.None[int](), iter.Next())
+	assert.Equal(t, option.Some(1), iter.Next())
+	assert.Equal(t, option.Some(5), iter.Next())
+	assert.Equal(t, option.None[int](), iter.Next())
 }
 
 func TestComplexChain(t *testing.T) {
@@ -749,7 +757,7 @@ func TestIteratorExtConsumerMethods(t *testing.T) {
 
 	// Test Last
 	iter2 := iterator.FromSlice([]int{1, 2, 3})
-	assert.Equal(t, gust.Some(3), iter2.Last())
+	assert.Equal(t, option.Some(3), iter2.Last())
 
 	// Test All
 	iter3 := iterator.FromSlice([]int{2, 4, 6})
@@ -761,15 +769,15 @@ func TestIteratorExtConsumerMethods(t *testing.T) {
 
 	// Test Find
 	iter5 := iterator.FromSlice([]int{1, 2, 3})
-	assert.Equal(t, gust.Some(2), iter5.Find(func(x int) bool { return x > 1 }))
+	assert.Equal(t, option.Some(2), iter5.Find(func(x int) bool { return x > 1 }))
 
 	// Test Max
 	iter6 := iterator.FromSlice([]int{1, 3, 2})
-	assert.Equal(t, gust.Some(3), iterator.Max(iter6))
+	assert.Equal(t, option.Some(3), iterator.Max(iter6))
 
 	// Test Min
 	iter7 := iterator.FromSlice([]int{3, 1, 2})
-	assert.Equal(t, gust.Some(1), iterator.Min(iter7))
+	assert.Equal(t, option.Some(1), iterator.Min(iter7))
 
 	// Test MaxBy
 	iter8 := iterator.FromSlice([]int{-3, 0, 1, 5, -10})
@@ -782,7 +790,7 @@ func TestIteratorExtConsumerMethods(t *testing.T) {
 		}
 		return 0
 	})
-	assert.Equal(t, gust.Some(5), maxBy)
+	assert.Equal(t, option.Some(5), maxBy)
 
 	// Test MinBy
 	iter9 := iterator.FromSlice([]int{-3, 0, 1, 5, -10})
@@ -795,7 +803,7 @@ func TestIteratorExtConsumerMethods(t *testing.T) {
 		}
 		return 0
 	})
-	assert.Equal(t, gust.Some(-10), minBy)
+	assert.Equal(t, option.Some(-10), minBy)
 
 	// Test MaxByKey (function version)
 	iter10 := iterator.FromSlice([]int{-3, 0, 1, 5, -10})
@@ -805,7 +813,7 @@ func TestIteratorExtConsumerMethods(t *testing.T) {
 		}
 		return x
 	})
-	assert.Equal(t, gust.Some(-10), maxByKey)
+	assert.Equal(t, option.Some(-10), maxByKey)
 
 	// Test MinByKey (function version)
 	iter11 := iterator.FromSlice([]int{-3, 0, 1, 5, -10})
@@ -815,7 +823,7 @@ func TestIteratorExtConsumerMethods(t *testing.T) {
 		}
 		return x
 	})
-	assert.Equal(t, gust.Some(0), minByKey)
+	assert.Equal(t, option.Some(0), minByKey)
 
 	// Test ForEach
 	iter12 := iterator.FromSlice([]int{1, 2, 3})
@@ -827,18 +835,18 @@ func TestIteratorExtConsumerMethods(t *testing.T) {
 
 	// Test TryForEach
 	iter13 := iterator.FromSlice([]int{1, 2, 3})
-	result := iter13.TryForEach(func(x int) gust.Result[int] {
-		return gust.Ok(x)
+	res := iter13.TryForEach(func(x int) result.Result[int] {
+		return result.Ok[int](x)
 	})
-	assert.True(t, result.IsOk())
+	assert.True(t, res.IsOk())
 
 	// Test TryReduce
 	iter15 := iterator.FromSlice([]int{10, 20, 5})
-	sumResult := iter15.TryReduce(func(x, y int) gust.Result[int] {
+	sumResult := iter15.TryReduce(func(x, y int) result.Result[int] {
 		if x+y > 100 {
-			return gust.TryErr[int](errors.New("overflow"))
+			return result.TryErr[int](errors.New("overflow"))
 		}
-		return gust.Ok(x + y)
+		return result.Ok[int](x + y)
 	})
 	assert.True(t, sumResult.IsOk())
 	assert.True(t, sumResult.Unwrap().IsSome())
@@ -846,14 +854,14 @@ func TestIteratorExtConsumerMethods(t *testing.T) {
 
 	// Test TryFind
 	iter16 := iterator.FromSlice([]string{"1", "2", "lol", "NaN", "5"})
-	findResult := iter16.TryFind(func(s string) gust.Result[bool] {
+	findResult := iter16.TryFind(func(s string) result.Result[bool] {
 		if s == "lol" {
-			return gust.TryErr[bool](errors.New("invalid"))
+			return result.TryErr[bool](errors.New("invalid"))
 		}
 		if v, err := strconv.Atoi(s); err == nil {
-			return gust.Ok(v == 2)
+			return result.Ok[bool](v == 2)
 		}
-		return gust.Ok(false)
+		return result.Ok[bool](false)
 	})
 	assert.True(t, findResult.IsOk())
 	assert.True(t, findResult.Unwrap().IsSome())
@@ -917,7 +925,7 @@ func TestForEach(t *testing.T) {
 	consumedIter := iterator.FromSlice([]int{1, 2, 3})
 	consumedIter.ForEach(func(x int) {})
 	// After ForEach, iterator should be exhausted
-	assert.Equal(t, gust.None[int](), consumedIter.Next())
+	assert.Equal(t, option.None[int](), consumedIter.Next())
 
 	// Test ForEach with chained operations
 	chainedIter := iterator.FromSlice([]int{1, 2, 3, 4, 5}).
@@ -1002,7 +1010,7 @@ func TestForEachImplDirectly(t *testing.T) {
 	})
 	assert.Equal(t, []int{42}, result3)
 	// After ForEach, iterator should be exhausted
-	assert.Equal(t, gust.None[int](), iter3.Next())
+	assert.Equal(t, option.None[int](), iter3.Next())
 
 	// Test with multiple elements to ensure the loop iterates correctly
 	iter4 := iterator.FromSlice([]int{10, 20, 30, 40, 50})
@@ -1018,46 +1026,46 @@ func TestIteratorExtZip(t *testing.T) {
 	iter2 := iterator.FromSlice([]string{"a", "b", "c"})
 
 	zipped := iterator.Zip(iter1, iter2)
-	pair := zipped.Next()
+	p := zipped.Next()
 
-	assert.True(t, pair.IsSome())
-	assert.Equal(t, 1, pair.Unwrap().A)
-	assert.Equal(t, "a", pair.Unwrap().B)
+	assert.True(t, p.IsSome())
+	assert.Equal(t, 1, p.Unwrap().A)
+	assert.Equal(t, "a", p.Unwrap().B)
 }
 
 func TestIterator_XTryFold(t *testing.T) {
 	iter := iterator.FromSlice([]int{1, 2, 3})
-	result := iter.XTryFold(0, func(acc any, x int) gust.Result[any] {
-		return gust.Ok(any(acc.(int) + x))
+	res := iter.XTryFold(0, func(acc any, x int) result.Result[any] {
+		return result.Ok[any](any(acc.(int) + x))
 	})
-	assert.True(t, result.IsOk())
-	assert.Equal(t, 6, result.Unwrap().(int))
+	assert.True(t, res.IsOk())
+	assert.Equal(t, 6, res.Unwrap().(int))
 
 	// Test with error
 	iter2 := iterator.FromSlice([]int{1, 2, 3})
-	result2 := iter2.XTryFold(0, func(acc any, x int) gust.Result[any] {
+	result2 := iter2.XTryFold(0, func(acc any, x int) result.Result[any] {
 		if acc.(int)+x > 5 {
-			return gust.TryErr[any](errors.New("overflow"))
+			return result.TryErr[any](errors.New("overflow"))
 		}
-		return gust.Ok(any(acc.(int) + x))
+		return result.Ok[any](any(acc.(int) + x))
 	})
 	assert.True(t, result2.IsErr())
 }
 
 func TestIterator_XTryForEach(t *testing.T) {
 	data := iterator.FromSlice([]string{"a", "b", "c"})
-	result := data.XTryForEach(func(x string) gust.Result[any] {
-		return gust.Ok[any](x + "_processed")
+	res := data.XTryForEach(func(x string) result.Result[any] {
+		return result.Ok[any](x + "_processed")
 	})
-	assert.True(t, result.IsOk())
+	assert.True(t, res.IsOk())
 
 	// Test with error
 	data2 := iterator.FromSlice([]string{"a", "b", "error"})
-	result2 := data2.XTryForEach(func(x string) gust.Result[any] {
+	result2 := data2.XTryForEach(func(x string) result.Result[any] {
 		if x == "error" {
-			return gust.TryErr[any](errors.New("processing error"))
+			return result.TryErr[any](errors.New("processing error"))
 		}
-		return gust.Ok[any](x)
+		return result.Ok[any](x)
 	})
 	assert.True(t, result2.IsErr())
 }
@@ -1088,14 +1096,14 @@ func TestIterator_XFold(t *testing.T) {
 
 func TestIterator_XFilterMap(t *testing.T) {
 	iter := iterator.FromSlice([]string{"1", "two", "NaN", "four", "5"})
-	filtered := iter.XFilterMap(func(s string) gust.Option[any] {
+	filtered := iter.XFilterMap(func(s string) option.Option[any] {
 		if s == "1" {
-			return gust.Some(any(1))
+			return option.Some(any(1))
 		}
 		if s == "5" {
-			return gust.Some(any(5))
+			return option.Some(any(5))
 		}
-		return gust.None[any]()
+		return option.None[any]()
 	})
 	result := filtered.Collect()
 	assert.Equal(t, []any{1, 5}, result)
@@ -1103,11 +1111,11 @@ func TestIterator_XFilterMap(t *testing.T) {
 
 func TestIterator_XMapWhile(t *testing.T) {
 	iter := iterator.FromSlice([]int{-1, 4, 0, 1})
-	mapped := iter.XMapWhile(func(x int) gust.Option[any] {
+	mapped := iter.XMapWhile(func(x int) option.Option[any] {
 		if x != 0 {
-			return gust.Some(any(16 / x))
+			return option.Some(any(16 / x))
 		}
-		return gust.None[any]()
+		return option.None[any]()
 	})
 	result := mapped.Collect()
 	assert.Equal(t, []any{-16, 4}, result)
@@ -1115,10 +1123,10 @@ func TestIterator_XMapWhile(t *testing.T) {
 
 func TestIterator_XScan(t *testing.T) {
 	iter := iterator.FromSlice([]int{1, 2, 3})
-	scanned := iter.XScan(0, func(state *any, x int) gust.Option[any] {
+	scanned := iter.XScan(0, func(state *any, x int) option.Option[any] {
 		s := (*state).(int) + x
 		*state = s
-		return gust.Some(any(s))
+		return option.Some(any(s))
 	})
 	result := scanned.Collect()
 	assert.Equal(t, []any{1, 3, 6}, result)
@@ -1127,34 +1135,34 @@ func TestIterator_XScan(t *testing.T) {
 func TestIterator_Intersperse(t *testing.T) {
 	iter := iterator.FromSlice([]int{0, 1, 2})
 	interspersed := iter.Intersperse(100)
-	assert.Equal(t, gust.Some(0), interspersed.Next())
-	assert.Equal(t, gust.Some(100), interspersed.Next())
-	assert.Equal(t, gust.Some(1), interspersed.Next())
-	assert.Equal(t, gust.Some(100), interspersed.Next())
-	assert.Equal(t, gust.Some(2), interspersed.Next())
-	assert.Equal(t, gust.None[int](), interspersed.Next())
+	assert.Equal(t, option.Some(0), interspersed.Next())
+	assert.Equal(t, option.Some(100), interspersed.Next())
+	assert.Equal(t, option.Some(1), interspersed.Next())
+	assert.Equal(t, option.Some(100), interspersed.Next())
+	assert.Equal(t, option.Some(2), interspersed.Next())
+	assert.Equal(t, option.None[int](), interspersed.Next())
 }
 
 func TestIterator_IntersperseWith(t *testing.T) {
 	iter := iterator.FromSlice([]int{0, 1, 2})
 	interspersed := iter.IntersperseWith(func() int { return 99 })
-	assert.Equal(t, gust.Some(0), interspersed.Next())
-	assert.Equal(t, gust.Some(99), interspersed.Next())
-	assert.Equal(t, gust.Some(1), interspersed.Next())
-	assert.Equal(t, gust.Some(99), interspersed.Next())
-	assert.Equal(t, gust.Some(2), interspersed.Next())
-	assert.Equal(t, gust.None[int](), interspersed.Next())
+	assert.Equal(t, option.Some(0), interspersed.Next())
+	assert.Equal(t, option.Some(99), interspersed.Next())
+	assert.Equal(t, option.Some(1), interspersed.Next())
+	assert.Equal(t, option.Some(99), interspersed.Next())
+	assert.Equal(t, option.Some(2), interspersed.Next())
+	assert.Equal(t, option.None[int](), interspersed.Next())
 
 	// Test Intersperse with single element (no separator)
 	iter2 := iterator.FromSlice([]int{42})
 	interspersed2 := iter2.Intersperse(100)
-	assert.Equal(t, gust.Some(42), interspersed2.Next())
-	assert.Equal(t, gust.None[int](), interspersed2.Next())
+	assert.Equal(t, option.Some(42), interspersed2.Next())
+	assert.Equal(t, option.None[int](), interspersed2.Next())
 
 	// Test Intersperse with empty iterator
 	iter3 := iterator.FromSlice([]int{})
 	interspersed3 := iter3.Intersperse(100)
-	assert.Equal(t, gust.None[int](), interspersed3.Next())
+	assert.Equal(t, option.None[int](), interspersed3.Next())
 
 	// Test Intersperse SizeHint with known size
 	iter4 := iterator.FromSlice([]int{1, 2, 3, 4, 5})
@@ -1201,12 +1209,12 @@ func TestChunkBy_SizeHint(t *testing.T) {
 func TestIterator_Cycle(t *testing.T) {
 	iter := iterator.FromSlice([]int{1, 2, 3})
 	cycled := iter.Cycle()
-	assert.Equal(t, gust.Some(1), cycled.Next())
-	assert.Equal(t, gust.Some(2), cycled.Next())
-	assert.Equal(t, gust.Some(3), cycled.Next())
-	assert.Equal(t, gust.Some(1), cycled.Next()) // starts over
-	assert.Equal(t, gust.Some(2), cycled.Next())
-	assert.Equal(t, gust.Some(3), cycled.Next()) // continues cycling
+	assert.Equal(t, option.Some(1), cycled.Next())
+	assert.Equal(t, option.Some(2), cycled.Next())
+	assert.Equal(t, option.Some(3), cycled.Next())
+	assert.Equal(t, option.Some(1), cycled.Next()) // starts over
+	assert.Equal(t, option.Some(2), cycled.Next())
+	assert.Equal(t, option.Some(3), cycled.Next()) // continues cycling
 }
 
 func TestIterator_NextChunk(t *testing.T) {
@@ -1299,7 +1307,7 @@ func TestChunkResult_UnwrapPanic(t *testing.T) {
 		p := recover()
 		assert.NotNil(t, p)
 		// Verify panic is *ErrBox
-		eb, ok := p.(*gust.ErrBox)
+		eb, ok := p.(*errutil.ErrBox)
 		assert.True(t, ok)
 		assert.NotNil(t, eb)
 	}()
@@ -1310,22 +1318,22 @@ func TestChunkResult_UnwrapPanic(t *testing.T) {
 func TestIterator_WrapperMethods(t *testing.T) {
 	// Test XFindMap (covers iterator_methods.go:416-418)
 	iter1 := iterator.FromSlice([]string{"lol", "NaN", "2", "5"})
-	result1 := iter1.XFindMap(func(s string) gust.Option[any] {
+	result1 := iter1.XFindMap(func(s string) option.Option[any] {
 		if v, err := strconv.Atoi(s); err == nil {
-			return gust.Some[any](v)
+			return option.Some[any](v)
 		}
-		return gust.None[any]()
+		return option.None[any]()
 	})
 	assert.True(t, result1.IsSome())
 	assert.Equal(t, 2, result1.UnwrapUnchecked())
 
 	// Test FindMap (covers iterator_methods.go:434-436)
 	iter2 := iterator.FromSlice([]string{"lol", "NaN", "2", "5"})
-	result2 := iter2.FindMap(func(s string) gust.Option[string] {
+	result2 := iter2.FindMap(func(s string) option.Option[string] {
 		if v, err := strconv.Atoi(s); err == nil {
-			return gust.Some(strconv.Itoa(v))
+			return option.Some(strconv.Itoa(v))
 		}
-		return gust.None[string]()
+		return option.None[string]()
 	})
 	assert.True(t, result2.IsSome())
 	assert.Equal(t, "2", result2.UnwrapUnchecked())
@@ -1346,39 +1354,39 @@ func TestIterator_WrapperMethods(t *testing.T) {
 
 	// Test XTryFold (covers iterator_methods.go:552-554)
 	iter5 := iterator.FromSlice([]int{1, 2, 3})
-	result3 := iter5.XTryFold(0, func(acc any, x int) gust.Result[any] {
-		return gust.Ok[any](acc.(int) + x)
+	result3 := iter5.XTryFold(0, func(acc any, x int) result.Result[any] {
+		return result.Ok[any](acc.(int) + x)
 	})
 	assert.True(t, result3.IsOk())
 	assert.Equal(t, 6, result3.UnwrapUnchecked())
 
 	// Test FilterMap (covers iterator_methods.go:699-701)
 	iter6 := iterator.FromSlice([]string{"1", "two", "3", "four"})
-	filtered := iter6.FilterMap(func(s string) gust.Option[string] {
+	filtered := iter6.FilterMap(func(s string) option.Option[string] {
 		if v, err := strconv.Atoi(s); err == nil {
-			return gust.Some(strconv.Itoa(v))
+			return option.Some(strconv.Itoa(v))
 		}
-		return gust.None[string]()
+		return option.None[string]()
 	})
 	result4 := filtered.Collect()
 	assert.Equal(t, []string{"1", "3"}, result4)
 
 	// Test MapWhile (covers iterator_methods.go:713-715)
 	iter7 := iterator.FromSlice([]int{1, 2, 3, 4, 5})
-	mapped := iter7.MapWhile(func(x int) gust.Option[int] {
+	mapped := iter7.MapWhile(func(x int) option.Option[int] {
 		if x < 4 {
-			return gust.Some(x * 2)
+			return option.Some(x * 2)
 		}
-		return gust.None[int]()
+		return option.None[int]()
 	})
 	result5 := mapped.Collect()
 	assert.Equal(t, []int{2, 4, 6}, result5)
 
 	// Test Scan (covers iterator_methods.go:746-748)
 	iter8 := iterator.FromSlice([]int{1, 2, 3})
-	scanned := iter8.Scan(0, func(acc *int, x int) gust.Option[int] {
+	scanned := iter8.Scan(0, func(acc *int, x int) option.Option[int] {
 		*acc = *acc + x
-		return gust.Some(*acc)
+		return option.Some(*acc)
 	})
 	result6 := scanned.Collect()
 	assert.Equal(t, []int{1, 3, 6}, result6)
@@ -1407,38 +1415,38 @@ func TestFromBitSet(t *testing.T) {
 	iter := iterator.FromBitSet(bitset)
 
 	// Check first few bits
-	pair := iter.Next()
-	assert.True(t, pair.IsSome())
-	assert.Equal(t, 0, pair.Unwrap().A)    // offset
-	assert.Equal(t, true, pair.Unwrap().B) // bit value (MSB)
+	p := iter.Next()
+	assert.True(t, p.IsSome())
+	assert.Equal(t, 0, p.Unwrap().A)    // offset
+	assert.Equal(t, true, p.Unwrap().B) // bit value (MSB)
 
-	pair = iter.Next()
-	assert.True(t, pair.IsSome())
-	assert.Equal(t, 1, pair.Unwrap().A)
-	assert.Equal(t, false, pair.Unwrap().B)
+	p = iter.Next()
+	assert.True(t, p.IsSome())
+	assert.Equal(t, 1, p.Unwrap().A)
+	assert.Equal(t, false, p.Unwrap().B)
 
-	pair = iter.Next()
-	assert.True(t, pair.IsSome())
-	assert.Equal(t, 2, pair.Unwrap().A)
-	assert.Equal(t, true, pair.Unwrap().B)
+	p = iter.Next()
+	assert.True(t, p.IsSome())
+	assert.Equal(t, 2, p.Unwrap().A)
+	assert.Equal(t, true, p.Unwrap().B)
 
 	// Collect all pairs
 	iter = iterator.FromBitSet(bitset)
 	allPairs := iter.Collect()
 	assert.Len(t, allPairs, 8)
-	assert.Equal(t, gust.Pair[int, bool]{A: 0, B: true}, allPairs[0])
-	assert.Equal(t, gust.Pair[int, bool]{A: 1, B: false}, allPairs[1])
-	assert.Equal(t, gust.Pair[int, bool]{A: 2, B: true}, allPairs[2])
-	assert.Equal(t, gust.Pair[int, bool]{A: 3, B: false}, allPairs[3])
-	assert.Equal(t, gust.Pair[int, bool]{A: 4, B: true}, allPairs[4])
-	assert.Equal(t, gust.Pair[int, bool]{A: 5, B: false}, allPairs[5])
-	assert.Equal(t, gust.Pair[int, bool]{A: 6, B: true}, allPairs[6])
-	assert.Equal(t, gust.Pair[int, bool]{A: 7, B: false}, allPairs[7])
+	assert.Equal(t, pair.Pair[int, bool]{A: 0, B: true}, allPairs[0])
+	assert.Equal(t, pair.Pair[int, bool]{A: 1, B: false}, allPairs[1])
+	assert.Equal(t, pair.Pair[int, bool]{A: 2, B: true}, allPairs[2])
+	assert.Equal(t, pair.Pair[int, bool]{A: 3, B: false}, allPairs[3])
+	assert.Equal(t, pair.Pair[int, bool]{A: 4, B: true}, allPairs[4])
+	assert.Equal(t, pair.Pair[int, bool]{A: 5, B: false}, allPairs[5])
+	assert.Equal(t, pair.Pair[int, bool]{A: 6, B: true}, allPairs[6])
+	assert.Equal(t, pair.Pair[int, bool]{A: 7, B: false}, allPairs[7])
 
 	// Test empty bit set
 	emptyBitset := &mockBitSet{bits: []byte{}}
 	emptyIter := iterator.FromBitSet(emptyBitset)
-	assert.Equal(t, gust.None[gust.Pair[int, bool]](), emptyIter.Next())
+	assert.Equal(t, option.None[pair.Pair[int, bool]](), emptyIter.Next())
 
 	// Test SizeHint
 	iter = iterator.FromBitSet(bitset)
@@ -1467,7 +1475,7 @@ func TestFromBitSetOnes(t *testing.T) {
 	// Test empty bit set
 	emptyBitset := &mockBitSet{bits: []byte{}}
 	emptyIter := iterator.FromBitSetOnes(emptyBitset)
-	assert.Equal(t, gust.None[int](), emptyIter.Next())
+	assert.Equal(t, option.None[int](), emptyIter.Next())
 }
 
 func TestFromBitSetZeros(t *testing.T) {
@@ -1481,7 +1489,7 @@ func TestFromBitSetZeros(t *testing.T) {
 	// Test with all bits set: 0b11111111
 	allSetBitset := &mockBitSet{bits: []byte{0b11111111}}
 	allSetIter := iterator.FromBitSetZeros(allSetBitset)
-	assert.Equal(t, gust.None[int](), allSetIter.Next())
+	assert.Equal(t, option.None[int](), allSetIter.Next())
 
 	// Test with no bits set: 0b00000000
 	noSetBitset := &mockBitSet{bits: []byte{0b00000000}}
@@ -1496,37 +1504,37 @@ func TestFromBitSetBytes(t *testing.T) {
 	iter := iterator.FromBitSetBytes(bytes)
 
 	// Check first few bits
-	pair := iter.Next()
-	assert.True(t, pair.IsSome())
-	assert.Equal(t, 0, pair.Unwrap().A)
-	assert.Equal(t, true, pair.Unwrap().B)
+	p := iter.Next()
+	assert.True(t, p.IsSome())
+	assert.Equal(t, 0, p.Unwrap().A)
+	assert.Equal(t, true, p.Unwrap().B)
 
-	pair = iter.Next()
-	assert.True(t, pair.IsSome())
-	assert.Equal(t, 1, pair.Unwrap().A)
-	assert.Equal(t, false, pair.Unwrap().B)
+	p = iter.Next()
+	assert.True(t, p.IsSome())
+	assert.Equal(t, 1, p.Unwrap().A)
+	assert.Equal(t, false, p.Unwrap().B)
 
 	// Collect all pairs
 	iter = iterator.FromBitSetBytes(bytes)
 	allPairs := iter.Collect()
 	assert.Len(t, allPairs, 8)
-	assert.Equal(t, gust.Pair[int, bool]{A: 0, B: true}, allPairs[0])
-	assert.Equal(t, gust.Pair[int, bool]{A: 7, B: false}, allPairs[7])
+	assert.Equal(t, pair.Pair[int, bool]{A: 0, B: true}, allPairs[0])
+	assert.Equal(t, pair.Pair[int, bool]{A: 7, B: false}, allPairs[7])
 
 	// Test with multiple bytes
 	bytes2 := []byte{0b10101010, 0b11001100}
 	iter2 := iterator.FromBitSetBytes(bytes2)
 	allPairs2 := iter2.Collect()
 	assert.Len(t, allPairs2, 16)
-	assert.Equal(t, gust.Pair[int, bool]{A: 0, B: true}, allPairs2[0])    // First byte, MSB
-	assert.Equal(t, gust.Pair[int, bool]{A: 7, B: false}, allPairs2[7])   // First byte, LSB
-	assert.Equal(t, gust.Pair[int, bool]{A: 8, B: true}, allPairs2[8])    // Second byte, MSB
-	assert.Equal(t, gust.Pair[int, bool]{A: 15, B: false}, allPairs2[15]) // Second byte, LSB
+	assert.Equal(t, pair.Pair[int, bool]{A: 0, B: true}, allPairs2[0])    // First byte, MSB
+	assert.Equal(t, pair.Pair[int, bool]{A: 7, B: false}, allPairs2[7])   // First byte, LSB
+	assert.Equal(t, pair.Pair[int, bool]{A: 8, B: true}, allPairs2[8])    // Second byte, MSB
+	assert.Equal(t, pair.Pair[int, bool]{A: 15, B: false}, allPairs2[15]) // Second byte, LSB
 
 	// Test empty bytes
 	emptyBytes := []byte{}
 	emptyIter := iterator.FromBitSetBytes(emptyBytes)
-	assert.Equal(t, gust.None[gust.Pair[int, bool]](), emptyIter.Next())
+	assert.Equal(t, option.None[pair.Pair[int, bool]](), emptyIter.Next())
 
 	// Test SizeHint
 	iter = iterator.FromBitSetBytes(bytes)
@@ -1555,7 +1563,7 @@ func TestFromBitSetBytesOnes(t *testing.T) {
 	// Test empty bytes
 	emptyBytes := []byte{}
 	emptyIter := iterator.FromBitSetBytesOnes(emptyBytes)
-	assert.Equal(t, gust.None[int](), emptyIter.Next())
+	assert.Equal(t, option.None[int](), emptyIter.Next())
 
 	// Test with all bits set
 	allSetBytes := []byte{0b11111111}
@@ -1575,7 +1583,7 @@ func TestFromBitSetBytesZeros(t *testing.T) {
 	// Test with all bits set: 0b11111111
 	allSetBytes := []byte{0b11111111}
 	allSetIter := iterator.FromBitSetBytesZeros(allSetBytes)
-	assert.Equal(t, gust.None[int](), allSetIter.Next())
+	assert.Equal(t, option.None[int](), allSetIter.Next())
 
 	// Test with no bits set: 0b00000000
 	noSetBytes := []byte{0b00000000}
@@ -1586,7 +1594,7 @@ func TestFromBitSetBytesZeros(t *testing.T) {
 	// Test empty bytes
 	emptyBytes := []byte{}
 	emptyIter := iterator.FromBitSetBytesZeros(emptyBytes)
-	assert.Equal(t, gust.None[int](), emptyIter.Next())
+	assert.Equal(t, option.None[int](), emptyIter.Next())
 }
 
 func TestBitSetIteratorChaining(t *testing.T) {

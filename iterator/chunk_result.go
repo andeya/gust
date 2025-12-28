@@ -1,13 +1,14 @@
 package iterator
 
 import (
-	"github.com/andeya/gust"
+	"github.com/andeya/gust/errutil"
+	"github.com/andeya/gust/option"
 )
 
 // ChunkResult represents a success (T) or failure (T) for NextChunk.
 // This is used when the error type is the same as the success type (e.g., []T).
 type ChunkResult[T any] struct {
-	t gust.Option[T]
+	t option.Option[T]
 	e *T
 }
 
@@ -15,7 +16,7 @@ type ChunkResult[T any] struct {
 //
 //go:inline
 func chunkOk[T any](ok T) ChunkResult[T] {
-	return ChunkResult[T]{t: gust.Some(ok)}
+	return ChunkResult[T]{t: option.Some(ok)}
 }
 
 // chunkErr wraps a failure chunk result.
@@ -60,7 +61,7 @@ func (r ChunkResult[T]) safeGetE() T {
 // Unwrap returns the contained T value.
 func (r ChunkResult[T]) Unwrap() T {
 	if r.IsErr() {
-		panic(gust.BoxErr(r.safeGetE()))
+		panic(errutil.BoxErr(r.safeGetE()))
 	}
 	return r.safeGetT()
 }
@@ -70,5 +71,5 @@ func (r ChunkResult[T]) UnwrapErr() T {
 	if r.IsErr() {
 		return r.safeGetE()
 	}
-	panic(gust.BoxErr(gust.Some(r.safeGetT())))
+	panic(errutil.BoxErr(option.Some(r.safeGetT())))
 }

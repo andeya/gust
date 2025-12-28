@@ -2,16 +2,29 @@
 package vec
 
 import (
-	"github.com/andeya/gust"
 	"github.com/andeya/gust/conv"
+	"github.com/andeya/gust/option"
 )
 
-// Get returns the gust.Option[T] at the specified index.
-func Get[T any](s []T, index int) gust.Option[T] {
+// VecEntry is an index-element entry of slice or array.
+type VecEntry[T any] struct {
+	Index int
+	Elem  T
+}
+
+// Split splits the vector entry into its two components.
+//
+//go:inline
+func (v VecEntry[T]) Split() (int, T) {
+	return v.Index, v.Elem
+}
+
+// Get returns the option.Option[T] at the specified index.
+func Get[T any](s []T, index int) option.Option[T] {
 	if index >= 0 && len(s) > index {
-		return gust.Some(s[index])
+		return option.Some(s[index])
 	}
-	return gust.None[T]()
+	return option.None[T]()
 }
 
 // One try to return the first element, otherwise return zero value.
@@ -96,13 +109,13 @@ func Some[T any](s []T, fn func(k int, v T) bool) bool {
 }
 
 // Find returns the key-value of the first element in the provided slice that satisfies the provided testing function.
-func Find[T any](s []T, fn func(k int, v T) bool) gust.Option[gust.VecEntry[T]] {
+func Find[T any](s []T, fn func(k int, v T) bool) option.Option[VecEntry[T]] {
 	for k, v := range s {
 		if fn(k, v) {
-			return gust.Some(gust.VecEntry[T]{Index: k, Elem: v})
+			return option.Some(VecEntry[T]{Index: k, Elem: v})
 		}
 	}
-	return gust.None[gust.VecEntry[T]]()
+	return option.None[VecEntry[T]]()
 }
 
 // Includes determines whether a slice includes a certain value among its entries.
@@ -177,7 +190,7 @@ func Filter[T any](s []T, fn func(k int, v T) bool) []T {
 }
 
 // FilterMap returns a filtered and mapped slice of new elements.
-func FilterMap[T any, U any](s []T, fn func(k int, v T) gust.Option[U]) []U {
+func FilterMap[T any, U any](s []T, fn func(k int, v T) option.Option[U]) []U {
 	ret := make([]U, 0)
 	for k, v := range s {
 		fn(k, v).Inspect(func(u U) {
@@ -215,16 +228,16 @@ func MapAlone[T any, U any](s []T, mapping func(v T) U) []U {
 
 // Pop removes the last element from a slice and returns that element.
 // This method changes the length of the slice.
-func Pop[T any](s *[]T) gust.Option[T] {
+func Pop[T any](s *[]T) option.Option[T] {
 	a := *s
 	if len(a) == 0 {
-		return gust.None[T]()
+		return option.None[T]()
 	}
 	lastIndex := len(a) - 1
 	last := a[lastIndex]
 	a = a[:lastIndex]
 	*s = a[:len(a):len(a)]
-	return gust.Some(last)
+	return option.Some(last)
 }
 
 // Push adds one or more elements to the end of a slice and returns the new length of the slice.
@@ -332,15 +345,15 @@ func Reverse[T any](s []T) {
 
 // Shift removes the first element from a slice and returns that removed element.
 // This method changes the length of the slice.
-func Shift[T any](s *[]T) gust.Option[T] {
+func Shift[T any](s *[]T) option.Option[T] {
 	a := *s
 	if len(a) == 0 {
-		return gust.None[T]()
+		return option.None[T]()
 	}
 	first := a[0]
 	a = a[1:]
 	*s = a[:len(a):len(a)]
-	return gust.Some(first)
+	return option.Some(first)
 }
 
 // Slice returns a copy of a portion of a slice into a new slice object selected
@@ -548,12 +561,12 @@ func vecDistinct[T comparable](src []T, dst *[]T) map[T]int {
 // DistinctBy deduplication in place according to the mapping function
 func DistinctBy[T any, U comparable](s *[]T, toComparable func(k int, v T) U, whoToKeep ...func(a, b T) T) {
 	a := (*s)[:0]
-	m := make(map[U]gust.VecEntry[T], len(*s))
+	m := make(map[U]VecEntry[T], len(*s))
 	for k, v := range *s {
 		x := toComparable(k, v)
 		entry, ok := m[x]
 		if !ok {
-			m[x] = gust.VecEntry[T]{Index: len(a), Elem: v}
+			m[x] = VecEntry[T]{Index: len(a), Elem: v}
 			a = append(a, v)
 			continue
 		}

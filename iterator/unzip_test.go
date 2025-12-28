@@ -3,13 +3,13 @@ package iterator_test
 import (
 	"testing"
 
-	"github.com/andeya/gust"
 	"github.com/andeya/gust/iterator"
+	"github.com/andeya/gust/pair"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestUnzip(t *testing.T) {
-	a := []gust.Pair[int, string]{
+	a := []pair.Pair[int, string]{
 		{A: 1, B: "a"},
 		{A: 2, B: "b"},
 		{A: 3, B: "c"},

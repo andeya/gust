@@ -4,7 +4,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/andeya/gust"
+	"github.com/andeya/gust/result"
 )
 
 // LazyValue a value that can be lazily initialized once and read concurrently.
@@ -16,8 +16,8 @@ type LazyValue[T any] struct {
 	// and fewer instructions (to calculate offset) on other architectures.
 	done     uint32
 	m        sync.Mutex
-	value    gust.Result[T]
-	onceInit func() gust.Result[T]
+	value    result.Result[T]
+	onceInit func() result.Result[T]
 }
 
 // NewLazyValue new empty LazyValue.
@@ -27,7 +27,7 @@ func NewLazyValue[T any]() *LazyValue[T] {
 
 // NewLazyValueWithFunc new LazyValue with initialization function.
 // The value will be computed lazily when TryGetValue() is called.
-func NewLazyValueWithFunc[T any](onceInit func() gust.Result[T]) *LazyValue[T] {
+func NewLazyValueWithFunc[T any](onceInit func() result.Result[T]) *LazyValue[T] {
 	return new(LazyValue[T]).SetInitFunc(onceInit)
 }
 
@@ -47,7 +47,7 @@ func NewLazyValueWithZero[T any]() *LazyValue[T] {
 // NOTE: onceInit can not be nil
 // If the LazyValue already has an initialization function set (even if not initialized yet),
 // this function will not override it.
-func (o *LazyValue[T]) SetInitFunc(onceInit func() gust.Result[T]) *LazyValue[T] {
+func (o *LazyValue[T]) SetInitFunc(onceInit func() result.Result[T]) *LazyValue[T] {
 	if o.IsInitialized() {
 		return o
 	}
@@ -63,8 +63,8 @@ func (o *LazyValue[T]) SetInitFunc(onceInit func() gust.Result[T]) *LazyValue[T]
 
 // SetInitValue set the initialization value.
 func (o *LazyValue[T]) SetInitValue(v T) *LazyValue[T] {
-	_ = o.SetInitFunc(func() gust.Result[T] {
-		return gust.Ok(v)
+	_ = o.SetInitFunc(func() result.Result[T] {
+		return result.Ok(v)
 	})
 	return o
 }
@@ -92,14 +92,14 @@ func (o *LazyValue[T]) markInit() {
 const ErrLazyValueWithoutInit = "*syncutil.LazyValue[T]: onceInit function is nil"
 
 // TryGetValue concurrency-safe get the Result[T].
-func (o *LazyValue[T]) TryGetValue() gust.Result[T] {
+func (o *LazyValue[T]) TryGetValue() result.Result[T] {
 	if !o.IsInitialized() {
 		o.m.Lock()
 		defer o.m.Unlock()
 		if o.done == 0 {
 			defer o.markInit()
 			if o.onceInit == nil {
-				o.value = gust.TryErr[T](ErrLazyValueWithoutInit)
+				o.value = result.TryErr[T](ErrLazyValueWithoutInit)
 			} else {
 				o.value = o.onceInit()
 			}

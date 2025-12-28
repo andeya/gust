@@ -1,8 +1,8 @@
 package iterator
 
 import (
-	"github.com/andeya/gust"
 	"github.com/andeya/gust/constraints"
+	"github.com/andeya/gust/option"
 )
 
 // Cmp lexicographically compares the elements of this Iterator with those
@@ -78,28 +78,28 @@ func CmpBy[T any, U any](a Iterator[T], b Iterator[U], cmp func(T, U) int) const
 // # Examples
 //
 //	var result = PartialCmp(FromSlice([]float64{1.0}), FromSlice([]float64{1.0}))
-//	assert.Equal(t, gust.Some(constraints.Equal()), result)
+//	assert.Equal(t, option.Some(constraints.Equal()), result)
 //
 //	var result2 = PartialCmp(FromSlice([]float64{1.0}), FromSlice([]float64{1.0, 2.0}))
-//	assert.Equal(t, gust.Some(constraints.Less()), result2)
+//	assert.Equal(t, option.Some(constraints.Less()), result2)
 //
 //	// For floating-point numbers, NaN does not have a total order
 //	var nan = []float64{0.0 / 0.0}
 //	var result3 = PartialCmp(FromSlice(nan), FromSlice([]float64{1.0}))
-//	assert.Equal(t, gust.None[constraints.Ordering](), result3)
-func PartialCmp[T constraints.Digit](a Iterator[T], b Iterator[T]) gust.Option[constraints.Ordering] {
-	return PartialCmpBy(a, b, func(x, y T) gust.Option[constraints.Ordering] {
+//	assert.Equal(t, option.None[constraints.Ordering](), result3)
+func PartialCmp[T constraints.Digit](a Iterator[T], b Iterator[T]) option.Option[constraints.Ordering] {
+	return PartialCmpBy(a, b, func(x, y T) option.Option[constraints.Ordering] {
 		if x < y {
-			return gust.Some(constraints.Less())
+			return option.Some(constraints.Less())
 		}
 		if x > y {
-			return gust.Some(constraints.Greater())
+			return option.Some(constraints.Greater())
 		}
 		if x == y {
-			return gust.Some(constraints.Equal())
+			return option.Some(constraints.Equal())
 		}
 		// NaN case
-		return gust.None[constraints.Ordering]()
+		return option.None[constraints.Ordering]()
 	})
 }
 
@@ -110,34 +110,34 @@ func PartialCmp[T constraints.Digit](a Iterator[T], b Iterator[T]) gust.Option[c
 //
 //	var xs = []float64{1.0, 2.0, 3.0, 4.0}
 //	var ys = []float64{1.0, 4.0, 9.0, 16.0}
-//	var result = PartialCmpBy(FromSlice(xs), FromSlice(ys), func(x, y float64) gust.Option[constraints.Ordering] {
+//	var result = PartialCmpBy(FromSlice(xs), FromSlice(ys), func(x, y float64) option.Option[constraints.Ordering] {
 //		if x*x < y {
-//			return gust.Some(constraints.Less())
+//			return option.Some(constraints.Less())
 //		}
 //		if x*x > y {
-//			return gust.Some(constraints.Greater())
+//			return option.Some(constraints.Greater())
 //		}
-//		return gust.Some(constraints.Equal())
+//		return option.Some(constraints.Equal())
 //	})
-//	assert.Equal(t, gust.Some(constraints.Equal()), result)
-func PartialCmpBy[T any, U any](a Iterator[T], b Iterator[U], partialCmp func(T, U) gust.Option[constraints.Ordering]) gust.Option[constraints.Ordering] {
+//	assert.Equal(t, option.Some(constraints.Equal()), result)
+func PartialCmpBy[T any, U any](a Iterator[T], b Iterator[U], partialCmp func(T, U) option.Option[constraints.Ordering]) option.Option[constraints.Ordering] {
 	for {
 		itemA := a.Next()
 		itemB := b.Next()
 
 		if itemA.IsNone() && itemB.IsNone() {
-			return gust.Some(constraints.Equal())
+			return option.Some(constraints.Equal())
 		}
 		if itemA.IsNone() {
-			return gust.Some(constraints.Less())
+			return option.Some(constraints.Less())
 		}
 		if itemB.IsNone() {
-			return gust.Some(constraints.Greater())
+			return option.Some(constraints.Greater())
 		}
 
 		result := partialCmp(itemA.Unwrap(), itemB.Unwrap())
 		if result.IsNone() {
-			return gust.None[constraints.Ordering]()
+			return option.None[constraints.Ordering]()
 		}
 		ord := result.Unwrap()
 		if !ord.IsEqual() {

@@ -4,8 +4,8 @@ import (
 	"iter"
 	"testing"
 
-	"github.com/andeya/gust"
 	"github.com/andeya/gust/iterator"
+	"github.com/andeya/gust/pair"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -189,11 +189,11 @@ func TestSeq2(t *testing.T) {
 	iter2 := iterator.FromSlice([]string{"a", "b", "c"})
 	zipped := iterator.Zip(iter1, iter2)
 
-	var result []gust.Pair[int, string]
+	var result []pair.Pair[int, string]
 	for k, v := range iterator.Seq2(zipped) {
-		result = append(result, gust.Pair[int, string]{A: k, B: v})
+		result = append(result, pair.Pair[int, string]{A: k, B: v})
 	}
-	assert.Equal(t, []gust.Pair[int, string]{
+	assert.Equal(t, []pair.Pair[int, string]{
 		{A: 1, B: "a"},
 		{A: 2, B: "b"},
 		{A: 3, B: "c"},
@@ -201,11 +201,11 @@ func TestSeq2(t *testing.T) {
 
 	// Test with Enumerate iterator
 	enumerated := iterator.Enumerate(iterator.FromSlice([]string{"x", "y", "z"}))
-	var enumResult []gust.Pair[uint, string]
+	var enumResult []pair.Pair[uint, string]
 	for idx, val := range iterator.Seq2(enumerated) {
-		enumResult = append(enumResult, gust.Pair[uint, string]{A: idx, B: val})
+		enumResult = append(enumResult, pair.Pair[uint, string]{A: idx, B: val})
 	}
-	assert.Equal(t, []gust.Pair[uint, string]{
+	assert.Equal(t, []pair.Pair[uint, string]{
 		{A: 0, B: "x"},
 		{A: 1, B: "y"},
 		{A: 2, B: "z"},
@@ -213,9 +213,9 @@ func TestSeq2(t *testing.T) {
 
 	// Test with empty iterator
 	empty := iterator.Zip(iterator.Empty[int](), iterator.Empty[string]())
-	var emptyResult []gust.Pair[int, string]
+	var emptyResult []pair.Pair[int, string]
 	for k, v := range iterator.Seq2(empty) {
-		emptyResult = append(emptyResult, gust.Pair[int, string]{A: k, B: v})
+		emptyResult = append(emptyResult, pair.Pair[int, string]{A: k, B: v})
 	}
 	assert.Nil(t, emptyResult)
 	assert.Len(t, emptyResult, 0)
@@ -224,16 +224,16 @@ func TestSeq2(t *testing.T) {
 	iter1 = iterator.FromSlice([]int{1, 2, 3, 4, 5})
 	iter2 = iterator.FromSlice([]string{"a", "b", "c", "d", "e"})
 	zipped = iterator.Zip(iter1, iter2)
-	var earlyResult []gust.Pair[int, string]
+	var earlyResult []pair.Pair[int, string]
 	count := 0
 	for k, v := range iterator.Seq2(zipped) {
-		earlyResult = append(earlyResult, gust.Pair[int, string]{A: k, B: v})
+		earlyResult = append(earlyResult, pair.Pair[int, string]{A: k, B: v})
 		count++
 		if count >= 2 {
 			break
 		}
 	}
-	assert.Equal(t, []gust.Pair[int, string]{
+	assert.Equal(t, []pair.Pair[int, string]{
 		{A: 1, B: "a"},
 		{A: 2, B: "b"},
 	}, earlyResult)
@@ -252,7 +252,7 @@ func TestFromSeq2(t *testing.T) {
 	gustIter, deferStop := iterator.FromSeq2(seq2)
 	defer deferStop()
 
-	var result []gust.Pair[string, int]
+	var result []pair.Pair[string, int]
 	for {
 		opt := gustIter.Next()
 		if opt.IsNone() {
@@ -284,10 +284,10 @@ func TestFromSeq2(t *testing.T) {
 			}
 		}
 	}
-	var customIter iterator.Iterator[gust.Pair[int, string]]
+	var customIter iterator.Iterator[pair.Pair[int, string]]
 	customIter, deferStop = iterator.FromSeq2(customSeq2)
 	defer deferStop()
-	var customResult []gust.Pair[int, string]
+	var customResult []pair.Pair[int, string]
 	for {
 		opt := customIter.Next()
 		if opt.IsNone() {
@@ -295,7 +295,7 @@ func TestFromSeq2(t *testing.T) {
 		}
 		customResult = append(customResult, opt.Unwrap())
 	}
-	assert.Equal(t, []gust.Pair[int, string]{
+	assert.Equal(t, []pair.Pair[int, string]{
 		{A: 0, B: "a"},
 		{A: 1, B: "b"},
 		{A: 2, B: "c"},
@@ -309,18 +309,18 @@ func TestFromSeq2(t *testing.T) {
 			}
 		}
 	}
-	var chainIter iterator.Iterator[gust.Pair[int, int]]
+	var chainIter iterator.Iterator[pair.Pair[int, int]]
 	chainIter, deferStop = iterator.FromSeq2(seq2Chain)
 	defer deferStop()
 	// Filter pairs where value > 3
 	// Sequence: (0,0), (1,2), (2,4), (3,6), (4,8)
 	// Filter p.B > 3: (2,4), (3,6), (4,8) = 3 items
-	filtered := chainIter.Filter(func(p gust.Pair[int, int]) bool {
+	filtered := chainIter.Filter(func(p pair.Pair[int, int]) bool {
 		return p.B > 3
 	})
 	chainResult := filtered.Collect()
 	assert.Len(t, chainResult, 3)
-	assert.Equal(t, []gust.Pair[int, int]{
+	assert.Equal(t, []pair.Pair[int, int]{
 		{A: 2, B: 4},
 		{A: 3, B: 6},
 		{A: 4, B: 8},
@@ -343,7 +343,7 @@ func TestSeq2_RoundTrip(t *testing.T) {
 	defer deferStop()
 
 	// Get expected result from independent iterator
-	var expectedResult []gust.Pair[int, string]
+	var expectedResult []pair.Pair[int, string]
 	for {
 		opt := originalForExpected.Next()
 		if opt.IsNone() {
@@ -353,7 +353,7 @@ func TestSeq2_RoundTrip(t *testing.T) {
 	}
 
 	// Get actual result from converted iterator
-	var convertedResult []gust.Pair[int, string]
+	var convertedResult []pair.Pair[int, string]
 	for {
 		opt := converted.Next()
 		if opt.IsNone() {
@@ -376,16 +376,16 @@ func TestSeq2_WithGoStandardLibrary(t *testing.T) {
 	next, stop := iter.Pull2(seq2)
 	defer stop()
 
-	var result []gust.Pair[int, string]
+	var result []pair.Pair[int, string]
 	for {
 		k, v, ok := next()
 		if !ok {
 			break
 		}
-		result = append(result, gust.Pair[int, string]{A: k, B: v})
+		result = append(result, pair.Pair[int, string]{A: k, B: v})
 	}
 
-	assert.Equal(t, []gust.Pair[int, string]{
+	assert.Equal(t, []pair.Pair[int, string]{
 		{A: 1, B: "a"},
 		{A: 2, B: "b"},
 		{A: 3, B: "c"},
@@ -467,16 +467,16 @@ func TestPull2(t *testing.T) {
 	next, stop := iterator.Pull2(zipped)
 	defer stop()
 
-	var result []gust.Pair[int, string]
+	var result []pair.Pair[int, string]
 	for {
 		k, v, ok := next()
 		if !ok {
 			break
 		}
-		result = append(result, gust.Pair[int, string]{A: k, B: v})
+		result = append(result, pair.Pair[int, string]{A: k, B: v})
 	}
 
-	assert.Equal(t, []gust.Pair[int, string]{
+	assert.Equal(t, []pair.Pair[int, string]{
 		{A: 1, B: "a"},
 		{A: 2, B: "b"},
 		{A: 3, B: "c"},
@@ -497,13 +497,13 @@ func TestPull2(t *testing.T) {
 		if !ok {
 			break
 		}
-		result = append(result, gust.Pair[int, string]{A: k, B: v})
+		result = append(result, pair.Pair[int, string]{A: k, B: v})
 		count++
 		if count >= 2 {
 			break // Early termination
 		}
 	}
-	assert.Equal(t, []gust.Pair[int, string]{
+	assert.Equal(t, []pair.Pair[int, string]{
 		{A: 1, B: "a"},
 		{A: 2, B: "b"},
 	}, result)
@@ -522,7 +522,7 @@ func TestPull2(t *testing.T) {
 		if !ok {
 			break
 		}
-		result = append(result, gust.Pair[int, string]{A: k, B: v})
+		result = append(result, pair.Pair[int, string]{A: k, B: v})
 	}
 	assert.Nil(t, result)
 	assert.Len(t, result, 0)
@@ -532,16 +532,16 @@ func TestPull2(t *testing.T) {
 	nextEnum, stopEnum := iterator.Pull2(enumerated)
 	defer stopEnum()
 
-	var enumResult []gust.Pair[uint, string]
+	var enumResult []pair.Pair[uint, string]
 	for {
 		idx, val, ok := nextEnum()
 		if !ok {
 			break
 		}
-		enumResult = append(enumResult, gust.Pair[uint, string]{A: idx, B: val})
+		enumResult = append(enumResult, pair.Pair[uint, string]{A: idx, B: val})
 	}
 
-	assert.Equal(t, []gust.Pair[uint, string]{
+	assert.Equal(t, []pair.Pair[uint, string]{
 		{A: 0, B: "x"},
 		{A: 1, B: "y"},
 		{A: 2, B: "z"},
@@ -551,11 +551,11 @@ func TestPull2(t *testing.T) {
 func TestIterator_Seq2(t *testing.T) {
 	// Test basic Seq2 conversion - converts Iterator[T] to iterator.Seq2[uint, T]
 	iter := iterator.FromSlice([]int{1, 2, 3})
-	var result []gust.Pair[uint, int]
+	var result []pair.Pair[uint, int]
 	for k, v := range iter.Seq2() {
-		result = append(result, gust.Pair[uint, int]{A: k, B: v})
+		result = append(result, pair.Pair[uint, int]{A: k, B: v})
 	}
-	assert.Equal(t, []gust.Pair[uint, int]{
+	assert.Equal(t, []pair.Pair[uint, int]{
 		{A: 0, B: 1},
 		{A: 1, B: 2},
 		{A: 2, B: 3},
@@ -563,11 +563,11 @@ func TestIterator_Seq2(t *testing.T) {
 
 	// Test with filtered iterator
 	filtered := iterator.FromSlice([]int{10, 20, 30, 40, 50}).Filter(func(x int) bool { return x > 20 })
-	var filteredResult []gust.Pair[uint, int]
+	var filteredResult []pair.Pair[uint, int]
 	for k, v := range filtered.Seq2() {
-		filteredResult = append(filteredResult, gust.Pair[uint, int]{A: k, B: v})
+		filteredResult = append(filteredResult, pair.Pair[uint, int]{A: k, B: v})
 	}
-	assert.Equal(t, []gust.Pair[uint, int]{
+	assert.Equal(t, []pair.Pair[uint, int]{
 		{A: 0, B: 30},
 		{A: 1, B: 40},
 		{A: 2, B: 50},
@@ -575,25 +575,25 @@ func TestIterator_Seq2(t *testing.T) {
 
 	// Test with empty iterator
 	empty := iterator.Empty[int]()
-	var emptyResult []gust.Pair[uint, int]
+	var emptyResult []pair.Pair[uint, int]
 	for k, v := range empty.Seq2() {
-		emptyResult = append(emptyResult, gust.Pair[uint, int]{A: k, B: v})
+		emptyResult = append(emptyResult, pair.Pair[uint, int]{A: k, B: v})
 	}
 	assert.Nil(t, emptyResult)
 	assert.Len(t, emptyResult, 0)
 
 	// Test early termination
 	iter = iterator.FromSlice([]int{1, 2, 3, 4, 5})
-	var earlyResult []gust.Pair[uint, int]
+	var earlyResult []pair.Pair[uint, int]
 	count := 0
 	for k, v := range iter.Seq2() {
-		earlyResult = append(earlyResult, gust.Pair[uint, int]{A: k, B: v})
+		earlyResult = append(earlyResult, pair.Pair[uint, int]{A: k, B: v})
 		count++
 		if count >= 3 {
 			break
 		}
 	}
-	assert.Equal(t, []gust.Pair[uint, int]{
+	assert.Equal(t, []pair.Pair[uint, int]{
 		{A: 0, B: 1},
 		{A: 1, B: 2},
 		{A: 2, B: 3},
@@ -601,11 +601,11 @@ func TestIterator_Seq2(t *testing.T) {
 
 	// Test with string iterator
 	strIter := iterator.FromSlice([]string{"hello", "world", "rust"})
-	var strResult []gust.Pair[uint, string]
+	var strResult []pair.Pair[uint, string]
 	for k, v := range strIter.Seq2() {
-		strResult = append(strResult, gust.Pair[uint, string]{A: k, B: v})
+		strResult = append(strResult, pair.Pair[uint, string]{A: k, B: v})
 	}
-	assert.Equal(t, []gust.Pair[uint, string]{
+	assert.Equal(t, []pair.Pair[uint, string]{
 		{A: 0, B: "hello"},
 		{A: 1, B: "world"},
 		{A: 2, B: "rust"},
@@ -618,15 +618,15 @@ func TestIterator_Pull2(t *testing.T) {
 	next, stop := iter.Pull2()
 	defer stop()
 
-	var result []gust.Pair[uint, int]
+	var result []pair.Pair[uint, int]
 	for {
 		k, v, ok := next()
 		if !ok {
 			break
 		}
-		result = append(result, gust.Pair[uint, int]{A: k, B: v})
+		result = append(result, pair.Pair[uint, int]{A: k, B: v})
 	}
-	assert.Equal(t, []gust.Pair[uint, int]{
+	assert.Equal(t, []pair.Pair[uint, int]{
 		{A: 0, B: 1},
 		{A: 1, B: 2},
 		{A: 2, B: 3},
@@ -645,12 +645,12 @@ func TestIterator_Pull2(t *testing.T) {
 		if !ok {
 			break
 		}
-		result = append(result, gust.Pair[uint, int]{A: k, B: v})
+		result = append(result, pair.Pair[uint, int]{A: k, B: v})
 		if v == 3 {
 			break // Early termination
 		}
 	}
-	assert.Equal(t, []gust.Pair[uint, int]{
+	assert.Equal(t, []pair.Pair[uint, int]{
 		{A: 0, B: 1},
 		{A: 1, B: 2},
 		{A: 2, B: 3},
@@ -667,7 +667,7 @@ func TestIterator_Pull2(t *testing.T) {
 		if !ok {
 			break
 		}
-		result = append(result, gust.Pair[uint, int]{A: k, B: v})
+		result = append(result, pair.Pair[uint, int]{A: k, B: v})
 	}
 	assert.Nil(t, result)
 	assert.Len(t, result, 0)
@@ -683,9 +683,9 @@ func TestIterator_Pull2(t *testing.T) {
 		if !ok {
 			break
 		}
-		result = append(result, gust.Pair[uint, int]{A: k, B: v})
+		result = append(result, pair.Pair[uint, int]{A: k, B: v})
 	}
-	assert.Equal(t, []gust.Pair[uint, int]{
+	assert.Equal(t, []pair.Pair[uint, int]{
 		{A: 0, B: 20},
 		{A: 1, B: 40},
 	}, result)
@@ -695,15 +695,15 @@ func TestIterator_Pull2(t *testing.T) {
 	nextStr, stopStr := strIter.Pull2()
 	defer stopStr()
 
-	var strResult []gust.Pair[uint, string]
+	var strResult []pair.Pair[uint, string]
 	for {
 		k, v, ok := nextStr()
 		if !ok {
 			break
 		}
-		strResult = append(strResult, gust.Pair[uint, string]{A: k, B: v})
+		strResult = append(strResult, pair.Pair[uint, string]{A: k, B: v})
 	}
-	assert.Equal(t, []gust.Pair[uint, string]{
+	assert.Equal(t, []pair.Pair[uint, string]{
 		{A: 0, B: "a"},
 		{A: 1, B: "b"},
 		{A: 2, B: "c"},
@@ -785,7 +785,7 @@ func TestFromPull(t *testing.T) {
 func TestFromPull2(t *testing.T) {
 	// Test with iterator.Pull2 result
 	seq2 := func(yield func(int, string) bool) {
-		pairs := []gust.Pair[int, string]{
+		pairs := []pair.Pair[int, string]{
 			{A: 1, B: "a"},
 			{A: 2, B: "b"},
 			{A: 3, B: "c"},
@@ -801,7 +801,7 @@ func TestFromPull2(t *testing.T) {
 
 	gustIter, deferStop := iterator.FromPull2(next, stop)
 	defer deferStop()
-	var result []gust.Pair[int, string]
+	var result []pair.Pair[int, string]
 	for {
 		opt := gustIter.Next()
 		if opt.IsNone() {
@@ -809,7 +809,7 @@ func TestFromPull2(t *testing.T) {
 		}
 		result = append(result, opt.Unwrap())
 	}
-	assert.Equal(t, []gust.Pair[int, string]{
+	assert.Equal(t, []pair.Pair[int, string]{
 		{A: 1, B: "a"},
 		{A: 2, B: "b"},
 		{A: 3, B: "c"},
@@ -838,7 +838,7 @@ func TestFromPull2(t *testing.T) {
 		}
 		result = append(result, opt.Unwrap())
 	}
-	assert.Equal(t, []gust.Pair[int, string]{
+	assert.Equal(t, []pair.Pair[int, string]{
 		{A: 0, B: "a"},
 		{A: 1, B: "b"},
 		{A: 2, B: "c"},
@@ -865,18 +865,18 @@ func TestFromPull2(t *testing.T) {
 	next2, stop2 := iter.Pull2(seq2Chain)
 	defer stop2()
 
-	var chainIter iterator.Iterator[gust.Pair[int, int]]
+	var chainIter iterator.Iterator[pair.Pair[int, int]]
 	chainIter, deferStop = iterator.FromPull2(next2, stop2)
 	defer deferStop()
 	// Filter pairs where value > 3
 	// Sequence: (0,0), (1,2), (2,4), (3,6), (4,8)
 	// Filter p.B > 3: (2,4), (3,6), (4,8) = 3 items
-	filtered := chainIter.Filter(func(p gust.Pair[int, int]) bool {
+	filtered := chainIter.Filter(func(p pair.Pair[int, int]) bool {
 		return p.B > 3
 	})
 	chainResult := filtered.Collect()
 	assert.Len(t, chainResult, 3)
-	assert.Equal(t, []gust.Pair[int, int]{
+	assert.Equal(t, []pair.Pair[int, int]{
 		{A: 2, B: 4},
 		{A: 3, B: 6},
 		{A: 4, B: 8},

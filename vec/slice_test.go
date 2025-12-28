@@ -4,16 +4,16 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/andeya/gust"
+	"github.com/andeya/gust/option"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGet(t *testing.T) {
 	slice := []string{"Dodo", "Tiger", "Penguin", "Dodo"}
 	val := Get(slice, 1)
-	assert.Equal(t, gust.Some("Tiger"), val)
-	assert.Equal(t, gust.None[string](), Get(slice, 10))
-	assert.Equal(t, gust.None[string](), Get(slice, -10))
+	assert.Equal(t, option.Some("Tiger"), val)
+	assert.Equal(t, option.None[string](), Get(slice, 10))
+	assert.Equal(t, option.None[string](), Get(slice, -10))
 }
 
 func TestDict(t *testing.T) {
@@ -85,11 +85,11 @@ func TestFilter(t *testing.T) {
 
 func TestFilterMap(t *testing.T) {
 	slice := []int8{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-	result := FilterMap[int8, uint](slice, func(k int, v int8) gust.Option[uint] {
+	result := FilterMap[int8, uint](slice, func(k int, v int8) option.Option[uint] {
 		if v > 6 {
-			return gust.Some(uint(v))
+			return option.Some(uint(v))
 		}
-		return gust.None[uint]()
+		return option.None[uint]()
 	})
 	assert.Equal(t, []uint{7, 8, 9, 10}, result)
 }
@@ -99,7 +99,7 @@ func TestFind(t *testing.T) {
 	entry := Find(slice, func(k int, v string) bool {
 		return len(v) > 6
 	})
-	assert.Equal(t, gust.Some(gust.VecEntry[string]{Index: 3, Elem: "exuberant"}), entry)
+	assert.Equal(t, option.Some(VecEntry[string]{Index: 3, Elem: "exuberant"}), entry)
 }
 
 func TestIncludes(t *testing.T) {
@@ -145,11 +145,11 @@ func TestMap(t *testing.T) {
 func TestPop(t *testing.T) {
 	slice := []string{"kale", "tomato"}
 	last := Pop(&slice)
-	assert.Equal(t, gust.Some("tomato"), last)
+	assert.Equal(t, option.Some("tomato"), last)
 	last = Pop(&slice)
-	assert.Equal(t, gust.Some("kale"), last)
+	assert.Equal(t, option.Some("kale"), last)
 	last = Pop(&slice)
-	assert.Equal(t, gust.None[string](), last)
+	assert.Equal(t, option.None[string](), last)
 }
 
 func TestPushDistinct(t *testing.T) {
@@ -191,11 +191,11 @@ func TestReverse(t *testing.T) {
 func TestShift(t *testing.T) {
 	slice := []string{"kale", "tomato"}
 	first := Shift(&slice)
-	assert.Equal(t, gust.Some("kale"), first)
+	assert.Equal(t, option.Some("kale"), first)
 	first = Pop(&slice)
-	assert.Equal(t, gust.Some("tomato"), first)
+	assert.Equal(t, option.Some("tomato"), first)
 	first = Pop(&slice)
-	assert.Equal(t, gust.None[string](), first)
+	assert.Equal(t, option.None[string](), first)
 }
 
 func TestSlice(t *testing.T) {

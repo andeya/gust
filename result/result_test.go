@@ -6,44 +6,43 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/andeya/gust"
 	"github.com/andeya/gust/result"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAssert(t *testing.T) {
-	r := gust.Ok[any]("hello")
-	assert.Equal(t, "gust.Result[string]", fmt.Sprintf("%T", result.Assert[any, string](r)))
+	r := result.Ok[any]("hello")
+	assert.Equal(t, "core.Result[string]", fmt.Sprintf("%T", result.Assert[any, string](r)))
 }
 
 func TestXAssert(t *testing.T) {
-	r := gust.Ok[any]("hello")
-	assert.Equal(t, "gust.Result[string]", fmt.Sprintf("%T", result.XAssert[string](r)))
+	r := result.Ok[any]("hello")
+	assert.Equal(t, "core.Result[string]", fmt.Sprintf("%T", result.XAssert[string](r)))
 }
 
 func TestResult_ContainsErr(t *testing.T) {
-	assert.False(t, gust.Ok(2).ContainsErr("Some error message"))
-	assert.True(t, result.Contains(gust.Ok(2), 2))
-	assert.False(t, result.Contains(gust.Ok(3), 2))
-	assert.False(t, result.Contains(gust.TryErr[int]("Some error message"), 2))
+	assert.False(t, result.Ok(2).ContainsErr("Some error message"))
+	assert.True(t, result.Contains(result.Ok(2), 2))
+	assert.False(t, result.Contains(result.Ok(3), 2))
+	assert.False(t, result.Contains(result.TryErr[int]("Some error message"), 2))
 }
 
 func TestResult_Contains(t *testing.T) {
-	assert.True(t, result.Contains(gust.Ok(2), 2))
-	assert.False(t, result.Contains(gust.Ok(3), 2))
-	assert.False(t, result.Contains(gust.TryErr[int]("Some error message"), 2))
+	assert.True(t, result.Contains(result.Ok(2), 2))
+	assert.False(t, result.Contains(result.Ok(3), 2))
+	assert.False(t, result.Contains(result.TryErr[int]("Some error message"), 2))
 }
 
 func TestResult_MapOrElse_1(t *testing.T) {
 	var k = 21
 	{
-		var x = gust.Ok("foo")
+		var x = result.Ok("foo")
 		assert.Equal(t, 3, result.MapOrElse(x, func(err error) int {
 			return k * 2
 		}, func(x string) int { return len(x) }))
 	}
 	{
-		var x = gust.TryErr[string]("bar")
+		var x = result.TryErr[string]("bar")
 		assert.Equal(t, 42, result.MapOrElse(x, func(err error) int {
 			return k * 2
 		}, func(x string) int { return len(x) }))
@@ -52,48 +51,48 @@ func TestResult_MapOrElse_1(t *testing.T) {
 
 func TestResult_MapOr_1(t *testing.T) {
 	{
-		var x = gust.Ok("foo")
+		var x = result.Ok("foo")
 		assert.Equal(t, 3, result.MapOr(x, 42, func(x string) int { return len(x) }))
 	}
 	{
-		var x = gust.TryErr[string]("foo")
+		var x = result.TryErr[string]("foo")
 		assert.Equal(t, 42, result.MapOr(x, 42, func(x string) int { return len(x) }))
 	}
 }
 
 func TestResult_Map_3(t *testing.T) {
-	var isMyNum = func(s string, search int) gust.Result[bool] {
-		return result.Map(gust.Ret(strconv.Atoi(s)), func(x int) bool { return x == search })
+	var isMyNum = func(s string, search int) result.Result[bool] {
+		return result.Map(result.Ret(strconv.Atoi(s)), func(x int) bool { return x == search })
 	}
-	assert.Equal(t, gust.Ok[bool](true), isMyNum("1", 1))
+	assert.Equal(t, result.Ok[bool](true), isMyNum("1", 1))
 	assert.Equal(t, "Err(strconv.Atoi: parsing \"lol\": invalid syntax)", isMyNum("lol", 1).String())
 	assert.Equal(t, "Err(strconv.Atoi: parsing \"NaN\": invalid syntax)", isMyNum("NaN", 1).String())
 }
 
 func TestAnd(t *testing.T) {
 	// Test with Ok and Ok
-	r1 := gust.Ok(2)
-	r2 := gust.Ok(3)
+	r1 := result.Ok(2)
+	r2 := result.Ok(3)
 	result1 := result.And(r1, r2)
 	assert.True(t, result1.IsOk())
 	assert.Equal(t, 3, result1.Unwrap())
 
 	// Test with Ok and Err
-	r3 := gust.Ok(2)
-	r4 := gust.TryErr[int]("error")
+	r3 := result.Ok(2)
+	r4 := result.TryErr[int]("error")
 	result2 := result.And(r3, r4)
 	assert.True(t, result2.IsErr())
 
 	// Test with Err and Ok
-	r5 := gust.TryErr[int]("error")
-	r6 := gust.Ok(3)
+	r5 := result.TryErr[int]("error")
+	r6 := result.Ok(3)
 	result3 := result.And(r5, r6)
 	assert.True(t, result3.IsErr())
 	assert.Equal(t, "error", result3.Err().Error())
 
 	// Test with Err and Err
-	r7 := gust.TryErr[int]("error1")
-	r8 := gust.TryErr[int]("error2")
+	r7 := result.TryErr[int]("error1")
+	r8 := result.TryErr[int]("error2")
 	result4 := result.And(r7, r8)
 	assert.True(t, result4.IsErr())
 	assert.Equal(t, "error1", result4.Err().Error())
@@ -101,24 +100,24 @@ func TestAnd(t *testing.T) {
 
 func TestAndThen(t *testing.T) {
 	// Test with Ok and successful operation
-	r1 := gust.Ok(2)
-	result1 := result.AndThen(r1, func(x int) gust.Result[int] {
-		return gust.Ok(x * 2)
+	r1 := result.Ok(2)
+	result1 := result.AndThen(r1, func(x int) result.Result[int] {
+		return result.Ok(x * 2)
 	})
 	assert.True(t, result1.IsOk())
 	assert.Equal(t, 4, result1.Unwrap())
 
 	// Test with Ok and error operation
-	r2 := gust.Ok(2)
-	result2 := result.AndThen(r2, func(x int) gust.Result[int] {
-		return gust.TryErr[int]("error")
+	r2 := result.Ok(2)
+	result2 := result.AndThen(r2, func(x int) result.Result[int] {
+		return result.TryErr[int]("error")
 	})
 	assert.True(t, result2.IsErr())
 
 	// Test with Err (should not call function)
-	r3 := gust.TryErr[int]("error")
-	result3 := result.AndThen(r3, func(x int) gust.Result[int] {
-		return gust.Ok(x * 2)
+	r3 := result.TryErr[int]("error")
+	result3 := result.AndThen(r3, func(x int) result.Result[int] {
+		return result.Ok(x * 2)
 	})
 	assert.True(t, result3.IsErr())
 	assert.Equal(t, "error", result3.Err().Error())
@@ -127,39 +126,39 @@ func TestAndThen(t *testing.T) {
 func TestFlatten(t *testing.T) {
 	// Test with Ok(Ok(value)) - matches documentation example
 	{
-		r1 := gust.Ok(gust.Ok(1))
+		r1 := result.Ok(result.Ok(1))
 		result1 := result.Flatten(r1)
-		assert.Equal(t, gust.Ok[int](1), result1)
+		assert.Equal(t, result.Ok[int](1), result1)
 	}
 	// Test with Ok(Err(error)) - matches documentation example
 	{
-		r2 := gust.Ok(gust.TryErr[int](errors.New("error")))
+		r2 := result.Ok(result.TryErr[int](errors.New("error")))
 		result2 := result.Flatten(r2)
 		assert.Equal(t, "error", result2.Err().Error())
 	}
 	// Test with Err - matches documentation example
 	{
-		r3 := gust.TryErr[gust.Result[int]](errors.New("error"))
+		r3 := result.TryErr[result.Result[int]](errors.New("error"))
 		result3 := result.Flatten(r3)
 		assert.Equal(t, "error", result3.Err().Error())
 	}
 	// Additional test with Ok(Ok(value)) using different value
 	{
-		r1 := gust.Ok(gust.Ok(42))
+		r1 := result.Ok(result.Ok(42))
 		result1 := result.Flatten(r1)
 		assert.True(t, result1.IsOk())
 		assert.Equal(t, 42, result1.Unwrap())
 	}
 	// Additional test with Ok(Err(error)) using string error
 	{
-		r2 := gust.Ok(gust.TryErr[int]("error"))
+		r2 := result.Ok(result.TryErr[int]("error"))
 		result2 := result.Flatten(r2)
 		assert.True(t, result2.IsErr())
 		assert.Equal(t, "error", result2.Err().Error())
 	}
 	// Additional test with Err using string error
 	{
-		r3 := gust.TryErr[gust.Result[int]]("outer error")
+		r3 := result.TryErr[result.Result[int]]("outer error")
 		result3 := result.Flatten(r3)
 		assert.True(t, result3.IsErr())
 		assert.Equal(t, "outer error", result3.Err().Error())
@@ -169,49 +168,49 @@ func TestFlatten(t *testing.T) {
 func TestFlatten2(t *testing.T) {
 	// Test with Ok result and nil error - matches documentation example
 	{
-		r1 := gust.Ok(1)
+		r1 := result.Ok(1)
 		var err1 error = nil
 		result1 := result.Flatten2(r1, err1)
-		assert.Equal(t, gust.Ok[int](1), result1)
+		assert.Equal(t, result.Ok[int](1), result1)
 	}
 	// Test with Ok result and error - matches documentation example
 	{
-		r2 := gust.Ok(1)
+		r2 := result.Ok(1)
 		err2 := errors.New("error")
 		result2 := result.Flatten2(r2, err2)
 		assert.Equal(t, "error", result2.Err().Error())
 	}
 	// Test with Err result and nil error - matches documentation example
 	{
-		r3 := gust.TryErr[int](errors.New("error"))
+		r3 := result.TryErr[int](errors.New("error"))
 		var err3 error = nil
 		result3 := result.Flatten2(r3, err3)
 		assert.Equal(t, "error", result3.Err().Error())
 	}
 	// Additional test with Ok result and nil error using different value
 	{
-		r := gust.Ok(42)
+		r := result.Ok(42)
 		result := result.Flatten2(r, nil)
 		assert.True(t, result.IsOk())
 		assert.Equal(t, 42, result.Unwrap())
 	}
 	// Additional test with Ok result and error
 	{
-		r := gust.Ok(42)
+		r := result.Ok(42)
 		result := result.Flatten2(r, errors.New("test error"))
 		assert.True(t, result.IsErr())
 		assert.Equal(t, "test error", result.Err().Error())
 	}
 	// Additional test with Err result and nil error
 	{
-		r := gust.TryErr[int]("original error")
+		r := result.TryErr[int]("original error")
 		result := result.Flatten2(r, nil)
 		assert.True(t, result.IsErr())
 		assert.Equal(t, "original error", result.Err().Error())
 	}
 	// Additional test with Err result and error (error parameter takes precedence)
 	{
-		r := gust.TryErr[int]("original error")
+		r := result.TryErr[int]("original error")
 		result := result.Flatten2(r, errors.New("new error"))
 		assert.True(t, result.IsErr())
 		assert.Equal(t, "new error", result.Err().Error())
@@ -220,7 +219,7 @@ func TestFlatten2(t *testing.T) {
 
 func TestAssert_TypeAssertionError(t *testing.T) {
 	// Test Assert with type assertion error
-	r1 := gust.Ok[any](42)
+	r1 := result.Ok[any](42)
 	result1 := result.Assert[any, string](r1)
 	assert.True(t, result1.IsErr())
 	assert.Contains(t, result1.Err().Error(), "type assert error")
@@ -228,7 +227,7 @@ func TestAssert_TypeAssertionError(t *testing.T) {
 
 func TestXAssert_TypeAssertionError(t *testing.T) {
 	// Test XAssert with type assertion error
-	r1 := gust.Ok[any](42)
+	r1 := result.Ok[any](42)
 	result1 := result.XAssert[string](r1)
 	assert.True(t, result1.IsErr())
 	assert.Contains(t, result1.Err().Error(), "type assert error")
@@ -413,7 +412,7 @@ func TestAnd2(t *testing.T) {
 func TestAndThen2(t *testing.T) {
 	// Test with Ok result and successful operation
 	{
-		r := gust.Ok(2)
+		r := result.Ok(2)
 		result := result.AndThen2(r, func(x int) (int, error) {
 			return x * 2, nil
 		})
@@ -422,7 +421,7 @@ func TestAndThen2(t *testing.T) {
 	}
 	// Test with Ok result and error operation
 	{
-		r := gust.Ok(2)
+		r := result.Ok(2)
 		result := result.AndThen2(r, func(x int) (int, error) {
 			return 0, errors.New("operation error")
 		})
@@ -431,7 +430,7 @@ func TestAndThen2(t *testing.T) {
 	}
 	// Test with Err result (should return original error)
 	{
-		r := gust.TryErr[int]("early error")
+		r := result.TryErr[int]("early error")
 		result := result.AndThen2(r, func(x int) (int, error) {
 			return x * 2, nil
 		})
@@ -440,7 +439,7 @@ func TestAndThen2(t *testing.T) {
 	}
 	// Test with type conversion
 	{
-		r := gust.Ok(2)
+		r := result.Ok(2)
 		result := result.AndThen2(r, func(x int) (string, error) {
 			return fmt.Sprintf("%d", x), nil
 		})
@@ -507,4 +506,72 @@ func TestContains2(t *testing.T) {
 		res2 := result.Contains2("hello", nil, "world")
 		assert.False(t, res2)
 	}
+}
+
+func TestResult_RetVoid(t *testing.T) {
+	// Test RetVoid with nil error
+	r1 := result.RetVoid(nil)
+	assert.True(t, r1.IsOk())
+
+	// Test RetVoid with error
+	err := errors.New("test error")
+	r2 := result.RetVoid(err)
+	assert.True(t, r2.IsErr())
+	assert.Equal(t, "test error", r2.Err().Error())
+}
+
+func TestResult_OkVoid(t *testing.T) {
+	// Test OkVoid
+	r := result.OkVoid()
+	assert.True(t, r.IsOk())
+	assert.False(t, r.IsErr())
+}
+
+func TestResult_TryErrVoid(t *testing.T) {
+	// Test TryErrVoid with nil error
+	r1 := result.TryErrVoid(nil)
+	assert.True(t, r1.IsOk())
+
+	// Test TryErrVoid with error
+	err := errors.New("test error")
+	r2 := result.TryErrVoid(err)
+	assert.True(t, r2.IsErr())
+	assert.Equal(t, "test error", r2.Err().Error())
+}
+
+func TestResult_FmtErr(t *testing.T) {
+	// Test FmtErr with format string
+	r1 := result.FmtErr[int]("error: %s", "test")
+	assert.True(t, r1.IsErr())
+	assert.Contains(t, r1.Err().Error(), "error: test")
+
+	// Test FmtErr with multiple arguments
+	r2 := result.FmtErr[string]("error: %d %s", 42, "test")
+	assert.True(t, r2.IsErr())
+	assert.Contains(t, r2.Err().Error(), "error: 42 test")
+}
+
+func TestResult_Ret(t *testing.T) {
+	// Test Ret with nil error
+	r1 := result.Ret(42, nil)
+	assert.True(t, r1.IsOk())
+	assert.Equal(t, 42, r1.Unwrap())
+
+	// Test Ret with error
+	err := errors.New("test error")
+	r2 := result.Ret(42, err)
+	assert.True(t, r2.IsErr())
+	assert.Equal(t, "test error", r2.Err().Error())
+}
+
+func TestResult_AssertRet(t *testing.T) {
+	// Test AssertRet with valid type
+	r1 := result.AssertRet[int](42)
+	assert.True(t, r1.IsOk())
+	assert.Equal(t, 42, r1.Unwrap())
+
+	// Test AssertRet with invalid type
+	r2 := result.AssertRet[int]("string")
+	assert.True(t, r2.IsErr())
+	assert.Contains(t, r2.Err().Error(), "type assert error")
 }

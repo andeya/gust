@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/andeya/gust"
 	"github.com/andeya/gust/iterator"
+	"github.com/andeya/gust/option"
+	"github.com/andeya/gust/pair"
 	"github.com/andeya/gust/vec"
 )
 
@@ -67,8 +68,8 @@ func ExampleEnumerate() {
 			Filter(func(s string) bool { return len(s) > 2 }).
 			XMap(func(s string) any { return len(s) }),
 	)
-	// Enumerate returns Iterator[gust.Pair[uint, any]], so we need to use Map with proper type
-	result := iterator.Map(enumerated, func(p gust.Pair[uint, any]) string {
+	// Enumerate returns Iterator[pair.Pair[uint, any]], so we need to use Map with proper type
+	result := iterator.Map(enumerated, func(p pair.Pair[uint, any]) string {
 		return fmt.Sprintf("%d: %d", p.A, p.B)
 	}).
 		Collect()
@@ -101,8 +102,8 @@ func ExampleFindMap() {
 	numbers := []string{"lol", "NaN", "2", "5"}
 
 	result := iterator.FromSlice(numbers).
-		XFilterMap(func(s string) gust.Option[any] {
-			return gust.RetAnyOpt[int](strconv.Atoi(s))
+		XFilterMap(func(s string) option.Option[any] {
+			return option.RetAnyOpt[int](strconv.Atoi(s))
 		}).
 		Take(1).
 		Collect()
@@ -183,4 +184,75 @@ func ExampleFromSeq() {
 
 	fmt.Println("Squares of numbers > 1:", result)
 	// Output: Squares of numbers > 1: [4 9 16]
+}
+
+// Example_iteratorConstructors demonstrates creating iterators from various sources.
+func Example_iteratorConstructors() {
+	// From slice
+	iter1 := iterator.FromSlice([]int{1, 2, 3})
+	fmt.Println("FromSlice:", iter1.Collect())
+
+	// From individual elements
+	iter2 := iterator.FromElements(1, 2, 3)
+	fmt.Println("FromElements:", iter2.Collect())
+
+	// From range [start, end)
+	iter3 := iterator.FromRange(0, 5) // 0, 1, 2, 3, 4
+	fmt.Println("FromRange:", iter3.Collect())
+
+	// From function
+	count := 0
+	iter4 := iterator.FromFunc(func() option.Option[int] {
+		if count < 3 {
+			count++
+			return option.Some(count)
+		}
+		return option.None[int]()
+	})
+	fmt.Println("FromFunc:", iter4.Collect())
+
+	// Empty iterator
+	iter5 := iterator.Empty[int]()
+	fmt.Println("Empty:", iter5.Collect())
+
+	// Single value
+	iter6 := iterator.Once(42)
+	fmt.Println("Once:", iter6.Collect())
+
+	// Infinite repeat (take first 3)
+	iter7 := iterator.Repeat("hello").Take(3)
+	fmt.Println("Repeat:", iter7.Collect())
+	// Output:
+	// FromSlice: [1 2 3]
+	// FromElements: [1 2 3]
+	// FromRange: [0 1 2 3 4]
+	// FromFunc: [1 2 3]
+	// Empty: []
+	// Once: [42]
+	// Repeat: [hello hello hello]
+}
+
+// Example_bitSetIteration demonstrates iterating over bits in bit sets or byte slices.
+func Example_bitSetIteration() {
+	// Iterate over bits in a byte slice
+	bytes := []byte{0b10101010, 0b11001100}
+
+	// Get all set bit offsets
+	setBits := iterator.FromBitSetBytesOnes(bytes).
+		Filter(func(offset int) bool { return offset > 5 }).
+		Collect()
+	fmt.Println("Set bits (offset > 5):", setBits)
+
+	// Count set bits
+	count := iterator.FromBitSetBytesOnes(bytes).Count()
+	fmt.Println("Total set bits:", count)
+
+	// Sum of offsets of set bits
+	sum := iterator.FromBitSetBytesOnes(bytes).
+		Fold(0, func(acc, offset int) int { return acc + offset })
+	fmt.Println("Sum of offsets:", sum)
+	// Output:
+	// Set bits (offset > 5): [6 8 9 12 13]
+	// Total set bits: 8
+	// Sum of offsets: 54
 }

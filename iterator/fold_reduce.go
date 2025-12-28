@@ -1,7 +1,7 @@
 package iterator
 
 import (
-	"github.com/andeya/gust"
+	"github.com/andeya/gust/option"
 )
 
 // Fold folds every element into an accumulator by applying an operation,
@@ -73,14 +73,14 @@ func foldImpl[T any, B any](iter Iterable[T], init B, f func(B, T) B) B {
 }
 
 //go:inline
-func reduceImpl[T any](iter Iterable[T], f func(T, T) T) gust.Option[T] {
+func reduceImpl[T any](iter Iterable[T], f func(T, T) T) option.Option[T] {
 	it := Iterator[T]{iterable: iter}
 	first := it.Next()
 	if first.IsNone() {
-		return gust.None[T]()
+		return option.None[T]()
 	}
 	result := Fold(Iterator[T]{iterable: iter}, first.Unwrap(), f)
-	return gust.Some(result)
+	return option.Some(result)
 }
 
 //go:inline

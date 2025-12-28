@@ -37,7 +37,6 @@ coverage-modular:
 	@rm -f coverage-tmp/*.out
 	@echo "Getting list of all packages (excluding scripts)..."
 	@${BIN} list ./... | grep -v '/scripts/' | grep -v 'scripts' | grep -v "^github.com/andeya/gust$$" > coverage-tmp/packages.txt || true
-	@echo "github.com/andeya/gust" >> coverage-tmp/packages.txt
 	@echo "Packages to test:"
 	@cat coverage-tmp/packages.txt
 	@echo "Running tests for each package separately (GOMAXPROCS=$(COVERAGE_MAXPROCS), parallel=$(COVERAGE_PARALLEL))..."

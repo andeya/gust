@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/andeya/gust"
 	"github.com/andeya/gust/constraints"
+	"github.com/andeya/gust/result"
 )
 
 // TryFromString converts ~string to digit.
@@ -16,8 +16,8 @@ import (
 // and base 10 otherwise. Also, for base == 0 only, underscore
 // characters are permitted per the Go integer literal syntax.
 // If base is below 0, is 1, or is above 62, an error is returned.
-func TryFromString[T ~string, D constraints.Digit](v T, base int, bitSize int) gust.Result[D] {
-	return gust.Ret[D](tryFromString[T, D](v, base, bitSize))
+func TryFromString[T ~string, D constraints.Digit](v T, base int, bitSize int) result.Result[D] {
+	return result.Ret[D](tryFromString[T, D](v, base, bitSize))
 }
 
 func tryFromString[T ~string, D constraints.Digit](v T, base int, bitSize int) (D, error) {
@@ -66,8 +66,8 @@ func tryFromString[T ~string, D constraints.Digit](v T, base int, bitSize int) (
 	return 0, nil
 }
 
-func TryFromStrings[T ~string, D constraints.Digit](a []T, base int, bitSize int) gust.Result[[]D] {
-	return gust.Ret(tryFromStrings[T, D](a, base, bitSize))
+func TryFromStrings[T ~string, D constraints.Digit](a []T, base int, bitSize int) result.Result[[]D] {
+	return result.Ret(tryFromStrings[T, D](a, base, bitSize))
 }
 
 func tryFromStrings[T ~string, D constraints.Digit](a []T, base int, bitSize int) (b []D, err error) {
@@ -112,8 +112,8 @@ func FromBools[T ~bool, D constraints.Digit](a []T) (b []D) {
 	return b
 }
 
-func As[T constraints.Digit, D constraints.Digit](v T) gust.Result[D] {
-	return gust.Ret(as[T, D](v))
+func As[T constraints.Digit, D constraints.Digit](v T) result.Result[D] {
+	return result.Ret(as[T, D](v))
 }
 
 func as[T constraints.Digit, D constraints.Digit](v T) (D, error) {

@@ -3,8 +3,8 @@ package iterator_test
 import (
 	"testing"
 
-	"github.com/andeya/gust"
 	"github.com/andeya/gust/iterator"
+	"github.com/andeya/gust/option"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -94,17 +94,17 @@ type nonDoubleEndedIterable struct {
 	index  int
 }
 
-func (n *nonDoubleEndedIterable) Next() gust.Option[int] {
+func (n *nonDoubleEndedIterable) Next() option.Option[int] {
 	if n.index >= len(n.values) {
-		return gust.None[int]()
+		return option.None[int]()
 	}
 	val := n.values[n.index]
 	n.index++
-	return gust.Some(val)
+	return option.Some(val)
 }
 
-func (n *nonDoubleEndedIterable) SizeHint() (uint, gust.Option[uint]) {
-	return 0, gust.None[uint]()
+func (n *nonDoubleEndedIterable) SizeHint() (uint, option.Option[uint]) {
+	return 0, option.None[uint]()
 }
 
 func TestMustToDoubleEnded_Panic(t *testing.T) {
@@ -112,7 +112,7 @@ func TestMustToDoubleEnded_Panic(t *testing.T) {
 	// Create a non-double-ended iterator using FromIterable
 	nonDE := &nonDoubleEndedIterable{values: []int{1, 2, 3}, index: 0}
 	var iterable iterator.Iterable[int] = nonDE
-	var gustIter gust.Iterable[int] = iterable
+	var gustIter iterator.Iterable[int] = iterable
 	iter := iterator.FromIterable(gustIter)
 
 	defer func() {
@@ -129,27 +129,27 @@ type customIterable struct {
 	index  int
 }
 
-func (c *customIterable) Next() gust.Option[int] {
+func (c *customIterable) Next() option.Option[int] {
 	if c.index >= len(c.values) {
-		return gust.None[int]()
+		return option.None[int]()
 	}
 	val := c.values[c.index]
 	c.index++
-	return gust.Some(val)
+	return option.Some(val)
 }
 
-func (c *customIterable) SizeHint() (uint, gust.Option[uint]) {
-	return 0, gust.None[uint]()
+func (c *customIterable) SizeHint() (uint, option.Option[uint]) {
+	return 0, option.None[uint]()
 }
 
 func TestFromIterable_IterablePath(t *testing.T) {
 	// Test FromIterable with Iterable[T] path (not Iterator[T])
 	custom := &customIterable{values: []int{10, 20, 30}, index: 0}
 	var iterable iterator.Iterable[int] = custom
-	var gustIter gust.Iterable[int] = iterable
+	var gustIter iterator.Iterable[int] = iterable
 	iter := iterator.FromIterable(gustIter)
-	assert.Equal(t, gust.Some(10), iter.Next())
-	assert.Equal(t, gust.Some(20), iter.Next())
-	assert.Equal(t, gust.Some(30), iter.Next())
-	assert.Equal(t, gust.None[int](), iter.Next())
+	assert.Equal(t, option.Some(10), iter.Next())
+	assert.Equal(t, option.Some(20), iter.Next())
+	assert.Equal(t, option.Some(30), iter.Next())
+	assert.Equal(t, option.None[int](), iter.Next())
 }

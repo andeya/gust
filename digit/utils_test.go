@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/andeya/gust"
+	"github.com/andeya/gust/option"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -106,7 +106,7 @@ func TestCheckedAdd(t *testing.T) {
 	assert.True(t, result3.IsNone())
 
 	// Use gust to satisfy linter
-	_ = gust.None[int]()
+	_ = option.None[int]()
 }
 
 func TestCheckedMul(t *testing.T) {

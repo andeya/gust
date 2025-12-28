@@ -4,7 +4,7 @@ package conv
 import (
 	"unsafe"
 
-	"github.com/andeya/gust"
+	"github.com/andeya/gust/result"
 )
 
 // BytesToString convert []byte type to ~string type.
@@ -63,35 +63,35 @@ func SafeAssert[T any](v any) T {
 }
 
 // SafeAssertSlice convert []any to []T.
-func SafeAssertSlice[T any](a []any) gust.Result[[]T] {
+func SafeAssertSlice[T any](a []any) result.Result[[]T] {
 	if a == nil {
-		return gust.Ok[[]T](nil)
+		return result.Ok[[]T](nil)
 	}
 	var ok bool
 	r := make([]T, len(a))
 	for k, v := range a {
 		r[k], ok = v.(T)
 		if !ok {
-			return gust.FmtErr[[]T]("assert slice[%v] type failed, got %T want %T", k, v, *new(T))
+			return result.FmtErr[[]T]("assert slice[%v] type failed, got %T want %T", k, v, *new(T))
 		}
 	}
-	return gust.Ok(r)
+	return result.Ok(r)
 }
 
 // SafeAssertMap convert map[K]any to map[K]V.
-func SafeAssertMap[K comparable, V any](a map[K]any) gust.Result[map[K]V] {
+func SafeAssertMap[K comparable, V any](a map[K]any) result.Result[map[K]V] {
 	if a == nil {
-		return gust.Ok[map[K]V](nil)
+		return result.Ok[map[K]V](nil)
 	}
 	var ok bool
 	r := make(map[K]V, len(a))
 	for k, v := range a {
 		r[k], ok = v.(V)
 		if !ok {
-			return gust.FmtErr[map[K]V]("assert map[%v] type failed, got %T want %T", k, v, *new(V))
+			return result.FmtErr[map[K]V]("assert map[%v] type failed, got %T want %T", k, v, *new(V))
 		}
 	}
-	return gust.Ok(r)
+	return result.Ok(r)
 }
 
 // UnsafeAssertSlice convert []any to []T.

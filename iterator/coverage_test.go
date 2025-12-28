@@ -5,55 +5,57 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/andeya/gust"
 	"github.com/andeya/gust/iterator"
+	"github.com/andeya/gust/option"
+	"github.com/andeya/gust/pair"
+	"github.com/andeya/gust/result"
 	"github.com/stretchr/testify/assert"
 )
 
 // TestMapWhile tests iterator.MapWhile functionality
 func TestMapWhile(t *testing.T) {
 	a := []int{-1, 4, 0, 1}
-	iter := iterator.MapWhile(iterator.FromSlice(a), func(x int) gust.Option[int] {
+	iter := iterator.MapWhile(iterator.FromSlice(a), func(x int) option.Option[int] {
 		if x != 0 {
-			return gust.Some(16 / x)
+			return option.Some(16 / x)
 		}
-		return gust.None[int]()
+		return option.None[int]()
 	})
 
-	assert.Equal(t, gust.Some(-16), iter.Next())
-	assert.Equal(t, gust.Some(4), iter.Next())
-	assert.Equal(t, gust.None[int](), iter.Next())
+	assert.Equal(t, option.Some(-16), iter.Next())
+	assert.Equal(t, option.Some(4), iter.Next())
+	assert.Equal(t, option.None[int](), iter.Next())
 }
 
 // TestScan tests iterator.Scan functionality
 func TestScan(t *testing.T) {
 	a := []int{1, 2, 3, 4}
-	iter := iterator.Scan(iterator.FromSlice(a), 1, func(state *int, x int) gust.Option[int] {
+	iter := iterator.Scan(iterator.FromSlice(a), 1, func(state *int, x int) option.Option[int] {
 		*state = *state * x
 		if *state > 6 {
-			return gust.None[int]()
+			return option.None[int]()
 		}
-		return gust.Some(-*state)
+		return option.Some(-*state)
 	})
 
-	assert.Equal(t, gust.Some(-1), iter.Next())
-	assert.Equal(t, gust.Some(-2), iter.Next())
-	assert.Equal(t, gust.Some(-6), iter.Next())
-	assert.Equal(t, gust.None[int](), iter.Next())
+	assert.Equal(t, option.Some(-1), iter.Next())
+	assert.Equal(t, option.Some(-2), iter.Next())
+	assert.Equal(t, option.Some(-6), iter.Next())
+	assert.Equal(t, option.None[int](), iter.Next())
 }
 
 // TestScanNoEarlyTermination tests iterator.Scan without early termination
 func TestScanNoEarlyTermination(t *testing.T) {
 	a := []int{1, 2, 3}
-	iter := iterator.Scan(iterator.FromSlice(a), 0, func(state *int, x int) gust.Option[int] {
+	iter := iterator.Scan(iterator.FromSlice(a), 0, func(state *int, x int) option.Option[int] {
 		*state = *state + x
-		return gust.Some(*state)
+		return option.Some(*state)
 	})
 
-	assert.Equal(t, gust.Some(1), iter.Next())
-	assert.Equal(t, gust.Some(3), iter.Next())
-	assert.Equal(t, gust.Some(6), iter.Next())
-	assert.Equal(t, gust.None[int](), iter.Next())
+	assert.Equal(t, option.Some(1), iter.Next())
+	assert.Equal(t, option.Some(3), iter.Next())
+	assert.Equal(t, option.Some(6), iter.Next())
+	assert.Equal(t, option.None[int](), iter.Next())
 }
 
 // TestFlatMap tests iterator.FlatMap functionality
@@ -107,16 +109,16 @@ type alternateIterable struct {
 	state int
 }
 
-func (a *alternateIterable) Next() gust.Option[int] {
+func (a *alternateIterable) Next() option.Option[int] {
 	val := a.state
 	a.state++
 	if val%2 == 0 {
-		return gust.Some(val)
+		return option.Some(val)
 	}
-	return gust.None[int]()
+	return option.None[int]()
 }
 
-func (a *alternateIterable) SizeHint() (uint, gust.Option[uint]) {
+func (a *alternateIterable) SizeHint() (uint, option.Option[uint]) {
 	return iterator.DefaultSizeHint[int]()
 }
 
@@ -128,12 +130,12 @@ func TestFuse(t *testing.T) {
 	iter := iterator.FromIterable(iterable).Fuse()
 
 	// First call should return Some(0)
-	assert.Equal(t, gust.Some(0), iter.Next())
+	assert.Equal(t, option.Some(0), iter.Next())
 	// Second call returns None, which should fuse the iterator
-	assert.Equal(t, gust.None[int](), iter.Next())
+	assert.Equal(t, option.None[int](), iter.Next())
 	// After None, all subsequent calls should return None (even though alt would return Some(2))
-	assert.Equal(t, gust.None[int](), iter.Next())
-	assert.Equal(t, gust.None[int](), iter.Next())
+	assert.Equal(t, option.None[int](), iter.Next())
+	assert.Equal(t, option.None[int](), iter.Next())
 }
 
 // TestInspect tests Inspect functionality
@@ -158,7 +160,7 @@ func TestInspectEmpty(t *testing.T) {
 		called = true
 	})
 
-	assert.Equal(t, gust.None[int](), iter.Next())
+	assert.Equal(t, option.None[int](), iter.Next())
 	assert.False(t, called)
 }
 
@@ -166,28 +168,28 @@ func TestInspectEmpty(t *testing.T) {
 func TestIntersperseSingleElement(t *testing.T) {
 	a := []int{42}
 	iter := iterator.FromSlice(a).Intersperse(100)
-	assert.Equal(t, gust.Some(42), iter.Next())
-	assert.Equal(t, gust.None[int](), iter.Next())
+	assert.Equal(t, option.Some(42), iter.Next())
+	assert.Equal(t, option.None[int](), iter.Next())
 }
 
 // TestIntersperseEmpty tests Intersperse with empty iterator
 func TestIntersperseEmpty(t *testing.T) {
 	iter := iterator.Empty[int]().Intersperse(100)
-	assert.Equal(t, gust.None[int](), iter.Next())
+	assert.Equal(t, option.None[int](), iter.Next())
 }
 
 // TestIntersperseWithSingleElement tests IntersperseWith with single element
 func TestIntersperseWithSingleElement(t *testing.T) {
 	a := []int{42}
 	iter := iterator.FromSlice(a).IntersperseWith(func() int { return 99 })
-	assert.Equal(t, gust.Some(42), iter.Next())
-	assert.Equal(t, gust.None[int](), iter.Next())
+	assert.Equal(t, option.Some(42), iter.Next())
+	assert.Equal(t, option.None[int](), iter.Next())
 }
 
 // TestIntersperseWithEmpty tests IntersperseWith with empty iterator
 func TestIntersperseWithEmpty(t *testing.T) {
 	iter := iterator.Empty[int]().IntersperseWith(func() int { return 99 })
-	assert.Equal(t, gust.None[int](), iter.Next())
+	assert.Equal(t, option.None[int](), iter.Next())
 }
 
 type nonDEIterable struct {
@@ -195,16 +197,16 @@ type nonDEIterable struct {
 	index  int
 }
 
-func (n *nonDEIterable) Next() gust.Option[int] {
+func (n *nonDEIterable) Next() option.Option[int] {
 	if n.index >= len(n.values) {
-		return gust.None[int]()
+		return option.None[int]()
 	}
 	val := n.values[n.index]
 	n.index++
-	return gust.Some(val)
+	return option.Some(val)
 }
 
-func (n *nonDEIterable) SizeHint() (uint, gust.Option[uint]) {
+func (n *nonDEIterable) SizeHint() (uint, option.Option[uint]) {
 	return iterator.DefaultSizeHint[int]()
 }
 
@@ -236,16 +238,16 @@ type testIterable struct {
 	index  int
 }
 
-func (t *testIterable) Next() gust.Option[int] {
+func (t *testIterable) Next() option.Option[int] {
 	if t.index >= len(t.values) {
-		return gust.None[int]()
+		return option.None[int]()
 	}
 	val := t.values[t.index]
 	t.index++
-	return gust.Some(val)
+	return option.Some(val)
 }
 
-func (t *testIterable) SizeHint() (uint, gust.Option[uint]) {
+func (t *testIterable) SizeHint() (uint, option.Option[uint]) {
 	return iterator.DefaultSizeHint[int]()
 }
 
@@ -253,13 +255,13 @@ func (t *testIterable) SizeHint() (uint, gust.Option[uint]) {
 func TestFromIterableWithIterable(t *testing.T) {
 	ti := &testIterable{values: []int{10, 20, 30}, index: 0}
 	var iterable iterator.Iterable[int] = ti
-	var gustIter gust.Iterable[int] = iterable
+	var gustIter iterator.Iterable[int] = iterable
 	iter := iterator.FromIterable(gustIter)
 
-	assert.Equal(t, gust.Some(10), iter.Next())
-	assert.Equal(t, gust.Some(20), iter.Next())
-	assert.Equal(t, gust.Some(30), iter.Next())
-	assert.Equal(t, gust.None[int](), iter.Next())
+	assert.Equal(t, option.Some(10), iter.Next())
+	assert.Equal(t, option.Some(20), iter.Next())
+	assert.Equal(t, option.Some(30), iter.Next())
+	assert.Equal(t, option.None[int](), iter.Next())
 }
 
 // TestRangeIteratorSizeHint tests rangeIterator SizeHint when exhausted
@@ -317,7 +319,7 @@ func TestArrayChunksPanic(t *testing.T) {
 // TestArrayChunksEmptyBuffer tests iterator.ArrayChunks with empty buffer
 func TestArrayChunksEmptyBuffer(t *testing.T) {
 	iter := iterator.ArrayChunks(iterator.Empty[int](), 2)
-	assert.Equal(t, gust.None[[]int](), iter.Next())
+	assert.Equal(t, option.None[[]int](), iter.Next())
 }
 
 // TestChunkBySingleElement tests iterator.ChunkBy with single element
@@ -326,7 +328,7 @@ func TestChunkBySingleElement(t *testing.T) {
 	chunk := iter.Next()
 	assert.True(t, chunk.IsSome())
 	assert.Equal(t, []int{1}, chunk.Unwrap())
-	assert.Equal(t, gust.None[[]int](), iter.Next())
+	assert.Equal(t, option.None[[]int](), iter.Next())
 }
 
 // TestMapWindowsEmpty tests iterator.MapWindows with empty iterator
@@ -334,41 +336,41 @@ func TestMapWindowsEmpty(t *testing.T) {
 	iter := iterator.MapWindows(iterator.Empty[int](), 3, func(window []int) int {
 		return len(window)
 	})
-	assert.Equal(t, gust.None[int](), iter.Next())
+	assert.Equal(t, option.None[int](), iter.Next())
 }
 
 // TestSkipWhileAllSkipped tests SkipWhile when all elements are skipped
 func TestSkipWhileAllSkipped(t *testing.T) {
 	a := []int{1, 2, 3}
 	iter := iterator.FromSlice(a).SkipWhile(func(x int) bool { return x > 0 })
-	assert.Equal(t, gust.None[int](), iter.Next())
+	assert.Equal(t, option.None[int](), iter.Next())
 }
 
 // TestSkipWhileNoneSkipped tests SkipWhile when no elements are skipped
 func TestSkipWhileNoneSkipped(t *testing.T) {
 	a := []int{-1, -2, -3}
 	iter := iterator.FromSlice(a).SkipWhile(func(x int) bool { return x > 0 })
-	assert.Equal(t, gust.Some(-1), iter.Next())
-	assert.Equal(t, gust.Some(-2), iter.Next())
-	assert.Equal(t, gust.Some(-3), iter.Next())
-	assert.Equal(t, gust.None[int](), iter.Next())
+	assert.Equal(t, option.Some(-1), iter.Next())
+	assert.Equal(t, option.Some(-2), iter.Next())
+	assert.Equal(t, option.Some(-3), iter.Next())
+	assert.Equal(t, option.None[int](), iter.Next())
 }
 
 // TestTakeWhileAllTaken tests TakeWhile when all elements are taken
 func TestTakeWhileAllTaken(t *testing.T) {
 	a := []int{-1, -2, -3}
 	iter := iterator.FromSlice(a).TakeWhile(func(x int) bool { return x < 0 })
-	assert.Equal(t, gust.Some(-1), iter.Next())
-	assert.Equal(t, gust.Some(-2), iter.Next())
-	assert.Equal(t, gust.Some(-3), iter.Next())
-	assert.Equal(t, gust.None[int](), iter.Next())
+	assert.Equal(t, option.Some(-1), iter.Next())
+	assert.Equal(t, option.Some(-2), iter.Next())
+	assert.Equal(t, option.Some(-3), iter.Next())
+	assert.Equal(t, option.None[int](), iter.Next())
 }
 
 // TestTakeWhileNoneTaken tests TakeWhile when no elements are taken
 func TestTakeWhileNoneTaken(t *testing.T) {
 	a := []int{1, 2, 3}
 	iter := iterator.FromSlice(a).TakeWhile(func(x int) bool { return x < 0 })
-	assert.Equal(t, gust.None[int](), iter.Next())
+	assert.Equal(t, option.None[int](), iter.Next())
 }
 
 // TestPeekableSizeHint tests Peekable SizeHint
@@ -387,7 +389,7 @@ func TestPeekableSizeHint(t *testing.T) {
 // TestCycleEmptyIterator tests Cycle with empty iterator
 func TestCycleEmptyIterator(t *testing.T) {
 	iter := iterator.Empty[int]().Cycle()
-	assert.Equal(t, gust.None[int](), iter.Next())
+	assert.Equal(t, option.None[int](), iter.Next())
 }
 
 // TestCycleSizeHint tests Cycle SizeHint
@@ -405,7 +407,7 @@ func TestCycleSizeHint(t *testing.T) {
 }
 
 // TestCycleSizeHintWithCache tests Cycle SizeHint when cache has elements but not exhausted
-// This covers the branch: if len(c.cache) > 0 { return 0, gust.None[uint]() }
+// This covers the branch: if len(c.cache) > 0 { return 0, option.None[uint]() }
 func TestCycleSizeHintWithCache(t *testing.T) {
 	iter := iterator.FromSlice([]int{1, 2, 3}).Cycle()
 	// Call Next() once to populate cache (exhausted is still false)
@@ -434,7 +436,7 @@ func TestAdvanceBackByZero(t *testing.T) {
 	deIter := iter.MustToDoubleEnded()
 	result := deIter.AdvanceBackBy(0)
 	assert.True(t, result.IsOk())
-	assert.Equal(t, gust.Some(3), deIter.NextBack())
+	assert.Equal(t, option.Some(3), deIter.NextBack())
 }
 
 // TestAdvanceBackByTooMany tests AdvanceBackBy with too many steps
@@ -451,24 +453,24 @@ func TestNthBackEdgeCases(t *testing.T) {
 	// Test with empty iterator
 	iter := iterator.FromSlice([]int{})
 	deIter := iter.MustToDoubleEnded()
-	assert.Equal(t, gust.None[int](), deIter.NthBack(0))
+	assert.Equal(t, option.None[int](), deIter.NthBack(0))
 
 	// Test with single element
 	iter2 := iterator.FromSlice([]int{42})
 	deIter2 := iter2.MustToDoubleEnded()
-	assert.Equal(t, gust.Some(42), deIter2.NthBack(0))
-	assert.Equal(t, gust.None[int](), deIter2.NthBack(0))
+	assert.Equal(t, option.Some(42), deIter2.NthBack(0))
+	assert.Equal(t, option.None[int](), deIter2.NthBack(0))
 }
 
 // TestTryRfoldError tests TryRfold with error
 func TestTryRfoldError(t *testing.T) {
 	iter := iterator.FromSlice([]int{1, 2, 3})
 	deIter := iter.MustToDoubleEnded()
-	result := deIter.TryRfold(0, func(acc int, x int) gust.Result[int] {
+	result := deIter.TryRfold(0, func(acc int, x int) result.Result[int] {
 		if x == 2 {
-			return gust.TryErr[int](errors.New("error at 2"))
+			return result.TryErr[int](errors.New("error at 2"))
 		}
-		return gust.Ok(acc + x)
+		return result.Ok(acc + x)
 	})
 	assert.True(t, result.IsErr())
 }
@@ -723,8 +725,8 @@ func TestPositionEmpty(t *testing.T) {
 // TestFindMapEmpty tests iter.FindMap with empty iterator
 func TestFindMapEmpty(t *testing.T) {
 	iter := iterator.Empty[string]()
-	result := iterator.FindMap(iter, func(s string) gust.Option[int] {
-		return gust.Some(42)
+	result := iterator.FindMap(iter, func(s string) option.Option[int] {
+		return option.Some(42)
 	})
 	assert.True(t, result.IsNone())
 }
@@ -733,11 +735,11 @@ func TestFindMapEmpty(t *testing.T) {
 func TestFindMapBasic(t *testing.T) {
 	// Test case from documentation: find first parseable number
 	a := []string{"lol", "NaN", "2", "5"}
-	firstNumber := iterator.FindMap(iterator.FromSlice(a), func(s string) gust.Option[int] {
+	firstNumber := iterator.FindMap(iterator.FromSlice(a), func(s string) option.Option[int] {
 		if v, err := strconv.Atoi(s); err == nil {
-			return gust.Some(v)
+			return option.Some(v)
 		}
-		return gust.None[int]()
+		return option.None[int]()
 	})
 	assert.True(t, firstNumber.IsSome())
 	assert.Equal(t, 2, firstNumber.Unwrap())
@@ -746,11 +748,11 @@ func TestFindMapBasic(t *testing.T) {
 // TestFindMapAllNone tests iter.FindMap when all elements return None
 func TestFindMapAllNone(t *testing.T) {
 	a := []string{"lol", "NaN", "abc", "xyz"}
-	result := iterator.FindMap(iterator.FromSlice(a), func(s string) gust.Option[int] {
+	result := iterator.FindMap(iterator.FromSlice(a), func(s string) option.Option[int] {
 		if v, err := strconv.Atoi(s); err == nil {
-			return gust.Some(v)
+			return option.Some(v)
 		}
-		return gust.None[int]()
+		return option.None[int]()
 	})
 	assert.True(t, result.IsNone())
 }
@@ -758,11 +760,11 @@ func TestFindMapAllNone(t *testing.T) {
 // TestFindMapFirstElement tests iter.FindMap when first element returns Some
 func TestFindMapFirstElement(t *testing.T) {
 	a := []string{"1", "NaN", "2", "5"}
-	result := iterator.FindMap(iterator.FromSlice(a), func(s string) gust.Option[int] {
+	result := iterator.FindMap(iterator.FromSlice(a), func(s string) option.Option[int] {
 		if v, err := strconv.Atoi(s); err == nil {
-			return gust.Some(v)
+			return option.Some(v)
 		}
-		return gust.None[int]()
+		return option.None[int]()
 	})
 	assert.True(t, result.IsSome())
 	assert.Equal(t, 1, result.Unwrap())
@@ -771,11 +773,11 @@ func TestFindMapFirstElement(t *testing.T) {
 // TestFindMapLastElement tests iter.FindMap when only last element returns Some
 func TestFindMapLastElement(t *testing.T) {
 	a := []string{"lol", "NaN", "abc", "42"}
-	result := iterator.FindMap(iterator.FromSlice(a), func(s string) gust.Option[int] {
+	result := iterator.FindMap(iterator.FromSlice(a), func(s string) option.Option[int] {
 		if v, err := strconv.Atoi(s); err == nil {
-			return gust.Some(v)
+			return option.Some(v)
 		}
-		return gust.None[int]()
+		return option.None[int]()
 	})
 	assert.True(t, result.IsSome())
 	assert.Equal(t, 42, result.Unwrap())
@@ -785,12 +787,12 @@ func TestFindMapLastElement(t *testing.T) {
 func TestFindMapShortCircuit(t *testing.T) {
 	a := []string{"2", "3", "4", "5"}
 	callCount := 0
-	result := iterator.FindMap(iterator.FromSlice(a), func(s string) gust.Option[int] {
+	result := iterator.FindMap(iterator.FromSlice(a), func(s string) option.Option[int] {
 		callCount++
 		if v, err := strconv.Atoi(s); err == nil {
-			return gust.Some(v)
+			return option.Some(v)
 		}
-		return gust.None[int]()
+		return option.None[int]()
 	})
 	assert.True(t, result.IsSome())
 	assert.Equal(t, 2, result.Unwrap())
@@ -801,11 +803,11 @@ func TestFindMapShortCircuit(t *testing.T) {
 // TestFindMapTypeConversion tests iter.FindMap with type conversion
 func TestFindMapTypeConversion(t *testing.T) {
 	a := []int{1, 2, 3, 4, 5}
-	result := iterator.FindMap(iterator.FromSlice(a), func(x int) gust.Option[string] {
+	result := iterator.FindMap(iterator.FromSlice(a), func(x int) option.Option[string] {
 		if x > 3 {
-			return gust.Some(strconv.Itoa(x * 2))
+			return option.Some(strconv.Itoa(x * 2))
 		}
-		return gust.None[string]()
+		return option.None[string]()
 	})
 	assert.True(t, result.IsSome())
 	assert.Equal(t, "8", result.Unwrap()) // First element > 3 is 4, 4*2 = 8
@@ -816,7 +818,7 @@ func TestAdvanceByZero(t *testing.T) {
 	iter := iterator.FromSlice([]int{1, 2, 3})
 	result := iter.AdvanceBy(0)
 	assert.True(t, result.IsOk())
-	assert.Equal(t, gust.Some(1), iter.Next())
+	assert.Equal(t, option.Some(1), iter.Next())
 }
 
 // TestAdvanceByTooMany tests AdvanceBy with too many steps
@@ -874,7 +876,7 @@ func TestZipOneEmpty(t *testing.T) {
 	iter1 := iterator.FromSlice([]int{1, 2, 3})
 	iter2 := iterator.Empty[string]()
 	zipped := iterator.Zip(iter1, iter2)
-	assert.Equal(t, gust.None[gust.Pair[int, string]](), zipped.Next())
+	assert.Equal(t, option.None[pair.Pair[int, string]](), zipped.Next())
 }
 
 // TestZipBothEmpty tests iterator.Zip with both empty iterators
@@ -882,7 +884,7 @@ func TestZipBothEmpty(t *testing.T) {
 	iter1 := iterator.Empty[int]()
 	iter2 := iterator.Empty[string]()
 	zipped := iterator.Zip(iter1, iter2)
-	assert.Equal(t, gust.None[gust.Pair[int, string]](), zipped.Next())
+	assert.Equal(t, option.None[pair.Pair[int, string]](), zipped.Next())
 }
 
 // TestChainFirstEmpty tests Chain with first iterator empty
@@ -890,10 +892,10 @@ func TestChainFirstEmpty(t *testing.T) {
 	iter1 := iterator.Empty[int]()
 	iter2 := iterator.FromSlice([]int{1, 2, 3})
 	chained := iter1.Chain(iter2)
-	assert.Equal(t, gust.Some(1), chained.Next())
-	assert.Equal(t, gust.Some(2), chained.Next())
-	assert.Equal(t, gust.Some(3), chained.Next())
-	assert.Equal(t, gust.None[int](), chained.Next())
+	assert.Equal(t, option.Some(1), chained.Next())
+	assert.Equal(t, option.Some(2), chained.Next())
+	assert.Equal(t, option.Some(3), chained.Next())
+	assert.Equal(t, option.None[int](), chained.Next())
 }
 
 // TestChainSecondEmpty tests Chain with second iterator empty
@@ -901,10 +903,10 @@ func TestChainSecondEmpty(t *testing.T) {
 	iter1 := iterator.FromSlice([]int{1, 2, 3})
 	iter2 := iterator.Empty[int]()
 	chained := iter1.Chain(iter2)
-	assert.Equal(t, gust.Some(1), chained.Next())
-	assert.Equal(t, gust.Some(2), chained.Next())
-	assert.Equal(t, gust.Some(3), chained.Next())
-	assert.Equal(t, gust.None[int](), chained.Next())
+	assert.Equal(t, option.Some(1), chained.Next())
+	assert.Equal(t, option.Some(2), chained.Next())
+	assert.Equal(t, option.Some(3), chained.Next())
+	assert.Equal(t, option.None[int](), chained.Next())
 }
 
 // TestChainBothEmpty tests Chain with both iterators empty
@@ -912,37 +914,37 @@ func TestChainBothEmpty(t *testing.T) {
 	iter1 := iterator.Empty[int]()
 	iter2 := iterator.Empty[int]()
 	chained := iter1.Chain(iter2)
-	assert.Equal(t, gust.None[int](), chained.Next())
+	assert.Equal(t, option.None[int](), chained.Next())
 }
 
 // TestFilterMapAllNone tests iterator.FilterMap where all elements return None
 func TestFilterMapAllNone(t *testing.T) {
 	iter := iterator.FromSlice([]int{1, 2, 3})
-	filtered := iterator.FilterMap(iter, func(x int) gust.Option[string] {
-		return gust.None[string]()
+	filtered := iterator.FilterMap(iter, func(x int) option.Option[string] {
+		return option.None[string]()
 	})
-	assert.Equal(t, gust.None[string](), filtered.Next())
+	assert.Equal(t, option.None[string](), filtered.Next())
 }
 
 // TestFilterMapSomeNone tests iterator.FilterMap with some None results
 func TestFilterMapSomeNone(t *testing.T) {
 	iter := iterator.FromSlice([]int{1, 2, 3, 4, 5})
-	filtered := iterator.FilterMap(iter, func(x int) gust.Option[int] {
+	filtered := iterator.FilterMap(iter, func(x int) option.Option[int] {
 		if x%2 == 0 {
-			return gust.Some(x * 2)
+			return option.Some(x * 2)
 		}
-		return gust.None[int]()
+		return option.None[int]()
 	})
-	assert.Equal(t, gust.Some(4), filtered.Next())
-	assert.Equal(t, gust.Some(8), filtered.Next())
-	assert.Equal(t, gust.None[int](), filtered.Next())
+	assert.Equal(t, option.Some(4), filtered.Next())
+	assert.Equal(t, option.Some(8), filtered.Next())
+	assert.Equal(t, option.None[int](), filtered.Next())
 }
 
 // TestEnumerateEmpty tests iterator.Enumerate with empty iterator
 func TestEnumerateEmpty(t *testing.T) {
 	iter := iterator.Empty[int]()
 	enumerated := iterator.Enumerate(iter)
-	assert.Equal(t, gust.None[gust.Pair[uint, int]](), enumerated.Next())
+	assert.Equal(t, option.None[pair.Pair[uint, int]](), enumerated.Next())
 }
 
 // TestEnumerateSizeHint tests iterator.Enumerate SizeHint (covers adapters.go:368-370)
@@ -959,31 +961,31 @@ func TestEnumerateSizeHint(t *testing.T) {
 func TestSkipEmpty(t *testing.T) {
 	iter := iterator.Empty[int]()
 	skipped := iter.Skip(5)
-	assert.Equal(t, gust.None[int](), skipped.Next())
+	assert.Equal(t, option.None[int](), skipped.Next())
 }
 
 // TestTakeEmpty tests Take with empty iterator
 func TestTakeEmpty(t *testing.T) {
 	iter := iterator.Empty[int]()
 	taken := iter.Take(5)
-	assert.Equal(t, gust.None[int](), taken.Next())
+	assert.Equal(t, option.None[int](), taken.Next())
 }
 
 // TestTakeZero tests Take with zero count
 func TestTakeZero(t *testing.T) {
 	iter := iterator.FromSlice([]int{1, 2, 3})
 	taken := iter.Take(0)
-	assert.Equal(t, gust.None[int](), taken.Next())
+	assert.Equal(t, option.None[int](), taken.Next())
 }
 
 // TestSkipZero tests Skip with zero count
 func TestSkipZero(t *testing.T) {
 	iter := iterator.FromSlice([]int{1, 2, 3})
 	skipped := iter.Skip(0)
-	assert.Equal(t, gust.Some(1), skipped.Next())
-	assert.Equal(t, gust.Some(2), skipped.Next())
-	assert.Equal(t, gust.Some(3), skipped.Next())
-	assert.Equal(t, gust.None[int](), skipped.Next())
+	assert.Equal(t, option.Some(1), skipped.Next())
+	assert.Equal(t, option.Some(2), skipped.Next())
+	assert.Equal(t, option.Some(3), skipped.Next())
+	assert.Equal(t, option.None[int](), skipped.Next())
 }
 
 // TestStepByFirstElement tests StepBy first element behavior
@@ -991,10 +993,10 @@ func TestStepByFirstElement(t *testing.T) {
 	iter := iterator.FromSlice([]int{0, 1, 2, 3, 4, 5})
 	stepIter := iter.StepBy(2)
 	// First element should always be returned
-	assert.Equal(t, gust.Some(0), stepIter.Next())
-	assert.Equal(t, gust.Some(2), stepIter.Next())
-	assert.Equal(t, gust.Some(4), stepIter.Next())
-	assert.Equal(t, gust.None[int](), stepIter.Next())
+	assert.Equal(t, option.Some(0), stepIter.Next())
+	assert.Equal(t, option.Some(2), stepIter.Next())
+	assert.Equal(t, option.Some(4), stepIter.Next())
+	assert.Equal(t, option.None[int](), stepIter.Next())
 }
 
 // TestStepByAdvanceByError tests StepBy when AdvanceBy returns error
@@ -1002,16 +1004,16 @@ func TestStepByAdvanceByError(t *testing.T) {
 	iter := iterator.FromSlice([]int{0, 1})
 	stepIter := iter.StepBy(3)
 	// First element
-	assert.Equal(t, gust.Some(0), stepIter.Next())
+	assert.Equal(t, option.Some(0), stepIter.Next())
 	// AdvanceBy(2) will fail, so Next() should return None
-	assert.Equal(t, gust.None[int](), stepIter.Next())
+	assert.Equal(t, option.None[int](), stepIter.Next())
 }
 
 // TestChunkByFirstEmpty tests iterator.ChunkBy when first element is None
 func TestChunkByFirstEmpty(t *testing.T) {
 	iter := iterator.Empty[int]()
 	chunked := iterator.ChunkBy(iter, func(a, b int) bool { return a == b })
-	assert.Equal(t, gust.None[[]int](), chunked.Next())
+	assert.Equal(t, option.None[[]int](), chunked.Next())
 }
 
 // TestChunkByCurrentEmpty tests iterator.ChunkBy when current is empty after None
@@ -1024,7 +1026,7 @@ func TestChunkByCurrentEmpty(t *testing.T) {
 	assert.True(t, chunk1.IsSome())
 	assert.Equal(t, []int{1}, chunk1.Unwrap())
 	// After consuming, next should be None
-	assert.Equal(t, gust.None[[]int](), chunked.Next())
+	assert.Equal(t, option.None[[]int](), chunked.Next())
 }
 
 // TestMapWindowsSizeHintLower tests iterator.MapWindows SizeHint with lower >= windowSize
@@ -1120,15 +1122,15 @@ func TestOnceIteratorSizeHintDone(t *testing.T) {
 func TestSliceIteratorNextBackEmpty(t *testing.T) {
 	iter := iterator.FromSlice([]int{})
 	deIter := iter.MustToDoubleEnded()
-	assert.Equal(t, gust.None[int](), deIter.NextBack())
+	assert.Equal(t, option.None[int](), deIter.NextBack())
 }
 
 // TestSliceIteratorNextBackSingle tests sliceIterator NextBack with single element
 func TestSliceIteratorNextBackSingle(t *testing.T) {
 	iter := iterator.FromSlice([]int{42})
 	deIter := iter.MustToDoubleEnded()
-	assert.Equal(t, gust.Some(42), deIter.NextBack())
-	assert.Equal(t, gust.None[int](), deIter.NextBack())
+	assert.Equal(t, option.Some(42), deIter.NextBack())
+	assert.Equal(t, option.None[int](), deIter.NextBack())
 }
 
 // TestAdvanceBackByEmpty tests AdvanceBackBy with empty iterator
@@ -1144,22 +1146,22 @@ func TestAdvanceBackByEmpty(t *testing.T) {
 func TestNthBackEmpty(t *testing.T) {
 	iter := iterator.FromSlice([]int{})
 	deIter := iter.MustToDoubleEnded()
-	assert.Equal(t, gust.None[int](), deIter.NthBack(0))
+	assert.Equal(t, option.None[int](), deIter.NthBack(0))
 }
 
 // TestNthBackTooLarge tests NthBack with index too large
 func TestNthBackTooLarge(t *testing.T) {
 	iter := iterator.FromSlice([]int{1, 2, 3})
 	deIter := iter.MustToDoubleEnded()
-	assert.Equal(t, gust.None[int](), deIter.NthBack(10))
+	assert.Equal(t, option.None[int](), deIter.NthBack(10))
 }
 
 // TestTryRfoldEmpty tests TryRfold with empty iterator
 func TestTryRfoldEmpty(t *testing.T) {
 	iter := iterator.FromSlice([]int{})
 	deIter := iter.MustToDoubleEnded()
-	result := deIter.TryRfold(0, func(acc int, x int) gust.Result[int] {
-		return gust.Ok(acc + x)
+	result := deIter.TryRfold(0, func(acc int, x int) result.Result[int] {
+		return result.Ok(acc + x)
 	})
 	assert.True(t, result.IsOk())
 	assert.Equal(t, 0, result.Unwrap())
@@ -1178,16 +1180,16 @@ type testIterable2 struct {
 	index  int
 }
 
-func (t *testIterable2) Next() gust.Option[int] {
+func (t *testIterable2) Next() option.Option[int] {
 	if t.index >= len(t.values) {
-		return gust.None[int]()
+		return option.None[int]()
 	}
 	val := t.values[t.index]
 	t.index++
-	return gust.Some(val)
+	return option.Some(val)
 }
 
-func (t *testIterable2) SizeHint() (uint, gust.Option[uint]) {
+func (t *testIterable2) SizeHint() (uint, option.Option[uint]) {
 	return iterator.DefaultSizeHint[int]()
 }
 
@@ -1195,23 +1197,25 @@ func (t *testIterable2) SizeHint() (uint, gust.Option[uint]) {
 func TestFromIterableIterableBranch(t *testing.T) {
 	ti := &testIterable2{values: []int{10, 20, 30}, index: 0}
 	var iterable iterator.Iterable[int] = ti
-	var gustIter gust.Iterable[int] = iterable
+	var gustIter iterator.Iterable[int] = iterable
 	iter := iterator.FromIterable(gustIter)
 
-	assert.Equal(t, gust.Some(10), iter.Next())
-	assert.Equal(t, gust.Some(20), iter.Next())
-	assert.Equal(t, gust.Some(30), iter.Next())
-	assert.Equal(t, gust.None[int](), iter.Next())
+	assert.Equal(t, option.Some(10), iter.Next())
+	assert.Equal(t, option.Some(20), iter.Next())
+	assert.Equal(t, option.Some(30), iter.Next())
+	assert.Equal(t, option.None[int](), iter.Next())
 }
 
 // TestIterableWrapperSizeHint tests iterableWrapper SizeHint
 func TestIterableWrapperSizeHint(t *testing.T) {
 	custom := &easyIterable{values: []int{1, 2, 3}, index: 0}
-	var gustIter gust.Iterable[int] = custom
+	var gustIter iterator.Iterable[int] = custom
 	iter := iterator.FromIterable(gustIter)
 	lower, upper := iter.SizeHint()
-	assert.Equal(t, uint(0), lower)
-	assert.True(t, upper.IsNone())
+	// easyIterable implements SizeHint() which returns the actual remaining size
+	assert.Equal(t, uint(3), lower)
+	assert.True(t, upper.IsSome())
+	assert.Equal(t, uint(3), upper.Unwrap())
 }
 
 // TestDefaultSizeHint tests iterator.DefaultSizeHint function

@@ -1,4 +1,4 @@
-package gust
+package core
 
 import (
 	"encoding/json"
@@ -7,6 +7,7 @@ import (
 	"reflect"
 
 	"github.com/andeya/gust/errutil"
+	"github.com/andeya/gust/void"
 )
 
 type (
@@ -14,7 +15,7 @@ type (
 	// represents either success (T) or failure (error).
 	Result[T any] struct {
 		t Option[T]
-		e ErrBox
+		e errutil.ErrBox
 	}
 
 	// VoidResult is an alias for Result[Void], representing a result that only indicates success or failure.
@@ -23,12 +24,13 @@ type (
 	// Example:
 	//
 	//	```go
-	//	var result gust.VoidResult = gust.RetVoid(err)
-	//	if result.IsErr() {
-	//		fmt.Println(result.Err())
+	//	import "github.com/andeya/gust/result"
+	//	var res result.VoidResult = result.RetVoid(err)
+	//	if res.IsErr() {
+	//		fmt.Println(res.Err())
 	//	}
 	//	```
-	VoidResult = Result[Void]
+	VoidResult = Result[void.Void]
 )
 
 // Ret wraps a result.
@@ -47,15 +49,16 @@ func Ret[T any](some T, err error) Result[T] {
 // Example:
 //
 //	```go
-//	var result gust.VoidResult = gust.RetVoid(maybeError)
+//	import "github.com/andeya/gust/result"
+//	var res result.VoidResult = result.RetVoid(maybeError)
 //	```
 //
 //go:inline
 func RetVoid(maybeError any) VoidResult {
 	if maybeError == nil {
-		return Ok[Void](nil)
+		return Ok[void.Void](nil)
 	}
-	return TryErr[Void](maybeError)
+	return TryErr[void.Void](maybeError)
 }
 
 // Ok wraps a successful result.
@@ -70,12 +73,13 @@ func Ok[T any](ok T) Result[T] {
 // Example:
 //
 //	```go
-//	var result gust.VoidResult = gust.OkVoid()
+//	import "github.com/andeya/gust/result"
+//	var res result.VoidResult = result.OkVoid()
 //	```
 //
 //go:inline
 func OkVoid() VoidResult {
-	return Ok[Void](nil)
+	return Ok[void.Void](nil)
 }
 
 // TryErr wraps a failure result.
@@ -85,15 +89,16 @@ func OkVoid() VoidResult {
 // Example:
 //
 //	```go
-//	result := gust.TryErr[string](nil)  // This is an ok state
-//	if result.IsOk() {
+//	import "github.com/andeya/gust/result"
+//	res := result.TryErr[string](nil)  // This is an ok state
+//	if res.IsOk() {
 //		fmt.Println("This will be printed")
 //	}
 //	```
 //
 //go:inline
 func TryErr[T any](err any) Result[T] {
-	eb := BoxErr(err)
+	eb := errutil.BoxErr(err)
 	if eb.IsEmpty() {
 		return Ok[T](defaultValue[T]())
 	}
@@ -105,7 +110,7 @@ func TryErr[T any](err any) Result[T] {
 //
 //go:inline
 func TryErrVoid(err any) VoidResult {
-	return TryErr[Void](err)
+	return TryErr[void.Void](err)
 }
 
 // FmtErr wraps a failure result with a formatted error.
@@ -238,8 +243,9 @@ func (r Result[T]) Err() error {
 // Example:
 //
 //	```go
-//	var result gust.VoidResult = gust.RetVoid(err)
-//	if err := gust.ToError(result); err != nil {
+//	import "github.com/andeya/gust/result"
+//	var res result.VoidResult = result.RetVoid(err)
+//	if err := result.ToError(res); err != nil {
 //		return err
 //	}
 //	```
@@ -254,8 +260,9 @@ func ToError(r VoidResult) error {
 // Example:
 //
 //	```go
-//	var result gust.VoidResult = gust.RetVoid(err)
-//	err := gust.UnwrapErrOr(result, errors.New("default error"))
+//	import "github.com/andeya/gust/result"
+//	var res result.VoidResult = result.RetVoid(err)
+//	err := result.UnwrapErrOr(res, errors.New("default error"))
 //	```
 //
 //go:inline
@@ -388,7 +395,7 @@ func (r Result[T]) Expect(msg string) T {
 // Unwrap returns the contained Ok value.
 // Because this function may panic, its use is generally discouraged.
 // Instead, prefer to use pattern matching and handle the error case explicitly, or call UnwrapOr or UnwrapOrElse.
-// NOTE: This panics *ErrBox (not error) to be consistent with Result.UnwrapOrThrow() and allow Result.Catch() to properly handle it.
+// NOTE: This panics *errutil.ErrBox (not error) to be consistent with Result.UnwrapOrThrow() and allow Result.Catch() to properly handle it.
 func (r Result[T]) Unwrap() T {
 	if r.IsErr() {
 		panic(r.e.ToError())
@@ -573,29 +580,30 @@ func (r Result[T]) ContainsErr(err any) bool {
 		return false
 	}
 	if r.IsErr() {
-		return errors.Is((&r.e).ToError(), BoxErr(err).ToError())
+		return errors.Is((&r.e).ToError(), errutil.BoxErr(err).ToError())
 	}
 	return false
 }
 
-// Flatten converts from `(gust.Result[T], error)` to gust.Result[T].
+// Flatten converts from `(Result[T], error)` to Result[T].
 //
 // # Examples
 //
-//	var r1 = gust.Ok(1)
+//	import "github.com/andeya/gust/result"
+//	var r1 = result.Ok(1)
 //	var err1 = nil
 //	var result1 = r1.Flatten(err1)
-//	assert.Equal(t, gust.Ok[int](1), result1)
+//	assert.Equal(t, result.Ok[int](1), result1)
 //
-//	var r2 = gust.Ok(1)
+//	var r2 = result.Ok(1)
 //	var err2 = errors.New("error")
 //	var result2 = r2.Flatten(err2)
 //	assert.Equal(t, "error", result2.Err().Error())
 //
-// var r3 = gust.Err(errors.New("error"))
-// var err3 = nil
-// var result3 = r3.Flatten(err3)
-// assert.Equal(t, "error", result3.Err().Error())
+//	var r3 = result.TryErr[int](errors.New("error"))
+//	var err3 = nil
+//	var result3 = r3.Flatten(err3)
+//	assert.Equal(t, "error", result3.Err().Error())
 //
 //go:inline
 func (r Result[T]) Flatten(err error) Result[T] {
@@ -629,23 +637,18 @@ func (r *Result[T]) UnmarshalJSON(b []byte) error {
 	err := json.Unmarshal(b, &t)
 	if err != nil {
 		r.t = None[T]()
-		eb := BoxErr(err)
+		eb := errutil.BoxErr(err)
 		if eb == nil {
-			r.e = ErrBox{}
+			r.e = errutil.ErrBox{}
 		} else {
 			r.e = *eb
 		}
 	} else {
 		r.t = Some(t)
-		r.e = ErrBox{}
+		r.e = errutil.ErrBox{}
 	}
 	return err
 }
-
-var (
-	_ Iterable[any]            = new(Result[any])
-	_ DoubleEndedIterable[any] = new(Result[any])
-)
 
 // Next returns the next element of the iterator.
 func (r *Result[T]) Next() Option[T] {
@@ -670,7 +673,17 @@ func (r *Result[T]) Remaining() uint {
 	return r.t.Remaining()
 }
 
-// UnwrapOrThrow returns the contained T or panic returns error (*ErrBox).
+// SizeHint returns a hint about the remaining size of the iterator.
+//
+//go:inline
+func (r *Result[T]) SizeHint() (uint, Option[uint]) {
+	if r == nil {
+		return 0, Some(uint(0))
+	}
+	return r.t.SizeHint()
+}
+
+// UnwrapOrThrow returns the contained T or panic returns error (*errutil.ErrBox).
 // NOTE:
 //
 //	If there is an error, that panic should be caught with `Result.Catch()`
@@ -683,7 +696,7 @@ func (r Result[T]) UnwrapOrThrow() T {
 
 // Catch catches any panic and converts it to a Result error.
 // It catches:
-//   - *ErrBox (gust's own error type)
+//   - *errutil.ErrBox (gust's own error type)
 //   - error (regular Go errors, wrapped in ErrBox)
 //   - any other type (wrapped in ErrBox)
 //
@@ -735,38 +748,38 @@ func (r *Result[T]) Catch(withStackTrace ...bool) {
 		// Convert panic to error with stack trace
 		// Use newPanicError which properly handles ErrBox types
 		// Wrap panicError in ErrBox
-		eb := BoxErr(errutil.NewPanicError(p, errutil.PanicStackTrace()))
+		eb := errutil.BoxErr(errutil.NewPanicError(p, errutil.PanicStackTrace()))
 		if eb == nil {
-			r.e = ErrBox{}
+			r.e = errutil.ErrBox{}
 		} else {
 			r.e = *eb
 		}
 	} else {
 		// Without stack trace - directly wrap in ErrBox
 		switch p := p.(type) {
-		case *ErrBox:
+		case *errutil.ErrBox:
 			// Gust's own ErrBox type (pointer)
 			if p != nil {
 				r.e = *p
 			} else {
-				r.e = ErrBox{}
+				r.e = errutil.ErrBox{}
 			}
-		case ErrBox:
+		case errutil.ErrBox:
 			// Gust's own ErrBox type (value)
 			r.e = p
 		case error:
 			// Regular error panic - wrap in ErrBox
-			eb := BoxErr(p)
+			eb := errutil.BoxErr(p)
 			if eb == nil {
-				r.e = ErrBox{}
+				r.e = errutil.ErrBox{}
 			} else {
 				r.e = *eb
 			}
 		default:
 			// Other types - wrap in ErrBox
-			eb := BoxErr(p)
+			eb := errutil.BoxErr(p)
 			if eb == nil {
-				r.e = ErrBox{}
+				r.e = errutil.ErrBox{}
 			} else {
 				r.e = *eb
 			}

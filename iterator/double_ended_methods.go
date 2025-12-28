@@ -1,7 +1,9 @@
 package iterator
 
 import (
-	"github.com/andeya/gust"
+	"github.com/andeya/gust/option"
+	"github.com/andeya/gust/result"
+	"github.com/andeya/gust/void"
 )
 
 // Remaining returns the number of elements remaining in the iterator.
@@ -37,16 +39,16 @@ func (de DoubleEndedIterator[T]) Remaining() uint {
 //
 //	var numbers = []int{1, 2, 3, 4, 5, 6}
 //	var deIter = FromSlice(numbers).MustToDoubleEnded()
-//	assert.Equal(t, gust.Some(6), deIter.NextBack())
-//	assert.Equal(t, gust.Some(5), deIter.NextBack())
-//	assert.Equal(t, gust.Some(4), deIter.NextBack())
-//	assert.Equal(t, gust.Some(3), deIter.NextBack())
-//	assert.Equal(t, gust.Some(2), deIter.NextBack())
-//	assert.Equal(t, gust.Some(1), deIter.NextBack())
-//	assert.Equal(t, gust.None[int](), deIter.NextBack())
+//	assert.Equal(t, option.Some(6), deIter.NextBack())
+//	assert.Equal(t, option.Some(5), deIter.NextBack())
+//	assert.Equal(t, option.Some(4), deIter.NextBack())
+//	assert.Equal(t, option.Some(3), deIter.NextBack())
+//	assert.Equal(t, option.Some(2), deIter.NextBack())
+//	assert.Equal(t, option.Some(1), deIter.NextBack())
+//	assert.Equal(t, option.None[int](), deIter.NextBack())
 //
 //go:inline
-func (de DoubleEndedIterator[T]) NextBack() gust.Option[T] {
+func (de DoubleEndedIterator[T]) NextBack() option.Option[T] {
 	return de.iterable.NextBack()
 }
 
@@ -69,16 +71,16 @@ func (de DoubleEndedIterator[T]) NextBack() gust.Option[T] {
 //	var a = []int{3, 4, 5, 6}
 //	var deIter = FromSlice(a).MustToDoubleEnded()
 //	assert.True(t, deIter.AdvanceBackBy(2).IsOk())
-//	assert.Equal(t, gust.Some(4), deIter.NextBack())
+//	assert.Equal(t, option.Some(4), deIter.NextBack())
 //	assert.True(t, deIter.AdvanceBackBy(0).IsOk())
 //	assert.True(t, deIter.AdvanceBackBy(100).IsErr())
-func (de DoubleEndedIterator[T]) AdvanceBackBy(n uint) gust.VoidResult {
+func (de DoubleEndedIterator[T]) AdvanceBackBy(n uint) result.VoidResult {
 	for i := uint(0); i < n; i++ {
 		if de.iterable.NextBack().IsNone() {
-			return gust.TryErr[gust.Void](n - i)
+			return result.TryErr[void.Void](n - i)
 		}
 	}
-	return gust.Ok[gust.Void](nil)
+	return result.Ok[void.Void](nil)
 }
 
 // NthBack returns the nth element from the end of the iterator.
@@ -100,13 +102,13 @@ func (de DoubleEndedIterator[T]) AdvanceBackBy(n uint) gust.VoidResult {
 //
 //	var a = []int{1, 2, 3}
 //	var deIter = FromSlice(a).MustToDoubleEnded()
-//	assert.Equal(t, gust.Some(1), deIter.NthBack(2))
-//	assert.Equal(t, gust.Some(2), deIter.NthBack(1))
-//	assert.Equal(t, gust.Some(3), deIter.NthBack(0))
-//	assert.Equal(t, gust.None[int](), deIter.NthBack(10))
-func (de DoubleEndedIterator[T]) NthBack(n uint) gust.Option[T] {
+//	assert.Equal(t, option.Some(1), deIter.NthBack(2))
+//	assert.Equal(t, option.Some(2), deIter.NthBack(1))
+//	assert.Equal(t, option.Some(3), deIter.NthBack(0))
+//	assert.Equal(t, option.None[int](), deIter.NthBack(10))
+func (de DoubleEndedIterator[T]) NthBack(n uint) option.Option[T] {
 	if de.AdvanceBackBy(n).IsErr() {
-		return gust.None[T]()
+		return option.None[T]()
 	}
 	return de.iterable.NextBack()
 }
@@ -198,17 +200,17 @@ func rfoldImpl[T any, B any](iter DoubleEndedIterable[T], init B, f func(B, T) B
 //
 //	var a = []string{"1", "2", "3"}
 //	var deIter = FromSlice(a).MustToDoubleEnded()
-//	var sum = deIter.XTryRfold(0, func(acc any, s string) gust.Result[any] {
+//	var sum = deIter.XTryRfold(0, func(acc any, s string) result.Result[any] {
 //		if v, err := strconv.Atoi(s); err == nil {
-//			return gust.Ok(any(acc.(int) + v))
+//			return result.Ok(any(acc.(int) + v))
 //		}
-//		return gust.Err[any](err)
+//		return result.TryErr[any](err)
 //	})
 //	assert.True(t, sum.IsOk())
 //	assert.Equal(t, 6, sum.Unwrap().(int))
 //
 //go:inline
-func (de DoubleEndedIterator[T]) XTryRfold(init any, f func(any, T) gust.Result[any]) gust.Result[any] {
+func (de DoubleEndedIterator[T]) XTryRfold(init any, f func(any, T) result.Result[any]) result.Result[any] {
 	return tryRfoldImpl(de.iterable, init, f)
 }
 
@@ -219,17 +221,17 @@ func (de DoubleEndedIterator[T]) XTryRfold(init any, f func(any, T) gust.Result[
 //
 //	var a = []string{"1", "2", "3"}
 //	var deIter = FromSlice(a).MustToDoubleEnded()
-//	var sum = deIter.TryRfold(0, func(acc int, s string) gust.Result[int] {
+//	var sum = deIter.TryRfold(0, func(acc int, s string) result.Result[int] {
 //		if v, err := strconv.Atoi(s); err == nil {
-//			return gust.Ok(acc + v)
+//			return result.Ok(acc + v)
 //		}
-//		return gust.Err[int](err)
+//		return result.TryErr[int](err)
 //	})
 //	assert.True(t, sum.IsOk())
 //	assert.Equal(t, 6, sum.Unwrap())
 //
 //go:inline
-func (de DoubleEndedIterator[T]) TryRfold(init T, f func(T, T) gust.Result[T]) gust.Result[T] {
+func (de DoubleEndedIterator[T]) TryRfold(init T, f func(T, T) result.Result[T]) result.Result[T] {
 	return tryRfoldImpl(de.iterable, init, f)
 }
 
@@ -240,22 +242,22 @@ func (de DoubleEndedIterator[T]) TryRfold(init T, f func(T, T) gust.Result[T]) g
 //
 //	var a = []string{"1", "2", "3"}
 //	var deIter = FromSlice(a).MustToDoubleEnded()
-//	var sum = TryRfold(deIter, 0, func(acc int, s string) gust.Result[int] {
+//	var sum = TryRfold(deIter, 0, func(acc int, s string) result.Result[int] {
 //		if v, err := strconv.Atoi(s); err == nil {
-//			return gust.Ok(acc + v)
+//			return result.Ok(acc + v)
 //		}
-//		return gust.Err[int](err)
+//		return result.TryErr[int](err)
 //	})
 //	assert.True(t, sum.IsOk())
 //	assert.Equal(t, 6, sum.Unwrap())
-func TryRfold[T any, B any](de DoubleEndedIterator[T], init B, f func(B, T) gust.Result[B]) gust.Result[B] {
+func TryRfold[T any, B any](de DoubleEndedIterator[T], init B, f func(B, T) result.Result[B]) result.Result[B] {
 	return tryRfoldImpl(de.iterable, init, f)
 }
 
 // tryRfoldImpl is the internal implementation of TryRfold.
 //
 //go:inline
-func tryRfoldImpl[T any, B any](iter DoubleEndedIterable[T], init B, f func(B, T) gust.Result[B]) gust.Result[B] {
+func tryRfoldImpl[T any, B any](iter DoubleEndedIterable[T], init B, f func(B, T) result.Result[B]) result.Result[B] {
 	accum := init
 	de := DoubleEndedIterator[T]{iterable: iter}
 	for {
@@ -269,7 +271,7 @@ func tryRfoldImpl[T any, B any](iter DoubleEndedIterable[T], init B, f func(B, T
 		}
 		accum = result.Unwrap()
 	}
-	return gust.Ok(accum)
+	return result.Ok(accum)
 }
 
 // Rfind searches for an element of an iterator from the back that satisfies a predicate.
@@ -286,12 +288,12 @@ func tryRfoldImpl[T any, B any](iter DoubleEndedIterable[T], init B, f func(B, T
 //
 //	var a = []int{1, 2, 3}
 //	var deIter = FromSlice(a).MustToDoubleEnded()
-//	assert.Equal(t, gust.Some(2), deIter.Rfind(func(x int) bool { return x == 2 }))
+//	assert.Equal(t, option.Some(2), deIter.Rfind(func(x int) bool { return x == 2 }))
 //
 //	var b = []int{1, 2, 3}
 //	var deIter2 = FromSlice(b).MustToDoubleEnded()
-//	assert.Equal(t, gust.None[int](), deIter2.Rfind(func(x int) bool { return x == 5 }))
-func (de DoubleEndedIterator[T]) Rfind(predicate func(T) bool) gust.Option[T] {
+//	assert.Equal(t, option.None[int](), deIter2.Rfind(func(x int) bool { return x == 5 }))
+func (de DoubleEndedIterator[T]) Rfind(predicate func(T) bool) option.Option[T] {
 	return rfindImpl(de.iterable, predicate)
 }
 
@@ -301,20 +303,20 @@ func (de DoubleEndedIterator[T]) Rfind(predicate func(T) bool) gust.Option[T] {
 //
 //	var a = []int{1, 2, 3}
 //	var deIter = FromSlice(a).MustToDoubleEnded()
-//	assert.Equal(t, gust.Some(2), Rfind(deIter, func(x int) bool { return x == 2 }))
-func Rfind[T any](de DoubleEndedIterator[T], predicate func(T) bool) gust.Option[T] {
+//	assert.Equal(t, option.Some(2), Rfind(deIter, func(x int) bool { return x == 2 }))
+func Rfind[T any](de DoubleEndedIterator[T], predicate func(T) bool) option.Option[T] {
 	return de.Rfind(predicate)
 }
 
 // rfindImpl is the internal implementation of Rfind.
 //
 //go:inline
-func rfindImpl[T any](iter DoubleEndedIterable[T], predicate func(T) bool) gust.Option[T] {
+func rfindImpl[T any](iter DoubleEndedIterable[T], predicate func(T) bool) option.Option[T] {
 	de := DoubleEndedIterator[T]{iterable: iter}
 	for {
 		item := de.NextBack()
 		if item.IsNone() {
-			return gust.None[T]()
+			return option.None[T]()
 		}
 		if predicate(item.Unwrap()) {
 			return item

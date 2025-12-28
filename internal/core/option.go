@@ -1,10 +1,12 @@
-package gust
+package core
 
 import (
 	"encoding/json"
 	"fmt"
 	"reflect"
 	"unsafe"
+
+	"github.com/andeya/gust/void"
 )
 
 // BoolOpt wraps a value as an Option.
@@ -532,11 +534,6 @@ func (o *Option[T]) UnmarshalJSON(b []byte) error {
 	return err
 }
 
-var (
-	_ Iterable[any]            = new(Option[any])
-	_ DoubleEndedIterable[any] = new(Option[any])
-)
-
 // Next returns the next element of the iterator.
 func (o *Option[T]) Next() Option[T] {
 	if o == nil || o.IsNone() {
@@ -562,24 +559,36 @@ func (o *Option[T]) Remaining() uint {
 	return 1
 }
 
+// SizeHint returns a hint about the remaining size of the iterator.
+//
+//go:inline
+func (o *Option[T]) SizeHint() (uint, Option[uint]) {
+	if o == nil || o.IsNone() {
+		return 0, Some(uint(0))
+	}
+	return 1, Some(uint(1))
+}
+
 // ToResult converts from `Option[T]` to `VoidResult` (Result[Void]).
-// If Option is Some, returns Err[Void] with the value wrapped in ErrBox.
+// If Option is Some, returns Err[Void] with the value wrapped in errutil.ErrBox.
 // If Option is None, returns Ok[Void](nil).
 //
 // Example:
 //
 //	```go
-//	var opt gust.Option[string] = gust.Some("value")
-//	var result gust.VoidResult = option.ToResult()
+//	import "github.com/andeya/gust/option"
+//	import "github.com/andeya/gust/result"
+//	var opt option.Option[string] = option.Some("value")
+//	var res result.VoidResult = opt.ToResult()
 //	```
 func (o Option[T]) ToResult() VoidResult {
 	if o.IsSome() {
-		return TryErr[Void](o.UnwrapUnchecked())
+		return TryErr[void.Void](o.UnwrapUnchecked())
 	}
-	return Ok[Void](nil)
+	return Ok[void.Void](nil)
 }
 
-// UnwrapOrThrow returns the contained T or panic returns error (*ErrBox).
+// UnwrapOrThrow returns the contained T or panic returns error (*errutil.ErrBox).
 // NOTE:
 //
 //	If there is an error, that panic should be caught with `Result.Catch()`

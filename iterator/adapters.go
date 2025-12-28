@@ -1,7 +1,9 @@
 package iterator
 
 import (
-	"github.com/andeya/gust"
+	"github.com/andeya/gust/option"
+	"github.com/andeya/gust/pair"
+	"github.com/andeya/gust/result"
 )
 
 // Map creates an iterator which calls a closure on each element.
@@ -27,10 +29,10 @@ import (
 //	var a = []int{1, 2, 3}
 //	var iter = Map(FromSlice(a), func(x int) int { return 2 * x })
 //
-//	assert.Equal(t, gust.Some(2), iterator.Next())
-//	assert.Equal(t, gust.Some(4), iterator.Next())
-//	assert.Equal(t, gust.Some(6), iterator.Next())
-//	assert.Equal(t, gust.None[int](), iterator.Next())
+//	assert.Equal(t, option.Some(2), iterator.Next())
+//	assert.Equal(t, option.Some(4), iterator.Next())
+//	assert.Equal(t, option.Some(6), iterator.Next())
+//	assert.Equal(t, option.None[int](), iterator.Next())
 //
 // Map creates an iterator which calls a closure on each element.
 // This function accepts Iterator[T] and returns Iterator[U] for chainable calls.
@@ -44,16 +46,16 @@ func Map[T any, U any](iter Iterator[T], f func(T) U) Iterator[U] {
 //
 // iter := RetMap(FromSlice([]string{"1", "2", "3", "NaN"}), strconv.Atoi)
 
-// assert.Equal(t, gust.Some(gust.Ok(1)), iterator.Next())
-// assert.Equal(t, gust.Some(gust.Ok(2)), iterator.Next())
-// assert.Equal(t, gust.Some(gust.Ok(3)), iterator.Next())
+// assert.Equal(t, option.Some(result.Ok(1)), iterator.Next())
+// assert.Equal(t, option.Some(result.Ok(2)), iterator.Next())
+// assert.Equal(t, option.Some(result.Ok(3)), iterator.Next())
 // assert.Equal(t, true, iterator.Next().Unwrap().IsErr())
-// assert.Equal(t, gust.None[gust.Result[int]](), iterator.Next())
+// assert.Equal(t, option.None[result.Result[int]](), iterator.Next())
 //
 //go:inline
-func RetMap[T any, U any](iter Iterator[T], f func(T) (U, error)) Iterator[gust.Result[U]] {
-	return Map(iter, func(t T) gust.Result[U] {
-		return gust.Ret(f(t))
+func RetMap[T any, U any](iter Iterator[T], f func(T) (U, error)) Iterator[result.Result[U]] {
+	return Map(iter, func(t T) result.Result[U] {
+		return result.Ret(f(t))
 	})
 }
 
@@ -77,16 +79,16 @@ func RetMap[T any, U any](iter Iterator[T], f func(T) (U, error)) Iterator[gust.
 //		return &v
 //	}
 //
-// assert.Equal(t, gust.Some(gust.Some(newInt(1))), iterator.Next())
-// assert.Equal(t, gust.Some(gust.Some(newInt(2))), iterator.Next())
-// assert.Equal(t, gust.Some(gust.Some(newInt(3))), iterator.Next())
-// assert.Equal(t, gust.Some(gust.None[*int]()), iterator.Next())
-// assert.Equal(t, gust.None[gust.Option[*int]](), iterator.Next())
+// assert.Equal(t, option.Some(option.Some(newInt(1))), iterator.Next())
+// assert.Equal(t, option.Some(option.Some(newInt(2))), iterator.Next())
+// assert.Equal(t, option.Some(option.Some(newInt(3))), iterator.Next())
+// assert.Equal(t, option.Some(option.None[*int]()), iterator.Next())
+// assert.Equal(t, option.None[option.Option[*int]](), iterator.Next())
 //
 //go:inline
-func OptMap[T any, U any](iter Iterator[T], f func(T) *U) Iterator[gust.Option[*U]] {
-	return Map(iter, func(t T) gust.Option[*U] {
-		return gust.PtrOpt(f(t))
+func OptMap[T any, U any](iter Iterator[T], f func(T) *U) Iterator[option.Option[*U]] {
+	return Map(iter, func(t T) option.Option[*U] {
+		return option.PtrOpt(f(t))
 	})
 }
 
@@ -95,15 +97,15 @@ type mapIterable[T any, U any] struct {
 	f    func(T) U
 }
 
-func (m *mapIterable[T, U]) Next() gust.Option[U] {
+func (m *mapIterable[T, U]) Next() option.Option[U] {
 	item := m.iter.Next()
 	if item.IsNone() {
-		return gust.None[U]()
+		return option.None[U]()
 	}
-	return gust.Some(m.f(item.Unwrap()))
+	return option.Some(m.f(item.Unwrap()))
 }
 
-func (m *mapIterable[T, U]) SizeHint() (uint, gust.Option[uint]) {
+func (m *mapIterable[T, U]) SizeHint() (uint, option.Option[uint]) {
 	return m.iter.SizeHint()
 }
 
@@ -117,11 +119,11 @@ type filterIterable[T any] struct {
 	predicate func(T) bool
 }
 
-func (f *filterIterable[T]) Next() gust.Option[T] {
+func (f *filterIterable[T]) Next() option.Option[T] {
 	for {
 		item := f.iter.Next()
 		if item.IsNone() {
-			return gust.None[T]()
+			return option.None[T]()
 		}
 		if f.predicate(item.Unwrap()) {
 			return item
@@ -129,7 +131,7 @@ func (f *filterIterable[T]) Next() gust.Option[T] {
 	}
 }
 
-func (f *filterIterable[T]) SizeHint() (uint, gust.Option[uint]) {
+func (f *filterIterable[T]) SizeHint() (uint, option.Option[uint]) {
 	_, upper := f.iter.SizeHint()
 	// Filter can reduce the size, but we don't know by how much
 	return 0, upper
@@ -138,7 +140,7 @@ func (f *filterIterable[T]) SizeHint() (uint, gust.Option[uint]) {
 // FilterMap creates an iterator that both filters and maps.
 //
 // The returned iterator yields only the values for which the supplied
-// closure returns gust.Some(value).
+// closure returns option.Some(value).
 //
 // FilterMap can be used to make chains of Filter and Map more
 // concise. The example below shows how a Map().Filter().Map() can be
@@ -149,33 +151,33 @@ func (f *filterIterable[T]) SizeHint() (uint, gust.Option[uint]) {
 // Basic usage:
 //
 //	var a = []string{"1", "two", "NaN", "four", "5"}
-//	var iter = FilterMap(FromSlice(a), func(s string) gust.Option[int] {
+//	var iter = FilterMap(FromSlice(a), func(s string) option.Option[int] {
 //		if v, err := strconv.Atoi(s); err == nil {
-//			return gust.Some(v)
+//			return option.Some(v)
 //		}
-//		return gust.None[int]()
+//		return option.None[int]()
 //	})
 //
-//	assert.Equal(t, gust.Some(1), iterator.Next())
-//	assert.Equal(t, gust.Some(5), iterator.Next())
-//	assert.Equal(t, gust.None[int](), iterator.Next())
+//	assert.Equal(t, option.Some(1), iterator.Next())
+//	assert.Equal(t, option.Some(5), iterator.Next())
+//	assert.Equal(t, option.None[int](), iterator.Next())
 //
 // FilterMap creates an iterator that both filters and maps.
 // This function accepts Iterator[T] and returns Iterator[U] for chainable calls.
-func FilterMap[T any, U any](iter Iterator[T], f func(T) gust.Option[U]) Iterator[U] {
+func FilterMap[T any, U any](iter Iterator[T], f func(T) option.Option[U]) Iterator[U] {
 	return Iterator[U]{iterable: &filterMapIterable[T, U]{iter: iter.iterable, f: f}}
 }
 
 type filterMapIterable[T any, U any] struct {
 	iter Iterable[T]
-	f    func(T) gust.Option[U]
+	f    func(T) option.Option[U]
 }
 
-func (f *filterMapIterable[T, U]) Next() gust.Option[U] {
+func (f *filterMapIterable[T, U]) Next() option.Option[U] {
 	for {
 		item := f.iter.Next()
 		if item.IsNone() {
-			return gust.None[U]()
+			return option.None[U]()
 		}
 		if result := f.f(item.Unwrap()); result.IsSome() {
 			return result
@@ -183,7 +185,7 @@ func (f *filterMapIterable[T, U]) Next() gust.Option[U] {
 	}
 }
 
-func (f *filterMapIterable[T, U]) SizeHint() (uint, gust.Option[uint]) {
+func (f *filterMapIterable[T, U]) SizeHint() (uint, option.Option[uint]) {
 	_, upper := f.iter.SizeHint()
 	// FilterMap can reduce the size, but we don't know by how much
 	return 0, upper
@@ -200,7 +202,7 @@ type chainIterable[T any] struct {
 	useA bool
 }
 
-func (c *chainIterable[T]) Next() gust.Option[T] {
+func (c *chainIterable[T]) Next() option.Option[T] {
 	if c.useA {
 		item := c.a.Next()
 		if item.IsSome() {
@@ -211,17 +213,17 @@ func (c *chainIterable[T]) Next() gust.Option[T] {
 	return c.b.Next()
 }
 
-func (c *chainIterable[T]) SizeHint() (uint, gust.Option[uint]) {
+func (c *chainIterable[T]) SizeHint() (uint, option.Option[uint]) {
 	lowerA, upperA := c.a.SizeHint()
 	lowerB, upperB := c.b.SizeHint()
 
 	lower := lowerA + lowerB
 
-	var upper gust.Option[uint]
+	var upper option.Option[uint]
 	if upperA.IsSome() && upperB.IsSome() {
-		upper = gust.Some(upperA.Unwrap() + upperB.Unwrap())
+		upper = option.Some(upperA.Unwrap() + upperB.Unwrap())
 	} else {
-		upper = gust.None[uint]()
+		upper = option.None[uint]()
 	}
 
 	return lower, upper
@@ -235,8 +237,8 @@ func (c *chainIterable[T]) SizeHint() (uint, gust.Option[uint]) {
 //
 // In other words, it zips two iterators together, into a single one.
 //
-// If either iterator returns gust.None[T](), Next() from the zipped iterator
-// will return gust.None[T]().
+// If either iterator returns option.None[T](), Next() from the zipped iterator
+// will return option.None[T]().
 //
 // # Examples
 //
@@ -246,15 +248,15 @@ func (c *chainIterable[T]) SizeHint() (uint, gust.Option[uint]) {
 //	var s2 = FromSlice([]rune{'d', 'e', 'f'})
 //	var iter = Zip(s1, s2)
 //
-//	assert.Equal(t, gust.Some(gust.Pair[rune, rune]{A: 'a', B: 'd'}), iterator.Next())
-//	assert.Equal(t, gust.Some(gust.Pair[rune, rune]{A: 'b', B: 'e'}), iterator.Next())
-//	assert.Equal(t, gust.Some(gust.Pair[rune, rune]{A: 'c', B: 'f'}), iterator.Next())
-//	assert.Equal(t, gust.None[gust.Pair[rune, rune]](), iterator.Next())
+//	assert.Equal(t, option.Some(pair.Pair[rune, rune]{A: 'a', B: 'd'}), iterator.Next())
+//	assert.Equal(t, option.Some(pair.Pair[rune, rune]{A: 'b', B: 'e'}), iterator.Next())
+//	assert.Equal(t, option.Some(pair.Pair[rune, rune]{A: 'c', B: 'f'}), iterator.Next())
+//	assert.Equal(t, option.None[pair.Pair[rune, rune]](), iterator.Next())
 //
 // Zip creates an iterator that zips two iterators together.
-// This function accepts Iterator[T] and Iterator[U] and returns Iterator[gust.Pair[T, U]] for chainable calls.
-func Zip[T any, U any](a Iterator[T], b Iterator[U]) Iterator[gust.Pair[T, U]] {
-	return Iterator[gust.Pair[T, U]]{iterable: &zipIterable[T, U]{a: a.iterable, b: b.iterable}}
+// This function accepts Iterator[T] and Iterator[U] and returns Iterator[pair.Pair[T, U]] for chainable calls.
+func Zip[T any, U any](a Iterator[T], b Iterator[U]) Iterator[pair.Pair[T, U]] {
+	return Iterator[pair.Pair[T, U]]{iterable: &zipIterable[T, U]{a: a.iterable, b: b.iterable}}
 }
 
 type zipIterable[T any, U any] struct {
@@ -262,21 +264,21 @@ type zipIterable[T any, U any] struct {
 	b Iterable[U]
 }
 
-func (z *zipIterable[T, U]) Next() gust.Option[gust.Pair[T, U]] {
+func (z *zipIterable[T, U]) Next() option.Option[pair.Pair[T, U]] {
 	itemA := z.a.Next()
 	if itemA.IsNone() {
-		return gust.None[gust.Pair[T, U]]()
+		return option.None[pair.Pair[T, U]]()
 	}
 
 	itemB := z.b.Next()
 	if itemB.IsNone() {
-		return gust.None[gust.Pair[T, U]]()
+		return option.None[pair.Pair[T, U]]()
 	}
 
-	return gust.Some(gust.Pair[T, U]{A: itemA.Unwrap(), B: itemB.Unwrap()})
+	return option.Some(pair.Pair[T, U]{A: itemA.Unwrap(), B: itemB.Unwrap()})
 }
 
-func (z *zipIterable[T, U]) SizeHint() (uint, gust.Option[uint]) {
+func (z *zipIterable[T, U]) SizeHint() (uint, option.Option[uint]) {
 	lowerA, upperA := z.a.SizeHint()
 	lowerB, upperB := z.b.SizeHint()
 
@@ -285,21 +287,21 @@ func (z *zipIterable[T, U]) SizeHint() (uint, gust.Option[uint]) {
 		lower = lowerB
 	}
 
-	var upper gust.Option[uint]
+	var upper option.Option[uint]
 	if upperA.IsSome() && upperB.IsSome() {
 		upperAVal := upperA.Unwrap()
 		upperBVal := upperB.Unwrap()
 		if upperAVal < upperBVal {
-			upper = gust.Some(upperAVal)
+			upper = option.Some(upperAVal)
 		} else {
-			upper = gust.Some(upperBVal)
+			upper = option.Some(upperBVal)
 		}
 	} else if upperA.IsSome() {
 		upper = upperA
 	} else if upperB.IsSome() {
 		upper = upperB
 	} else {
-		upper = gust.None[uint]()
+		upper = option.None[uint]()
 	}
 
 	return lower, upper
@@ -332,22 +334,22 @@ func (z *zipIterable[T, U]) SizeHint() (uint, gust.Option[uint]) {
 //	var a = []rune{'a', 'b', 'c'}
 //	var iter = Enumerate(FromSlice(a))
 //
-//	assert.Equal(t, gust.Some(gust.Pair[uint, rune]{A: 0, B: 'a'}), iterator.Next())
-//	assert.Equal(t, gust.Some(gust.Pair[uint, rune]{A: 1, B: 'b'}), iterator.Next())
-//	assert.Equal(t, gust.Some(gust.Pair[uint, rune]{A: 2, B: 'c'}), iterator.Next())
-//	assert.Equal(t, gust.None[gust.Pair[uint, rune]](), iterator.Next())
+//	assert.Equal(t, option.Some(pair.Pair[uint, rune]{A: 0, B: 'a'}), iterator.Next())
+//	assert.Equal(t, option.Some(pair.Pair[uint, rune]{A: 1, B: 'b'}), iterator.Next())
+//	assert.Equal(t, option.Some(pair.Pair[uint, rune]{A: 2, B: 'c'}), iterator.Next())
+//	assert.Equal(t, option.None[pair.Pair[uint, rune]](), iterator.Next())
 //
 // enumerateImpl is the internal implementation of Enumerate.
 //
 //go:inline
-func enumerateImpl[T any](iter Iterable[T]) Iterable[gust.Pair[uint, T]] {
+func enumerateImpl[T any](iter Iterable[T]) Iterable[pair.Pair[uint, T]] {
 	return &enumerateIterable[T]{iter: iter, count: 0}
 }
 
 // Enumerate creates an iterator that yields pairs of (index, value).
-// This function accepts Iterator[T] and returns Iterator[gust.Pair[uint, T]] for chainable calls.
-func Enumerate[T any](iter Iterator[T]) Iterator[gust.Pair[uint, T]] {
-	return Iterator[gust.Pair[uint, T]]{iterable: enumerateImpl(iter.iterable)}
+// This function accepts Iterator[T] and returns Iterator[pair.Pair[uint, T]] for chainable calls.
+func Enumerate[T any](iter Iterator[T]) Iterator[pair.Pair[uint, T]] {
+	return Iterator[pair.Pair[uint, T]]{iterable: enumerateImpl(iter.iterable)}
 }
 
 type enumerateIterable[T any] struct {
@@ -355,17 +357,17 @@ type enumerateIterable[T any] struct {
 	count uint
 }
 
-func (e *enumerateIterable[T]) Next() gust.Option[gust.Pair[uint, T]] {
+func (e *enumerateIterable[T]) Next() option.Option[pair.Pair[uint, T]] {
 	item := e.iter.Next()
 	if item.IsNone() {
-		return gust.None[gust.Pair[uint, T]]()
+		return option.None[pair.Pair[uint, T]]()
 	}
-	pair := gust.Pair[uint, T]{A: e.count, B: item.Unwrap()}
+	pair := pair.Pair[uint, T]{A: e.count, B: item.Unwrap()}
 	e.count++
-	return gust.Some(pair)
+	return option.Some(pair)
 }
 
-func (e *enumerateIterable[T]) SizeHint() (uint, gust.Option[uint]) {
+func (e *enumerateIterable[T]) SizeHint() (uint, option.Option[uint]) {
 	return e.iter.SizeHint()
 }
 
@@ -380,7 +382,7 @@ type skipIterable[T any] struct {
 	done bool
 }
 
-func (s *skipIterable[T]) Next() gust.Option[T] {
+func (s *skipIterable[T]) Next() option.Option[T] {
 	if !s.done {
 		advanceByImpl(s.iter, s.n)
 		s.done = true
@@ -388,7 +390,7 @@ func (s *skipIterable[T]) Next() gust.Option[T] {
 	return s.iter.Next()
 }
 
-func (s *skipIterable[T]) SizeHint() (uint, gust.Option[uint]) {
+func (s *skipIterable[T]) SizeHint() (uint, option.Option[uint]) {
 	lower, upper := s.iter.SizeHint()
 	if lower >= s.n {
 		lower -= s.n
@@ -398,9 +400,9 @@ func (s *skipIterable[T]) SizeHint() (uint, gust.Option[uint]) {
 	if upper.IsSome() {
 		upperVal := upper.Unwrap()
 		if upperVal >= s.n {
-			upper = gust.Some(upperVal - s.n)
+			upper = option.Some(upperVal - s.n)
 		} else {
-			upper = gust.Some(uint(0))
+			upper = option.Some(uint(0))
 		}
 	}
 	return lower, upper
@@ -417,9 +419,9 @@ type takeIterable[T any] struct {
 	taken uint
 }
 
-func (t *takeIterable[T]) Next() gust.Option[T] {
+func (t *takeIterable[T]) Next() option.Option[T] {
 	if t.taken >= t.n {
-		return gust.None[T]()
+		return option.None[T]()
 	}
 	item := t.iter.Next()
 	if item.IsSome() {
@@ -428,13 +430,13 @@ func (t *takeIterable[T]) Next() gust.Option[T] {
 	return item
 }
 
-func (t *takeIterable[T]) SizeHint() (uint, gust.Option[uint]) {
+func (t *takeIterable[T]) SizeHint() (uint, option.Option[uint]) {
 	lower, upper := t.iter.SizeHint()
 	if lower > t.n {
 		lower = t.n
 	}
 	if upper.IsSome() && upper.Unwrap() > t.n {
-		upper = gust.Some(t.n)
+		upper = option.Some(t.n)
 	}
 	return lower, upper
 }
@@ -453,18 +455,18 @@ type stepByIterable[T any] struct {
 	first bool
 }
 
-func (s *stepByIterable[T]) Next() gust.Option[T] {
+func (s *stepByIterable[T]) Next() option.Option[T] {
 	if s.first {
 		s.first = false
 		return s.iter.Next()
 	}
 	if advanceByImpl(s.iter, s.step-1).IsErr() {
-		return gust.None[T]()
+		return option.None[T]()
 	}
 	return s.iter.Next()
 }
 
-func (s *stepByIterable[T]) SizeHint() (uint, gust.Option[uint]) {
+func (s *stepByIterable[T]) SizeHint() (uint, option.Option[uint]) {
 	lower, upper := s.iter.SizeHint()
 	if lower > 0 {
 		lower = (lower + s.step - 1) / s.step
@@ -472,9 +474,9 @@ func (s *stepByIterable[T]) SizeHint() (uint, gust.Option[uint]) {
 	if upper.IsSome() {
 		upperVal := upper.Unwrap()
 		if upperVal > 0 {
-			upper = gust.Some((upperVal + s.step - 1) / s.step)
+			upper = option.Some((upperVal + s.step - 1) / s.step)
 		} else {
-			upper = gust.Some(uint(0))
+			upper = option.Some(uint(0))
 		}
 	}
 	return lower, upper

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/andeya/gust"
 	"github.com/andeya/gust/iterator"
+	"github.com/andeya/gust/result"
 )
 
 // Example_realWorld demonstrates a real-world data processing scenario.
@@ -15,7 +15,7 @@ func Example_realWorld() {
 
 	results := iterator.FilterMap(
 		iterator.RetMap(iterator.FromSlice(input), strconv.Atoi),
-		gust.Result[int].Ok,
+		result.Result[int].Ok,
 	).
 		Filter(func(x int) bool { return x > 0 }).
 		Map(func(x int) int { return x * 2 }).
@@ -35,7 +35,7 @@ func Example_dataProcessing() {
 	// Parse strings to integers, filter out errors, validate, and transform
 	results := iterator.FilterMap(
 		iterator.RetMap(iterator.FromSlice(input), strconv.Atoi),
-		gust.Result[int].Ok,
+		result.Result[int].Ok,
 	).
 		Filter(func(x int) bool { return x > 0 }).
 		Map(func(x int) int { return x * x }).
@@ -48,18 +48,18 @@ func Example_dataProcessing() {
 // Example_errorHandling demonstrates elegant error handling in data pipelines.
 func Example_errorHandling() {
 	// Simulate processing data that might fail at various stages
-	processData := func(input []string) gust.Result[[]int] {
-		results := iterator.FilterMap(
+	processData := func(input []string) result.Result[[]int] {
+		resList := iterator.FilterMap(
 			iterator.RetMap(iterator.FromSlice(input), strconv.Atoi),
-			gust.Result[int].Ok,
+			result.Result[int].Ok,
 		).
 			Collect()
 
-		if len(results) == 0 {
-			return gust.TryErr[[]int]("no valid numbers found")
+		if len(resList) == 0 {
+			return result.TryErr[[]int]("no valid numbers found")
 		}
 
-		return gust.Ok(results)
+		return result.Ok(resList)
 	}
 
 	result := processData([]string{"1", "2", "3"})

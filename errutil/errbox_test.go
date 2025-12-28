@@ -1,80 +1,80 @@
-package gust_test
+package errutil_test
 
 import (
 	"errors"
 	"fmt"
 	"testing"
 
-	"github.com/andeya/gust"
 	"github.com/andeya/gust/errutil"
+	"github.com/andeya/gust/result"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestBoxErr(t *testing.T) {
 	// Test with string
-	eb1 := gust.BoxErr("test error")
+	eb1 := errutil.BoxErr("test error")
 	assert.NotNil(t, eb1)
 	assert.Equal(t, "test error", eb1.Value())
 
 	// Test with error
 	err := errors.New("test error")
-	eb2 := gust.BoxErr(err)
+	eb2 := errutil.BoxErr(err)
 	assert.NotNil(t, eb2)
 	assert.Equal(t, err, eb2.Value())
 
 	// Test with ErrBox (should return same)
-	eb3 := gust.BoxErr(eb2)
+	eb3 := errutil.BoxErr(eb2)
 	assert.Equal(t, eb2, eb3)
 
 	// Test with ErrBox value type (not pointer) (covers errbox.go:39-40)
-	ebValue := gust.BoxErr("test")
-	var ebValueType gust.ErrBox = *ebValue
-	eb4 := gust.BoxErr(ebValueType)
+	ebValue := errutil.BoxErr("test")
+	var ebValueType errutil.ErrBox = *ebValue
+	eb4 := errutil.BoxErr(ebValueType)
 	assert.NotNil(t, eb4)
 	assert.Equal(t, "test", eb4.Value())
 
 	// Test with int
-	eb6 := gust.BoxErr(42)
+	eb6 := errutil.BoxErr(42)
 	assert.NotNil(t, eb6)
 	assert.Equal(t, 42, eb6.Value())
 
 	// Test with nil
-	eb7 := gust.BoxErr(nil)
+	eb7 := errutil.BoxErr(nil)
 	assert.Nil(t, eb7)
 }
 
 func TestErrBox_Value(t *testing.T) {
 	// Test with value
-	eb := gust.BoxErr("test")
+	eb := errutil.BoxErr("test")
 	assert.Equal(t, "test", eb.Value())
 
 	// Test with nil ErrBox
-	var nilEb *gust.ErrBox
+	var nilEb *errutil.ErrBox
 	assert.Nil(t, nilEb.Value())
 }
 
 // TestErrBox_Is_NilReceiver tests Is method with nil receiver
 func TestErrBox_Is_NilReceiver(t *testing.T) {
-	var nilEb *gust.ErrBox
+	var nilEb *errutil.ErrBox
 	target := errors.New("test")
 	assert.False(t, nilEb.Is(target))
 }
 
 func TestErrBox_ToError(t *testing.T) {
 	// Test with string
-	eb1 := gust.BoxErr("test error")
+	eb1 := errutil.BoxErr("test error")
 	err1 := eb1.ToError()
 	assert.NotNil(t, err1)
 	assert.Contains(t, err1.Error(), "test error")
 
 	// Test with error
 	err := errors.New("test error")
-	eb2 := gust.BoxErr(err)
+	eb2 := errutil.BoxErr(err)
 	err2 := eb2.ToError()
 	assert.Equal(t, err, err2)
 
 	// Test with nil value
-	eb3 := gust.BoxErr(nil)
+	eb3 := errutil.BoxErr(nil)
 	if eb3 == nil {
 		assert.Nil(t, eb3)
 	} else {
@@ -83,12 +83,12 @@ func TestErrBox_ToError(t *testing.T) {
 	}
 
 	// Test with nil ErrBox pointer
-	var nilEb *gust.ErrBox
+	var nilEb *errutil.ErrBox
 	err4 := nilEb.ToError()
 	assert.Nil(t, err4)
 
 	// Test with int
-	eb4 := gust.BoxErr(42)
+	eb4 := errutil.BoxErr(42)
 	err5 := eb4.ToError()
 	assert.NotNil(t, err5)
 	assert.Contains(t, err5.Error(), "42")
@@ -97,18 +97,18 @@ func TestErrBox_ToError(t *testing.T) {
 func TestErrBox_Unwrap(t *testing.T) {
 	// Test with error
 	err := errors.New("test error")
-	eb1 := gust.BoxErr(err)
+	eb1 := errutil.BoxErr(err)
 	unwrapped := eb1.Unwrap()
 	assert.Equal(t, err, unwrapped)
 
 	// Test with wrapped error
 	wrappedErr := &wrappedError{err: err}
-	eb2 := gust.BoxErr(wrappedErr)
+	eb2 := errutil.BoxErr(wrappedErr)
 	unwrapped2 := eb2.Unwrap()
 	assert.Equal(t, err, unwrapped2)
 
 	// Test with nil value
-	eb3 := gust.BoxErr(nil)
+	eb3 := errutil.BoxErr(nil)
 	if eb3 == nil {
 		assert.Nil(t, eb3)
 	} else {
@@ -116,16 +116,16 @@ func TestErrBox_Unwrap(t *testing.T) {
 	}
 
 	// Test with nil ErrBox
-	var nilEb *gust.ErrBox
+	var nilEb *errutil.ErrBox
 	assert.Nil(t, nilEb.Unwrap())
 
 	// Test with non-error value
-	eb4 := gust.BoxErr(42)
+	eb4 := errutil.BoxErr(42)
 	assert.Nil(t, eb4.Unwrap())
 
 	// Test with error that doesn't implement Unwrap
 	se := simpleError("simple")
-	eb5 := gust.BoxErr(se)
+	eb5 := errutil.BoxErr(se)
 	unwrapped5 := eb5.Unwrap()
 	assert.Equal(t, se, unwrapped5)
 }
@@ -164,7 +164,7 @@ func (e *errorWithNilUnwrap2) Unwrap() error {
 func TestErrBox_Is(t *testing.T) {
 	// Test with wrapped error
 	err := errors.New("test error")
-	eb1 := gust.BoxErr(err)
+	eb1 := errutil.BoxErr(err)
 	assert.True(t, eb1.Is(err))
 
 	// Test with different error
@@ -172,7 +172,7 @@ func TestErrBox_Is(t *testing.T) {
 	assert.False(t, eb1.Is(err2))
 
 	// Test with nil ErrBox and nil target
-	var nilEb *gust.ErrBox
+	var nilEb *errutil.ErrBox
 	assert.True(t, nilEb.Is(nil))
 
 	// Test with non-nil ErrBox and nil target
@@ -180,20 +180,20 @@ func TestErrBox_Is(t *testing.T) {
 
 	// Test with wrapped error that has Unwrap
 	wrappedErr := &wrappedError{err: err}
-	eb2 := gust.BoxErr(wrappedErr)
+	eb2 := errutil.BoxErr(wrappedErr)
 	assert.True(t, eb2.Is(err))
 
 	// Test with wrapped error chain
 	wrappedErr1 := errors.New("wrapped")
 	wrappedErr2 := fmt.Errorf("outer: %w", wrappedErr1)
-	eb3 := gust.BoxErr(wrappedErr2)
+	eb3 := errutil.BoxErr(wrappedErr2)
 	assert.True(t, eb3.Is(wrappedErr1)) // wrappedErr2 wraps wrappedErr1
 }
 
 func TestErrBox_As(t *testing.T) {
 	// Test with wrapped error
 	err := errors.New("test error")
-	eb1 := gust.BoxErr(err)
+	eb1 := errutil.BoxErr(err)
 	var targetErr error
 	assert.True(t, eb1.As(&targetErr))
 	assert.Equal(t, err, targetErr)
@@ -204,27 +204,27 @@ func TestErrBox_As(t *testing.T) {
 	})
 
 	// Test with nil ErrBox
-	var nilEb *gust.ErrBox
+	var nilEb *errutil.ErrBox
 	var nilTarget error
 	assert.False(t, nilEb.As(&nilTarget))
 
 	// Test with non-error value
-	eb2 := gust.BoxErr(42)
+	eb2 := errutil.BoxErr(42)
 	var targetErr2 error
 	assert.False(t, eb2.As(&targetErr2))
 }
 
 func TestErrBox_ValueOrDefault(t *testing.T) {
 	// Test with value
-	eb := gust.BoxErr("test")
+	eb := errutil.BoxErr("test")
 	assert.Equal(t, "test", eb.ValueOrDefault())
 
 	// Test with nil ErrBox
-	var nilEb *gust.ErrBox
+	var nilEb *errutil.ErrBox
 	assert.Nil(t, nilEb.ValueOrDefault())
 
 	// Test with nil value
-	eb2 := gust.BoxErr(nil)
+	eb2 := errutil.BoxErr(nil)
 	if eb2 == nil {
 		assert.Nil(t, eb2)
 	} else {
@@ -232,27 +232,27 @@ func TestErrBox_ValueOrDefault(t *testing.T) {
 	}
 
 	// Test with int value
-	eb3 := gust.BoxErr(42)
+	eb3 := errutil.BoxErr(42)
 	assert.Equal(t, 42, eb3.ValueOrDefault())
 
 	// Test with error value
 	err := errors.New("test error")
-	eb4 := gust.BoxErr(err)
+	eb4 := errutil.BoxErr(err)
 	assert.Equal(t, err, eb4.ValueOrDefault())
 }
 
 func TestErrBox_String(t *testing.T) {
 	// Test with string
-	eb1 := gust.BoxErr("test error")
+	eb1 := errutil.BoxErr("test error")
 	assert.Equal(t, "test error", eb1.String())
 
 	// Test with error
 	err := errors.New("test error")
-	eb2 := gust.BoxErr(err)
+	eb2 := errutil.BoxErr(err)
 	assert.Equal(t, "test error", eb2.String())
 
 	// Test with nil value
-	eb3 := gust.BoxErr(nil)
+	eb3 := errutil.BoxErr(nil)
 	if eb3 == nil {
 		assert.Nil(t, eb3)
 	} else {
@@ -260,26 +260,26 @@ func TestErrBox_String(t *testing.T) {
 	}
 
 	// Test with nil ErrBox
-	var nilEb *gust.ErrBox
+	var nilEb *errutil.ErrBox
 	assert.Equal(t, "<nil>", nilEb.String())
 
 	// Test with int
-	eb4 := gust.BoxErr(42)
+	eb4 := errutil.BoxErr(42)
 	assert.Equal(t, "42", eb4.String())
 }
 
 func TestErrBox_GoString(t *testing.T) {
 	// Test with string
-	eb1 := gust.BoxErr("test")
+	eb1 := errutil.BoxErr("test")
 	assert.Contains(t, eb1.GoString(), "ErrBox")
 	assert.Contains(t, eb1.GoString(), "test")
 
 	// Test with nil ErrBox
-	var nilEb *gust.ErrBox
-	assert.Equal(t, "(*gust.ErrBox)(nil)", nilEb.GoString())
+	var nilEb *errutil.ErrBox
+	assert.Equal(t, "(*errutil.ErrBox)(nil)", nilEb.GoString())
 
 	// Test with nil value
-	eb2 := gust.BoxErr(nil)
+	eb2 := errutil.BoxErr(nil)
 	if eb2 == nil {
 		assert.Nil(t, eb2)
 	} else {
@@ -288,7 +288,7 @@ func TestErrBox_GoString(t *testing.T) {
 	}
 
 	// Test with int
-	eb3 := gust.BoxErr(42)
+	eb3 := errutil.BoxErr(42)
 	assert.Contains(t, eb3.GoString(), "ErrBox")
 	assert.Contains(t, eb3.GoString(), "42")
 }
@@ -297,20 +297,17 @@ func TestErrBox_GoString(t *testing.T) {
 func TestToError(t *testing.T) {
 	// Test toError with error type (through VoidResult.ToError)
 	err := errors.New("test error")
-	result := gust.RetVoid(err)
-	resultErr := gust.ToError(result)
+	resultErr := result.TryErrVoid(err).Err()
 	assert.NotNil(t, resultErr)
 	assert.Equal(t, "test error", resultErr.Error())
 
 	// Test toError with non-error type (through VoidResult.ToError)
-	result2 := gust.TryErr[gust.Void]("test error")
-	resultErr2 := gust.ToError(result2)
+	resultErr2 := result.TryErrVoid("test error").Err()
 	assert.NotNil(t, resultErr2)
 	assert.Equal(t, "test error", resultErr2.Error())
 
 	// Test toError with int (through VoidResult.ToError)
-	result3 := gust.TryErr[gust.Void](42)
-	resultErr3 := gust.ToError(result3)
+	resultErr3 := result.TryErrVoid(42).Err()
 	assert.NotNil(t, resultErr3)
 	assert.Equal(t, "42", resultErr3.Error())
 }
@@ -318,7 +315,7 @@ func TestToError(t *testing.T) {
 // TestInnerErrBox_Error_NilValue tests innerErrBox.Error() with nil value
 func TestInnerErrBox_Error_NilValue(t *testing.T) {
 	// Create an ErrBox with nil value
-	eb := gust.BoxErr(nil)
+	eb := errutil.BoxErr(nil)
 	// When val is nil, ToError returns nil, so we need to test Error() directly
 	// We can't directly call Error() on innerErrBox, but we can test through String()
 	assert.Equal(t, "<nil>", eb.String())
@@ -328,7 +325,7 @@ func TestInnerErrBox_Error_NilValue(t *testing.T) {
 	// But ToError() returns nil when val is nil, so we need a different approach
 	// Actually, we can create an ErrBox with a nil pointer value
 	var nilPtr *int
-	eb2 := gust.BoxErr(nilPtr)
+	eb2 := errutil.BoxErr(nilPtr)
 	err2 := eb2.ToError()
 	assert.NotNil(t, err2)
 	// When val is a nil pointer, Error() should return "<nil>"
@@ -338,7 +335,7 @@ func TestInnerErrBox_Error_NilValue(t *testing.T) {
 // TestInnerErrBox_Unwrap_NilValue tests innerErrBox.Unwrap() with nil value
 func TestInnerErrBox_Unwrap_NilValue(t *testing.T) {
 	// Create an ErrBox with nil value
-	eb := gust.BoxErr(nil)
+	eb := errutil.BoxErr(nil)
 	unwrapped := eb.Unwrap()
 	assert.Nil(t, unwrapped)
 
@@ -347,7 +344,7 @@ func TestInnerErrBox_Unwrap_NilValue(t *testing.T) {
 	// But ToError() returns nil when val is nil, so we need a different approach
 	// Actually, we can create an ErrBox with a nil pointer value
 	var nilPtr *int
-	eb2 := gust.BoxErr(nilPtr)
+	eb2 := errutil.BoxErr(nilPtr)
 	err2 := eb2.ToError()
 	assert.NotNil(t, err2)
 	// When val is a nil pointer, Unwrap() should return nil (case nil:)
@@ -358,7 +355,7 @@ func TestInnerErrBox_Unwrap_NilValue(t *testing.T) {
 // TestInnerErrBox_Is_UnwrapNil tests innerErrBox.Is() when Unwrap returns nil
 func TestInnerErrBox_Is_UnwrapNil(t *testing.T) {
 	// Create an ErrBox with a non-error value (so Unwrap returns nil)
-	eb := gust.BoxErr(42)
+	eb := errutil.BoxErr(42)
 	// When Unwrap returns nil, Is checks if the wrapped value matches target
 	// Since 42 is not an error, Is should return false
 	target := errors.New("test")
@@ -369,7 +366,7 @@ func TestInnerErrBox_Is_UnwrapNil(t *testing.T) {
 
 	// Test with an error value that doesn't implement Unwrap
 	se := simpleError("simple")
-	eb2 := gust.BoxErr(se)
+	eb2 := errutil.BoxErr(se)
 	// When wrapped value is an error but Unwrap returns nil (no Unwrap method),
 	// Is should check the wrapped value directly
 	assert.True(t, eb2.Is(se))
@@ -381,7 +378,7 @@ func TestInnerErrBox_Is_UnwrapNil(t *testing.T) {
 	// Actually, simpleError already does this - it implements error but doesn't have Unwrap()
 	// But we already tested that above. Let's test with a nil error pointer
 	var nilErr *simpleError
-	eb3 := gust.BoxErr(nilErr)
+	eb3 := errutil.BoxErr(nilErr)
 	// When val is a nil error pointer, Unwrap() returns nil (case nil:)
 	// Then Is() checks if val is an error - it is (*simpleError), but it's nil
 	// So errors.Is(nil, target) should return false
@@ -391,7 +388,7 @@ func TestInnerErrBox_Is_UnwrapNil(t *testing.T) {
 	// This covers the case at line 1907: if err, ok := e.val.(error); ok
 	// Use errorWithNilUnwrap2 which implements Unwrap() but returns nil
 	errWithNilUnwrap2 := &errorWithNilUnwrap2{msg: "test"}
-	eb4 := gust.BoxErr(errWithNilUnwrap2)
+	eb4 := errutil.BoxErr(errWithNilUnwrap2)
 	// When Unwrap() returns nil, Is() should check if e.val is an error
 	// errWithNilUnwrap2 is an error, so it should check errors.Is(errWithNilUnwrap2, target)
 	targetErr2 := errors.New("target")
@@ -402,7 +399,7 @@ func TestInnerErrBox_Is_UnwrapNil(t *testing.T) {
 
 // TestInnerErrBox_Error_String tests innerErrBox.Error() with string value (covers errbox.go:151-152)
 func TestInnerErrBox_Error_String(t *testing.T) {
-	eb := gust.BoxErr("test string")
+	eb := errutil.BoxErr("test string")
 	err := eb.ToError()
 	assert.NotNil(t, err)
 	// When val is string, Error() should return the string directly
@@ -413,7 +410,7 @@ func TestInnerErrBox_Error_String(t *testing.T) {
 func TestInnerErrBox_Unwrap_WithUnwrapInterface(t *testing.T) {
 	baseErr := errors.New("base error")
 	wrappedErr := &wrappedError{err: baseErr}
-	eb := gust.BoxErr(wrappedErr)
+	eb := errutil.BoxErr(wrappedErr)
 
 	unwrapped := eb.Unwrap()
 	assert.NotNil(t, unwrapped)
@@ -424,7 +421,7 @@ func TestInnerErrBox_Unwrap_WithUnwrapInterface(t *testing.T) {
 func TestInnerErrBox_As_WithUnwrap(t *testing.T) {
 	baseErr := errors.New("base error")
 	wrappedErr := &wrappedError{err: baseErr}
-	eb := gust.BoxErr(wrappedErr)
+	eb := errutil.BoxErr(wrappedErr)
 
 	var target *wrappedError
 	assert.True(t, eb.As(&target))
@@ -440,14 +437,14 @@ func TestInnerErrBox_As_WithUnwrap(t *testing.T) {
 // TestInnerErrBox_As_UnwrapNil tests innerErrBox.As() when Unwrap returns nil (covers errbox.go:201)
 func TestInnerErrBox_As_UnwrapNil(t *testing.T) {
 	// Test with non-error value (Unwrap returns nil)
-	eb := gust.BoxErr(42)
+	eb := errutil.BoxErr(42)
 	var target int
 	assert.False(t, eb.As(&target))
 
 	// Test with error that doesn't implement Unwrap
 	// Note: simpleError implements error interface, so errors.As should return true
 	se := simpleError("simple")
-	eb2 := gust.BoxErr(se)
+	eb2 := errutil.BoxErr(se)
 	var targetErr error
 	// simpleError implements error, so As should return true and set targetErr to se
 	assert.True(t, eb2.As(&targetErr))
@@ -460,7 +457,7 @@ func TestInnerErrBox_As_ErrorDirectMatch(t *testing.T) {
 	// Test with wrappedError that directly matches target type
 	baseErr := errors.New("base error")
 	wrappedErr := &wrappedError{err: baseErr}
-	eb := gust.BoxErr(wrappedErr)
+	eb := errutil.BoxErr(wrappedErr)
 
 	var target *wrappedError
 	assert.True(t, eb.As(&target))
@@ -474,7 +471,7 @@ func TestInnerErrBox_As_ErrorChain(t *testing.T) {
 	baseErr := errors.New("base error")
 	wrappedErr1 := &wrappedError{err: baseErr}
 	wrappedErr2 := fmt.Errorf("outer: %w", wrappedErr1)
-	eb := gust.BoxErr(wrappedErr2)
+	eb := errutil.BoxErr(wrappedErr2)
 
 	// Target should match wrappedErr1 through the chain
 	var target *wrappedError
@@ -485,7 +482,7 @@ func TestInnerErrBox_As_ErrorChain(t *testing.T) {
 
 // TestInnerErrBox_As_NonMatchingType tests innerErrBox.As() with non-matching target type
 func TestInnerErrBox_As_NonMatchingType(t *testing.T) {
-	eb := gust.BoxErr(errors.New("test"))
+	eb := errutil.BoxErr(errors.New("test"))
 	var target int
 	// Target type doesn't match error type, should return false
 	assert.False(t, eb.As(&target))
@@ -493,7 +490,7 @@ func TestInnerErrBox_As_NonMatchingType(t *testing.T) {
 
 // TestInnerErrBox_As_NilTargetPanic tests innerErrBox.As() panics when target is nil
 func TestInnerErrBox_As_NilTargetPanic(t *testing.T) {
-	eb := gust.BoxErr(errors.New("test"))
+	eb := errutil.BoxErr(errors.New("test"))
 	assert.Panics(t, func() {
 		eb.As(nil)
 	})
@@ -501,7 +498,7 @@ func TestInnerErrBox_As_NilTargetPanic(t *testing.T) {
 
 // TestInnerErrBox_As_NonPointerTarget tests innerErrBox.As() with non-pointer target
 func TestInnerErrBox_As_NonPointerTarget(t *testing.T) {
-	eb := gust.BoxErr(errors.New("test"))
+	eb := errutil.BoxErr(errors.New("test"))
 	// Test with non-pointer target (should return false)
 	var target error = errors.New("target")
 	assert.False(t, eb.As(target))
@@ -622,7 +619,7 @@ func TestNewPanicError(t *testing.T) {
 
 	// Test with *ErrBox
 	{
-		eb := gust.BoxErr(errors.New("errbox error"))
+		eb := errutil.BoxErr(errors.New("errbox error"))
 		pe := errutil.NewPanicError(eb, stack)
 		assert.NotNil(t, pe)
 		assert.NotNil(t, pe.Unwrap())
@@ -633,7 +630,7 @@ func TestNewPanicError(t *testing.T) {
 
 	// Test with ErrBox (value)
 	{
-		eb := gust.BoxErr(errors.New("errbox value error"))
+		eb := errutil.BoxErr(errors.New("errbox value error"))
 		pe := errutil.NewPanicError(*eb, stack)
 		assert.NotNil(t, pe)
 		assert.NotNil(t, pe.Unwrap())

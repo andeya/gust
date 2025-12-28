@@ -1,7 +1,9 @@
 package iterator
 
 import (
-	"github.com/andeya/gust"
+	"github.com/andeya/gust/option"
+	"github.com/andeya/gust/result"
+	"github.com/andeya/gust/void"
 )
 
 //go:inline
@@ -15,8 +17,8 @@ func countImpl[T any](iter Iterable[T]) uint {
 }
 
 //go:inline
-func lastImpl[T any](iter Iterable[T]) gust.Option[T] {
-	var last gust.Option[T] = gust.None[T]()
+func lastImpl[T any](iter Iterable[T]) option.Option[T] {
+	var last option.Option[T] = option.None[T]()
 	it := Iterator[T]{iterable: iter}
 	for {
 		item := it.Next()
@@ -29,21 +31,21 @@ func lastImpl[T any](iter Iterable[T]) gust.Option[T] {
 }
 
 //go:inline
-func advanceByImpl[T any](iter Iterable[T], n uint) gust.VoidResult {
+func advanceByImpl[T any](iter Iterable[T], n uint) result.VoidResult {
 	it := Iterator[T]{iterable: iter}
 	for i := uint(0); i < n; i++ {
 		if it.Next().IsNone() {
-			return gust.TryErr[gust.Void](n - i)
+			return result.TryErr[void.Void](n - i)
 		}
 	}
-	return gust.Ok[gust.Void](nil)
+	return result.Ok[void.Void](nil)
 }
 
 //go:inline
-func nthImpl[T any](iter Iterable[T], n uint) gust.Option[T] {
+func nthImpl[T any](iter Iterable[T], n uint) option.Option[T] {
 	it := Iterator[T]{iterable: iter}
 	if advanceByImpl(iter, n).IsErr() {
-		return gust.None[T]()
+		return option.None[T]()
 	}
 	return it.Next()
 }

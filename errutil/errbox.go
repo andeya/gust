@@ -1,11 +1,9 @@
-package gust
+package errutil
 
 import (
 	"errors"
 	"fmt"
 	"reflect"
-
-	"github.com/andeya/gust/errutil"
 )
 
 type (
@@ -88,9 +86,9 @@ func (e *ErrBox) String() string {
 // This implements the fmt.GoStringer interface.
 func (e *ErrBox) GoString() string {
 	if e == nil {
-		return "(*gust.ErrBox)(nil)"
+		return "(*errutil.ErrBox)(nil)"
 	}
-	return fmt.Sprintf("&gust.ErrBox{inner: %#v}", e.inner.val)
+	return fmt.Sprintf("&errutil.ErrBox{inner: %#v}", e.inner.val)
 }
 
 // ToError converts ErrBox to error interface.
@@ -100,7 +98,7 @@ func (e *ErrBox) GoString() string {
 // Example:
 //
 //	```go
-//	var eb gust.ErrBox = gust.BoxErr(errors.New("test"))
+//	var eb errutil.ErrBox = errutil.BoxErr(errors.New("test"))
 //	var err error = eb.ToError() // err is *innerErrBox implementing error
 //	```
 //
@@ -233,8 +231,8 @@ func (e innerErrBox) As(target any) bool {
 }
 
 // newPanicError creates a new PanicError with the given error and stack trace.
-// This is a helper function that wraps the errutil.NewPanicError with ErrBox handling.
-func newPanicError(err any, stack errutil.StackTrace) *errutil.PanicError {
+// This is a helper function that wraps the NewPanicError with ErrBox handling.
+func newPanicError(err any, stack StackTrace) *PanicError {
 	var wrappedErr error
 	switch e := err.(type) {
 	case nil:
@@ -250,5 +248,5 @@ func newPanicError(err any, stack errutil.StackTrace) *errutil.PanicError {
 	default:
 		wrappedErr = BoxErr(err).ToError()
 	}
-	return errutil.NewPanicError(wrappedErr, stack)
+	return NewPanicError(wrappedErr, stack)
 }

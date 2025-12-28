@@ -1,7 +1,8 @@
 package iterator
 
 import (
-	"github.com/andeya/gust"
+	"github.com/andeya/gust/option"
+	"github.com/andeya/gust/result"
 )
 
 // TryFold is an iterator method that applies a function as long as it returns
@@ -26,12 +27,12 @@ import (
 //
 //	var a = []int{1, 2, 3}
 //	// the checked sum of all of the elements of the array
-//	var sum = TryFold(FromSlice(a), 0, func(acc int, x int) gust.Result[int] {
+//	var sum = TryFold(FromSlice(a), 0, func(acc int, x int) result.Result[int] {
 //		// Simulate checked addition
 //		if acc > 100 {
-//			return gust.Err[int](errors.New("overflow"))
+//			return result.TryErr[int](errors.New("overflow"))
 //		}
-//		return gust.Ok(acc + x)
+//		return result.Ok(acc + x)
 //	})
 //	assert.True(t, sum.IsOk())
 //	assert.Equal(t, 6, sum.Unwrap())
@@ -41,21 +42,21 @@ import (
 //	var a = []int{10, 20, 30, 100, 40, 50}
 //	var iter = FromSlice(a)
 //	// This sum overflows when adding the 100 element
-//	var sum = TryFold(iter, 0, func(acc int, x int) gust.Result[int] {
+//	var sum = TryFold(iter, 0, func(acc int, x int) result.Result[int] {
 //		if acc+x > 50 {
-//			return gust.Err[int](errors.New("overflow"))
+//			return result.TryErr[int](errors.New("overflow"))
 //		}
-//		return gust.Ok(acc + x)
+//		return result.Ok(acc + x)
 //	})
 //	assert.True(t, sum.IsErr())
 //
 //go:inline
-func TryFold[T any, B any](iter Iterator[T], init B, f func(B, T) gust.Result[B]) gust.Result[B] {
+func TryFold[T any, B any](iter Iterator[T], init B, f func(B, T) result.Result[B]) result.Result[B] {
 	accum := init
 	for {
 		item := iter.Next()
 		if item.IsNone() {
-			return gust.Ok(accum)
+			return result.Ok(accum)
 		}
 		result := f(accum, item.Unwrap())
 		if result.IsErr() {
@@ -74,49 +75,49 @@ func TryFold[T any, B any](iter Iterator[T], init B, f func(B, T) gust.Result[B]
 // # Examples
 //
 //	var data = []string{"no_tea.txt", "stale_bread.json", "torrential_rain.png"}
-//	var res = TryForEach(FromSlice(data), func(x string) gust.Result[any] {
+//	var res = TryForEach(FromSlice(data), func(x string) result.Result[any] {
 //		fmt.Println(x)
-//		return gust.Ok[any](nil)
+//		return result.Ok[any](nil)
 //	})
 //	assert.True(t, res.IsOk())
 //
 //go:inline
-func TryForEach[T any, B any](iter Iterator[T], f func(T) gust.Result[B]) gust.Result[B] {
+func TryForEach[T any, B any](iter Iterator[T], f func(T) result.Result[B]) result.Result[B] {
 	var zero B
-	return TryFold(iter, zero, func(_ B, x T) gust.Result[B] {
+	return TryFold(iter, zero, func(_ B, x T) result.Result[B] {
 		return f(x)
 	})
 }
 
 //
 //go:inline
-func tryReduceImpl[T any](iter Iterator[T], f func(T, T) gust.Result[T]) gust.Result[gust.Option[T]] {
+func tryReduceImpl[T any](iter Iterator[T], f func(T, T) result.Result[T]) result.Result[option.Option[T]] {
 	first := iter.Next()
 	if first.IsNone() {
-		return gust.Ok(gust.None[T]())
+		return result.Ok(option.None[T]())
 	}
 
-	result := TryFold(iter, first.Unwrap(), f)
-	if result.IsErr() {
-		return gust.TryErr[gust.Option[T]](result.UnwrapErr())
+	res := TryFold(iter, first.Unwrap(), f)
+	if res.IsErr() {
+		return result.TryErr[option.Option[T]](res.UnwrapErr())
 	}
-	return gust.Ok(gust.Some(result.Unwrap()))
+	return result.Ok(option.Some(res.Unwrap()))
 }
 
 //
 //go:inline
-func tryFindImpl[T any](iter Iterator[T], f func(T) gust.Result[bool]) gust.Result[gust.Option[T]] {
+func tryFindImpl[T any](iter Iterator[T], f func(T) result.Result[bool]) result.Result[option.Option[T]] {
 	for {
 		item := iter.Next()
 		if item.IsNone() {
-			return gust.Ok(gust.None[T]())
+			return result.Ok(option.None[T]())
 		}
-		result := f(item.Unwrap())
-		if result.IsErr() {
-			return gust.TryErr[gust.Option[T]](result.UnwrapErr())
+		res := f(item.Unwrap())
+		if res.IsErr() {
+			return result.TryErr[option.Option[T]](res.UnwrapErr())
 		}
-		if result.Unwrap() {
-			return gust.Ok(item)
+		if res.Unwrap() {
+			return result.Ok(item)
 		}
 	}
 }

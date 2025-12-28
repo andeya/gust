@@ -3,16 +3,16 @@ package dict
 import (
 	"testing"
 
-	"github.com/andeya/gust"
+	"github.com/andeya/gust/option"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGet(t *testing.T) {
 	var m = map[string]string{"a": "b", "c": "d"}
-	assert.Equal(t, gust.Some("b"), Get(m, "a"))
-	assert.Equal(t, gust.None[string](), Get(m, "x"))
+	assert.Equal(t, option.Some("b"), Get(m, "a"))
+	assert.Equal(t, option.None[string](), Get(m, "x"))
 	var m2 map[string]string
-	assert.Equal(t, gust.None[string](), Get(m2, "x"))
+	assert.Equal(t, option.None[string](), Get(m2, "x"))
 }
 
 func TestKeys(t *testing.T) {
@@ -165,14 +165,14 @@ func TestFilterMap(t *testing.T) {
 	m := map[string]int{"a": 1, "b": 2, "c": 3}
 
 	// Filter and map to new key-value types
-	filtered := FilterMap(m, func(k string, v int) gust.Option[gust.DictEntry[int, string]] {
+	filtered := FilterMap(m, func(k string, v int) option.Option[DictEntry[int, string]] {
 		if v > 1 {
-			return gust.Some(gust.DictEntry[int, string]{
+			return option.Some(DictEntry[int, string]{
 				Key:   v,
 				Value: k,
 			})
 		}
-		return gust.None[gust.DictEntry[int, string]]()
+		return option.None[DictEntry[int, string]]()
 	})
 	assert.Len(t, filtered, 2)
 	assert.Equal(t, "b", filtered[2])
@@ -183,14 +183,14 @@ func TestFilterMap(t *testing.T) {
 func TestFilterMapKey(t *testing.T) {
 	m := map[string]int{"a": 1, "b": 2, "c": 3}
 
-	filtered := FilterMapKey(m, func(k string, v int) gust.Option[gust.DictEntry[int, int]] {
+	filtered := FilterMapKey(m, func(k string, v int) option.Option[DictEntry[int, int]] {
 		if v > 1 {
-			return gust.Some(gust.DictEntry[int, int]{
+			return option.Some(DictEntry[int, int]{
 				Key:   v,
 				Value: v * 2,
 			})
 		}
-		return gust.None[gust.DictEntry[int, int]]()
+		return option.None[DictEntry[int, int]]()
 	})
 	assert.Len(t, filtered, 2)
 	assert.Equal(t, 4, filtered[2])
@@ -200,14 +200,14 @@ func TestFilterMapKey(t *testing.T) {
 func TestFilterMapValue(t *testing.T) {
 	m := map[string]int{"a": 1, "b": 2, "c": 3}
 
-	filtered := FilterMapValue(m, func(k string, v int) gust.Option[gust.DictEntry[string, string]] {
+	filtered := FilterMapValue(m, func(k string, v int) option.Option[DictEntry[string, string]] {
 		if v > 1 {
-			return gust.Some(gust.DictEntry[string, string]{
+			return option.Some(DictEntry[string, string]{
 				Key:   k,
 				Value: k + ":" + string(rune('0'+v)),
 			})
 		}
-		return gust.None[gust.DictEntry[string, string]]()
+		return option.None[DictEntry[string, string]]()
 	})
 	assert.Len(t, filtered, 2)
 	assert.Contains(t, filtered, "b")
@@ -217,8 +217,8 @@ func TestFilterMapValue(t *testing.T) {
 func TestMap(t *testing.T) {
 	m := map[string]int{"a": 1, "b": 2}
 
-	mapped := Map(m, func(k string, v int) gust.DictEntry[int, string] {
-		return gust.DictEntry[int, string]{
+	mapped := Map(m, func(k string, v int) DictEntry[int, string] {
+		return DictEntry[int, string]{
 			Key:   v,
 			Value: k,
 		}
@@ -229,8 +229,8 @@ func TestMap(t *testing.T) {
 
 	// Test with nil map
 	var nilMap map[string]int
-	assert.Nil(t, Map(nilMap, func(k string, v int) gust.DictEntry[int, string] {
-		return gust.DictEntry[int, string]{Key: v, Value: k}
+	assert.Nil(t, Map(nilMap, func(k string, v int) DictEntry[int, string] {
+		return DictEntry[int, string]{Key: v, Value: k}
 	}))
 }
 

@@ -4,8 +4,8 @@ import (
 	"math"
 	"strconv"
 
-	"github.com/andeya/gust"
 	"github.com/andeya/gust/constraints"
+	"github.com/andeya/gust/option"
 )
 
 const (
@@ -72,16 +72,16 @@ func SaturatingSub[T constraints.Digit](a, b T) T {
 	return 0
 }
 
-func CheckedAdd[T constraints.Integer](a, b T) gust.Option[T] {
+func CheckedAdd[T constraints.Integer](a, b T) option.Option[T] {
 	if a <= Max[T]()-b {
-		return gust.Some(a + b)
+		return option.Some(a + b)
 	}
-	return gust.None[T]()
+	return option.None[T]()
 }
 
-func CheckedMul[T constraints.Integer](a, b T) gust.Option[T] {
+func CheckedMul[T constraints.Integer](a, b T) option.Option[T] {
 	if a <= Max[T]()/b {
-		return gust.Some(a * b)
+		return option.Some(a * b)
 	}
-	return gust.None[T]()
+	return option.None[T]()
 }

@@ -1,7 +1,7 @@
 package iterator
 
 import (
-	"github.com/andeya/gust"
+	"github.com/andeya/gust/option"
 )
 
 //go:inline
@@ -33,12 +33,12 @@ func anyImpl[T any](iter Iterable[T], f func(T) bool) bool {
 }
 
 //go:inline
-func findImpl[T any](iter Iterable[T], predicate func(T) bool) gust.Option[T] {
+func findImpl[T any](iter Iterable[T], predicate func(T) bool) option.Option[T] {
 	it := Iterator[T]{iterable: iter}
 	for {
 		item := it.Next()
 		if item.IsNone() {
-			return gust.None[T]()
+			return option.None[T]()
 		}
 		if predicate(item.Unwrap()) {
 			return item
@@ -54,26 +54,26 @@ func findImpl[T any](iter Iterable[T], predicate func(T) bool) gust.Option[T] {
 // # Examples
 //
 //	var a = []string{"lol", "NaN", "2", "5"}
-//	var firstNumber = FindMap(FromSlice(a), func(s string) gust.Option[int] {
+//	var firstNumber = FindMap(FromSlice(a), func(s string) option.Option[int] {
 //		if v, err := strconv.Atoi(s); err == nil {
-//			return gust.Some(v)
+//			return option.Some(v)
 //		}
-//		return gust.None[int]()
+//		return option.None[int]()
 //	})
-//	assert.Equal(t, gust.Some(2), firstNumber)
+//	assert.Equal(t, option.Some(2), firstNumber)
 //
 //go:inline
-func FindMap[T any, U any](iter Iterator[T], f func(T) gust.Option[U]) gust.Option[U] {
+func FindMap[T any, U any](iter Iterator[T], f func(T) option.Option[U]) option.Option[U] {
 	return findMapImpl(iter.iterable, f)
 }
 
 //go:inline
-func findMapImpl[T any, U any](iter Iterable[T], f func(T) gust.Option[U]) gust.Option[U] {
+func findMapImpl[T any, U any](iter Iterable[T], f func(T) option.Option[U]) option.Option[U] {
 	it := Iterator[T]{iterable: iter}
 	for {
 		item := it.Next()
 		if item.IsNone() {
-			return gust.None[U]()
+			return option.None[U]()
 		}
 		if result := f(item.Unwrap()); result.IsSome() {
 			return result
@@ -82,16 +82,16 @@ func findMapImpl[T any, U any](iter Iterable[T], f func(T) gust.Option[U]) gust.
 }
 
 //go:inline
-func positionImpl[T any](iter Iterable[T], predicate func(T) bool) gust.Option[uint] {
+func positionImpl[T any](iter Iterable[T], predicate func(T) bool) option.Option[uint] {
 	var index uint
 	it := Iterator[T]{iterable: iter}
 	for {
 		item := it.Next()
 		if item.IsNone() {
-			return gust.None[uint]()
+			return option.None[uint]()
 		}
 		if predicate(item.Unwrap()) {
-			return gust.Some(index)
+			return option.Some(index)
 		}
 		index++
 	}

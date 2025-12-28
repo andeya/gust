@@ -3,7 +3,7 @@ package syncutil
 import (
 	"sync/atomic"
 
-	"github.com/andeya/gust"
+	"github.com/andeya/gust/option"
 )
 
 // AtomicValue is a better generic-type wrapper for `atomic.Value`.
@@ -18,8 +18,8 @@ type AtomicValue[T any] struct {
 
 // Load returns the value set by the most recent Store.
 // It returns None if there has been no call to Store for this AtomicValue.
-func (v *AtomicValue[T]) Load() (val gust.Option[T]) {
-	return gust.AssertOpt[T](v.inner.Load())
+func (v *AtomicValue[T]) Load() (val option.Option[T]) {
+	return option.AssertOpt[T](v.inner.Load())
 }
 
 // Store sets the value of the AtomicValue to x.
@@ -34,8 +34,8 @@ func (v *AtomicValue[T]) Store(val T) {
 //
 // All calls to Swap for a given AtomicValue must use values of the same concrete
 // type. Swap of an inconsistent type panics, as does Swap(nil).
-func (v *AtomicValue[T]) Swap(new T) (old gust.Option[T]) {
-	return gust.AssertOpt[T](v.inner.Swap(new))
+func (v *AtomicValue[T]) Swap(new T) (old option.Option[T]) {
+	return option.AssertOpt[T](v.inner.Swap(new))
 }
 
 // CompareAndSwap executes the compare-and-swap operation for the AtomicValue.

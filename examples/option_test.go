@@ -3,17 +3,17 @@ package examples_test
 import (
 	"fmt"
 
-	"github.com/andeya/gust"
+	"github.com/andeya/gust/option"
 )
 
 // ExampleOption demonstrates how Option eliminates nil pointer panics.
 func ExampleOption() {
 	// Safe division without nil checks
-	divide := func(a, b float64) gust.Option[float64] {
+	divide := func(a, b float64) option.Option[float64] {
 		if b == 0 {
-			return gust.None[float64]()
+			return option.None[float64]()
 		}
-		return gust.Some(a / b)
+		return option.Some(a / b)
 	}
 
 	result := divide(10, 2).
@@ -27,7 +27,7 @@ func ExampleOption() {
 // ExampleOption_Map demonstrates chaining Option operations.
 func ExampleOption_Map() {
 	// Chain operations on optional values
-	result := gust.Some(5).
+	result := option.Some(5).
 		Map(func(x int) int { return x * 2 }).
 		Filter(func(x int) bool { return x > 8 }).
 		XMap(func(x int) any {
@@ -41,11 +41,11 @@ func ExampleOption_Map() {
 
 // ExampleOption_safeDivision demonstrates safe handling of division by zero.
 func ExampleOption_safeDivision() {
-	divide := func(a, b float64) gust.Option[float64] {
+	divide := func(a, b float64) option.Option[float64] {
 		if b == 0 {
-			return gust.None[float64]()
+			return option.None[float64]()
 		}
-		return gust.Some(a / b)
+		return option.Some(a / b)
 	}
 
 	// Safe division - no panic

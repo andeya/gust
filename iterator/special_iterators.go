@@ -1,7 +1,7 @@
 package iterator
 
 import (
-	"github.com/andeya/gust"
+	"github.com/andeya/gust/option"
 )
 
 // PeekableIterator is an iterator that supports peeking at the next element.
@@ -13,12 +13,12 @@ import (
 //	var iter = Peekable(FromSlice(xs))
 //
 //	// peek() lets us see into the future
-//	assert.Equal(t, gust.Some(1), iterator.Peek())
-//	assert.Equal(t, gust.Some(1), iterator.Next())
+//	assert.Equal(t, option.Some(1), iterator.Peek())
+//	assert.Equal(t, option.Some(1), iterator.Next())
 //
 //	// Can use all Iterator methods:
 //	var filtered = iterator.Filter(func(x int) bool { return x > 1 })
-//	assert.Equal(t, gust.Some(2), filtered.Next())
+//	assert.Equal(t, option.Some(2), filtered.Next())
 type PeekableIterator[T any] struct {
 	Iterator[T] // Embed Iterator to inherit all its methods
 	peeker      *peekableIterable[T]
@@ -31,12 +31,12 @@ type PeekableIterator[T any] struct {
 //	var xs = []int{1, 2, 3}
 //	var iter = Peekable(FromSlice(xs))
 //
-//	assert.Equal(t, gust.Some(1), iterator.Peek())
-//	assert.Equal(t, gust.Some(1), iterator.Peek()) // Can peek multiple times
-//	assert.Equal(t, gust.Some(1), iterator.Next())
+//	assert.Equal(t, option.Some(1), iterator.Peek())
+//	assert.Equal(t, option.Some(1), iterator.Peek()) // Can peek multiple times
+//	assert.Equal(t, option.Some(1), iterator.Next())
 //
 //go:inline
-func (p *PeekableIterator[T]) Peek() gust.Option[T] {
+func (p *PeekableIterator[T]) Peek() option.Option[T] {
 	return p.peeker.Peek()
 }
 
@@ -44,7 +44,7 @@ func (p *PeekableIterator[T]) Peek() gust.Option[T] {
 // This overrides Iterator[T].Next() to handle peeked values.
 //
 //go:inline
-func (p *PeekableIterator[T]) Next() gust.Option[T] {
+func (p *PeekableIterator[T]) Next() option.Option[T] {
 	return p.peeker.Next()
 }
 
@@ -52,12 +52,12 @@ func (p *PeekableIterator[T]) Next() gust.Option[T] {
 // This overrides Iterator[T].SizeHint() to account for peeked values.
 //
 //go:inline
-func (p *PeekableIterator[T]) SizeHint() (uint, gust.Option[uint]) {
+func (p *PeekableIterator[T]) SizeHint() (uint, option.Option[uint]) {
 	return p.peeker.SizeHint()
 }
 
 func peekableImpl[T any](iter Iterator[T]) PeekableIterator[T] {
-	core := &peekableIterable[T]{iter: iter.iterable, peeked: gust.None[T]()}
+	core := &peekableIterable[T]{iter: iter.iterable, peeked: option.None[T]()}
 	return PeekableIterator[T]{
 		Iterator: Iterator[T]{iterable: core},
 		peeker:   core,
@@ -66,26 +66,26 @@ func peekableImpl[T any](iter Iterator[T]) PeekableIterator[T] {
 
 type peekableIterable[T any] struct {
 	iter   Iterable[T]
-	peeked gust.Option[T]
+	peeked option.Option[T]
 }
 
-func (p *peekableIterable[T]) Next() gust.Option[T] {
+func (p *peekableIterable[T]) Next() option.Option[T] {
 	if p.peeked.IsSome() {
 		item := p.peeked
-		p.peeked = gust.None[T]()
+		p.peeked = option.None[T]()
 		return item
 	}
 	return p.iter.Next()
 }
 
-func (p *peekableIterable[T]) Peek() gust.Option[T] {
+func (p *peekableIterable[T]) Peek() option.Option[T] {
 	if p.peeked.IsNone() {
 		p.peeked = p.iter.Next()
 	}
 	return p.peeked
 }
 
-func (p *peekableIterable[T]) SizeHint() (uint, gust.Option[uint]) {
+func (p *peekableIterable[T]) SizeHint() (uint, option.Option[uint]) {
 	lower, upper := p.iter.SizeHint()
 	if p.peeked.IsSome() {
 		if lower > 0 {
@@ -94,7 +94,7 @@ func (p *peekableIterable[T]) SizeHint() (uint, gust.Option[uint]) {
 		if upper.IsSome() {
 			upperVal := upper.Unwrap()
 			if upperVal > 0 {
-				upper = gust.Some(upperVal + 1)
+				upper = option.Some(upperVal + 1)
 			}
 		}
 	}
@@ -151,7 +151,7 @@ type cycleIterable[T any] struct {
 	exhausted bool
 }
 
-func (c *cycleIterable[T]) Next() gust.Option[T] {
+func (c *cycleIterable[T]) Next() option.Option[T] {
 	if !c.exhausted {
 		item := c.iter.Next()
 		if item.IsSome() {
@@ -160,26 +160,26 @@ func (c *cycleIterable[T]) Next() gust.Option[T] {
 		}
 		c.exhausted = true
 		if len(c.cache) == 0 {
-			return gust.None[T]()
+			return option.None[T]()
 		}
 	}
 
 	if len(c.cache) == 0 {
-		return gust.None[T]()
+		return option.None[T]()
 	}
 
 	item := c.cache[c.index]
 	c.index = (c.index + 1) % len(c.cache)
-	return gust.Some(item)
+	return option.Some(item)
 }
 
-func (c *cycleIterable[T]) SizeHint() (uint, gust.Option[uint]) {
+func (c *cycleIterable[T]) SizeHint() (uint, option.Option[uint]) {
 	if c.exhausted {
-		return 0, gust.None[uint]() // Infinite
+		return 0, option.None[uint]() // Infinite
 	}
 	lower, upper := c.iter.SizeHint()
 	if len(c.cache) > 0 {
-		return 0, gust.None[uint]() // Infinite
+		return 0, option.None[uint]() // Infinite
 	}
 	return lower, upper
 }

@@ -4,9 +4,9 @@ import (
 	"math"
 	"testing"
 
-	"github.com/andeya/gust"
 	"github.com/andeya/gust/constraints"
 	"github.com/andeya/gust/iterator"
+	"github.com/andeya/gust/option"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -242,90 +242,90 @@ func TestPartialCmp(t *testing.T) {
 func TestPartialCmpBy(t *testing.T) {
 	xs := []float64{1.0, 2.0, 3.0, 4.0}
 	ys := []float64{1.0, 4.0, 9.0, 16.0}
-	result := iterator.PartialCmpBy(iterator.FromSlice(xs), iterator.FromSlice(ys), func(x, y float64) gust.Option[constraints.Ordering] {
+	result := iterator.PartialCmpBy(iterator.FromSlice(xs), iterator.FromSlice(ys), func(x, y float64) option.Option[constraints.Ordering] {
 		if x*x < y {
-			return gust.Some(constraints.Less())
+			return option.Some(constraints.Less())
 		}
 		if x*x > y {
-			return gust.Some(constraints.Greater())
+			return option.Some(constraints.Greater())
 		}
-		return gust.Some(constraints.Equal())
+		return option.Some(constraints.Equal())
 	})
 	assert.True(t, result.IsSome())
 	assert.True(t, result.Unwrap().IsEqual())
 
 	// Test with None result (NaN case)
-	result2 := iterator.PartialCmpBy(iterator.FromSlice([]float64{1.0}), iterator.FromSlice([]float64{1.0}), func(x, y float64) gust.Option[constraints.Ordering] {
+	result2 := iterator.PartialCmpBy(iterator.FromSlice([]float64{1.0}), iterator.FromSlice([]float64{1.0}), func(x, y float64) option.Option[constraints.Ordering] {
 		if x != x || y != y { // NaN check
-			return gust.None[constraints.Ordering]()
+			return option.None[constraints.Ordering]()
 		}
-		return gust.Some(constraints.Equal())
+		return option.Some(constraints.Equal())
 	})
 	assert.True(t, result2.IsSome())
 
 	// Test with different lengths
-	result3 := iterator.PartialCmpBy(iterator.FromSlice([]float64{1.0, 2.0}), iterator.FromSlice([]float64{1.0}), func(x, y float64) gust.Option[constraints.Ordering] {
+	result3 := iterator.PartialCmpBy(iterator.FromSlice([]float64{1.0, 2.0}), iterator.FromSlice([]float64{1.0}), func(x, y float64) option.Option[constraints.Ordering] {
 		if x < y {
-			return gust.Some(constraints.Less())
+			return option.Some(constraints.Less())
 		}
 		if x > y {
-			return gust.Some(constraints.Greater())
+			return option.Some(constraints.Greater())
 		}
-		return gust.Some(constraints.Equal())
+		return option.Some(constraints.Equal())
 	})
 	assert.True(t, result3.IsSome())
 	assert.True(t, result3.Unwrap().IsGreater())
 
 	// Test with actual NaN
 	nan := math.NaN()
-	result4 := iterator.PartialCmpBy(iterator.FromSlice([]float64{nan}), iterator.FromSlice([]float64{1.0}), func(x, y float64) gust.Option[constraints.Ordering] {
+	result4 := iterator.PartialCmpBy(iterator.FromSlice([]float64{nan}), iterator.FromSlice([]float64{1.0}), func(x, y float64) option.Option[constraints.Ordering] {
 		if x != x || y != y { // NaN check
-			return gust.None[constraints.Ordering]()
+			return option.None[constraints.Ordering]()
 		}
 		if x < y {
-			return gust.Some(constraints.Less())
+			return option.Some(constraints.Less())
 		}
 		if x > y {
-			return gust.Some(constraints.Greater())
+			return option.Some(constraints.Greater())
 		}
-		return gust.Some(constraints.Equal())
+		return option.Some(constraints.Equal())
 	})
 	assert.True(t, result4.IsNone())
 
 	// Test with equal elements (should continue)
-	result5 := iterator.PartialCmpBy(iterator.FromSlice([]float64{1.0, 2.0}), iterator.FromSlice([]float64{1.0, 2.0}), func(x, y float64) gust.Option[constraints.Ordering] {
+	result5 := iterator.PartialCmpBy(iterator.FromSlice([]float64{1.0, 2.0}), iterator.FromSlice([]float64{1.0, 2.0}), func(x, y float64) option.Option[constraints.Ordering] {
 		if x < y {
-			return gust.Some(constraints.Less())
+			return option.Some(constraints.Less())
 		}
 		if x > y {
-			return gust.Some(constraints.Greater())
+			return option.Some(constraints.Greater())
 		}
-		return gust.Some(constraints.Equal())
+		return option.Some(constraints.Equal())
 	})
 	assert.True(t, result5.IsSome())
 	assert.True(t, result5.Unwrap().IsEqual())
 
 	// Test PartialCmpBy with less than and greater than cases
-	result6 := iterator.PartialCmpBy(iterator.FromSlice([]float64{1.0}), iterator.FromSlice([]float64{2.0}), func(x, y float64) gust.Option[constraints.Ordering] {
+	result6 := iterator.PartialCmpBy(iterator.FromSlice([]float64{1.0}), iterator.FromSlice([]float64{2.0}), func(x, y float64) option.Option[constraints.Ordering] {
 		if x < y {
-			return gust.Some(constraints.Less())
+			return option.Some(constraints.Less())
 		}
 		if x > y {
-			return gust.Some(constraints.Greater())
+			return option.Some(constraints.Greater())
 		}
-		return gust.Some(constraints.Equal())
+		return option.Some(constraints.Equal())
 	})
 	assert.True(t, result6.IsSome())
 	assert.True(t, result6.Unwrap().IsLess())
 
-	result7 := iterator.PartialCmpBy(iterator.FromSlice([]float64{2.0}), iterator.FromSlice([]float64{1.0}), func(x, y float64) gust.Option[constraints.Ordering] {
+	result7 := iterator.PartialCmpBy(iterator.FromSlice([]float64{2.0}), iterator.FromSlice([]float64{1.0}), func(x, y float64) option.Option[constraints.Ordering] {
 		if x < y {
-			return gust.Some(constraints.Less())
+			return option.Some(constraints.Less())
 		}
 		if x > y {
-			return gust.Some(constraints.Greater())
+			return option.Some(constraints.Greater())
 		}
-		return gust.Some(constraints.Equal())
+		return option.Some(constraints.Equal())
 	})
 	assert.True(t, result7.IsSome())
 	assert.True(t, result7.Unwrap().IsGreater())

@@ -1,4 +1,4 @@
-package gust
+package core
 
 import (
 	"reflect"

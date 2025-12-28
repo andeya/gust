@@ -3,7 +3,8 @@ package iterator
 import (
 	"iter"
 
-	"github.com/andeya/gust"
+	"github.com/andeya/gust/option"
+	"github.com/andeya/gust/result"
 )
 
 // MustToDoubleEnded converts to a DoubleEndedIterator[T] if the underlying
@@ -13,7 +14,7 @@ import (
 //
 //	var iter = FromSlice([]int{1, 2, 3})
 //	var deIter = iterator.MustToDoubleEnded()
-//	assert.Equal(t, gust.Some(3), deIter.NextBack())
+//	assert.Equal(t, option.Some(3), deIter.NextBack())
 //	// Can use Iterator methods:
 //	var doubled = deIter.Map(func(x int) any { return x * 2 })
 func (it Iterator[T]) MustToDoubleEnded() DoubleEndedIterator[T] {
@@ -33,24 +34,24 @@ func (it Iterator[T]) MustToDoubleEnded() DoubleEndedIterator[T] {
 //
 //	var iter = FromSlice([]int{1, 2, 3})
 //	var deIter = iterator.TryToDoubleEnded()
-//	assert.Equal(t, gust.Some(3), deIter.NextBack())
+//	assert.Equal(t, option.Some(3), deIter.NextBack())
 //	// Can use Iterator methods:
 //	var doubled = deIter.Map(func(x int) any { return x * 2 })
-func (it Iterator[T]) TryToDoubleEnded() gust.Option[DoubleEndedIterator[T]] {
+func (it Iterator[T]) TryToDoubleEnded() option.Option[DoubleEndedIterator[T]] {
 	if deCore, ok := it.iterable.(DoubleEndedIterable[T]); ok {
-		return gust.Some(DoubleEndedIterator[T]{
+		return option.Some(DoubleEndedIterator[T]{
 			Iterator: Iterator[T]{iterable: deCore}, // Embed Iterator with the same core
 			iterable: deCore,
 		})
 	}
-	return gust.None[DoubleEndedIterator[T]]()
+	return option.None[DoubleEndedIterator[T]]()
 }
 
 // Next advances the iterator and returns the next value.
 // This implements gust.Iterable[T] interface.
 //
 //go:inline
-func (it Iterator[T]) Next() gust.Option[T] {
+func (it Iterator[T]) Next() option.Option[T] {
 	return it.iterable.Next()
 }
 
@@ -58,7 +59,7 @@ func (it Iterator[T]) Next() gust.Option[T] {
 // This implements gust.IterableSizeHint interface.
 //
 //go:inline
-func (it Iterator[T]) SizeHint() (uint, gust.Option[uint]) {
+func (it Iterator[T]) SizeHint() (uint, option.Option[uint]) {
 	return it.iterable.SizeHint()
 }
 
@@ -181,7 +182,7 @@ func (it Iterator[T]) Pull2() (next func() (uint, T, bool), stop func()) {
 //
 //	var iter = FromSlice([]int{0, 1, 2})
 //	var filtered = iterator.Filter(func(x int) bool { return x > 0 })
-//	assert.Equal(t, gust.Some(1), filtered.Next())
+//	assert.Equal(t, option.Some(1), filtered.Next())
 //
 //go:inline
 func (it Iterator[T]) Filter(predicate func(T) bool) Iterator[T] {
@@ -195,7 +196,7 @@ func (it Iterator[T]) Filter(predicate func(T) bool) Iterator[T] {
 //	var iter1 = FromSlice([]int{1, 2, 3})
 //	var iter2 = FromSlice([]int{4, 5, 6})
 //	var chained = iter1.Chain(iter2)
-//	assert.Equal(t, gust.Some(1), chained.Next())
+//	assert.Equal(t, option.Some(1), chained.Next())
 //
 //go:inline
 func (it Iterator[T]) Chain(other Iterator[T]) Iterator[T] {
@@ -208,7 +209,7 @@ func (it Iterator[T]) Chain(other Iterator[T]) Iterator[T] {
 //
 //	var iter = FromSlice([]int{1, 2, 3, 4, 5})
 //	var skipped = iterator.Skip(2)
-//	assert.Equal(t, gust.Some(3), skipped.Next())
+//	assert.Equal(t, option.Some(3), skipped.Next())
 //
 //go:inline
 func (it Iterator[T]) Skip(n uint) Iterator[T] {
@@ -221,9 +222,9 @@ func (it Iterator[T]) Skip(n uint) Iterator[T] {
 //
 //	var iter = FromSlice([]int{1, 2, 3, 4, 5})
 //	var taken = iterator.Take(2)
-//	assert.Equal(t, gust.Some(1), taken.Next())
-//	assert.Equal(t, gust.Some(2), taken.Next())
-//	assert.Equal(t, gust.None[int](), taken.Next())
+//	assert.Equal(t, option.Some(1), taken.Next())
+//	assert.Equal(t, option.Some(2), taken.Next())
+//	assert.Equal(t, option.None[int](), taken.Next())
 //
 //go:inline
 func (it Iterator[T]) Take(n uint) Iterator[T] {
@@ -236,9 +237,9 @@ func (it Iterator[T]) Take(n uint) Iterator[T] {
 //
 //	var iter = FromSlice([]int{0, 1, 2, 3, 4, 5})
 //	var stepped = iterator.StepBy(2)
-//	assert.Equal(t, gust.Some(0), stepped.Next())
-//	assert.Equal(t, gust.Some(2), stepped.Next())
-//	assert.Equal(t, gust.Some(4), stepped.Next())
+//	assert.Equal(t, option.Some(0), stepped.Next())
+//	assert.Equal(t, option.Some(2), stepped.Next())
+//	assert.Equal(t, option.Some(4), stepped.Next())
 //
 //go:inline
 func (it Iterator[T]) StepBy(step uint) Iterator[T] {
@@ -251,7 +252,7 @@ func (it Iterator[T]) StepBy(step uint) Iterator[T] {
 //
 //	var iter = FromSlice([]int{1, 2, 3, 4, 5})
 //	var skipped = iterator.SkipWhile(func(x int) bool { return x < 3 })
-//	assert.Equal(t, gust.Some(3), skipped.Next())
+//	assert.Equal(t, option.Some(3), skipped.Next())
 //
 //go:inline
 func (it Iterator[T]) SkipWhile(predicate func(T) bool) Iterator[T] {
@@ -264,9 +265,9 @@ func (it Iterator[T]) SkipWhile(predicate func(T) bool) Iterator[T] {
 //
 //	var iter = FromSlice([]int{1, 2, 3, 4, 5})
 //	var taken = iterator.TakeWhile(func(x int) bool { return x < 3 })
-//	assert.Equal(t, gust.Some(1), taken.Next())
-//	assert.Equal(t, gust.Some(2), taken.Next())
-//	assert.Equal(t, gust.None[int](), taken.Next())
+//	assert.Equal(t, option.Some(1), taken.Next())
+//	assert.Equal(t, option.Some(2), taken.Next())
+//	assert.Equal(t, option.None[int](), taken.Next())
 //
 //go:inline
 func (it Iterator[T]) TakeWhile(predicate func(T) bool) Iterator[T] {
@@ -331,10 +332,10 @@ func (it Iterator[T]) Count() uint {
 // # Examples
 //
 //	var iter = FromSlice([]int{1, 2, 3})
-//	assert.Equal(t, gust.Some(3), iterator.Last())
+//	assert.Equal(t, option.Some(3), iterator.Last())
 //
 //go:inline
-func (it Iterator[T]) Last() gust.Option[T] {
+func (it Iterator[T]) Last() option.Option[T] {
 	return lastImpl(it.iterable)
 }
 
@@ -344,10 +345,10 @@ func (it Iterator[T]) Last() gust.Option[T] {
 //
 //	var iter = FromSlice([]int{1, 2, 3})
 //	var sum = iterator.Reduce(func(acc int, x int) int { return acc + x })
-//	assert.Equal(t, gust.Some(6), sum)
+//	assert.Equal(t, option.Some(6), sum)
 //
 //go:inline
-func (it Iterator[T]) Reduce(f func(T, T) T) gust.Option[T] {
+func (it Iterator[T]) Reduce(f func(T, T) T) option.Option[T] {
 	return reduceImpl(it.iterable, f)
 }
 
@@ -392,10 +393,10 @@ func (it Iterator[T]) Any(predicate func(T) bool) bool {
 // # Examples
 //
 //	var iter = FromSlice([]int{1, 2, 3})
-//	assert.Equal(t, gust.Some(2), iterator.Find(func(x int) bool { return x > 1 }))
+//	assert.Equal(t, option.Some(2), iterator.Find(func(x int) bool { return x > 1 }))
 //
 //go:inline
-func (it Iterator[T]) Find(predicate func(T) bool) gust.Option[T] {
+func (it Iterator[T]) Find(predicate func(T) bool) option.Option[T] {
 	return findImpl(it.iterable, predicate)
 }
 
@@ -404,17 +405,17 @@ func (it Iterator[T]) Find(predicate func(T) bool) gust.Option[T] {
 // # Examples
 //
 //	var iter = FromSlice([]string{"lol", "NaN", "2", "5"})
-//	var firstNumber = iterator.XFindMap(func(s string) gust.Option[any] {
+//	var firstNumber = iterator.XFindMap(func(s string) option.Option[any] {
 //		if v, err := strconv.Atoi(s); err == nil {
-//			return gust.Some(any(v))
+//			return option.Some(any(v))
 //		}
-//		return gust.None[any]()
+//		return option.None[any]()
 //	})
 //	assert.True(t, firstNumber.IsSome())
 //	assert.Equal(t, 2, firstNumber.Unwrap().(int))
 //
 //go:inline
-func (it Iterator[T]) XFindMap(f func(T) gust.Option[any]) gust.Option[any] {
+func (it Iterator[T]) XFindMap(f func(T) option.Option[any]) option.Option[any] {
 	return FindMap(it, f)
 }
 
@@ -423,16 +424,16 @@ func (it Iterator[T]) XFindMap(f func(T) gust.Option[any]) gust.Option[any] {
 // # Examples
 //
 //	var iter = FromSlice([]string{"lol", "NaN", "2", "5"})
-//	var firstNumber = iterator.FindMap(func(s string) gust.Option[int] {
+//	var firstNumber = iterator.FindMap(func(s string) option.Option[int] {
 //		if v, err := strconv.Atoi(s); err == nil {
-//			return gust.Some(v)
+//			return option.Some(v)
 //		}
-//		return gust.None[int]()
+//		return option.None[int]()
 //	})
-//	assert.Equal(t, gust.Some(2), firstNumber)
+//	assert.Equal(t, option.Some(2), firstNumber)
 //
 //go:inline
-func (it Iterator[T]) FindMap(f func(T) gust.Option[T]) gust.Option[T] {
+func (it Iterator[T]) FindMap(f func(T) option.Option[T]) option.Option[T] {
 	return FindMap(it, f)
 }
 
@@ -442,7 +443,7 @@ func (it Iterator[T]) FindMap(f func(T) gust.Option[T]) gust.Option[T] {
 //
 //	var iter = FromSlice([]int{1, 2, 3})
 //	var doubled = iterator.XMap(func(x int) any { return x * 2 })
-//	assert.Equal(t, gust.Some(2), doubled.Next())
+//	assert.Equal(t, option.Some(2), doubled.Next())
 //	// Can chain: doubled.Filter(...).Collect()
 //
 //go:inline
@@ -456,7 +457,7 @@ func (it Iterator[T]) XMap(f func(T) any) Iterator[any] {
 //
 //	var iter = FromSlice([]int{1, 2, 3})
 //	var doubled = iterator.Map(func(x int) int { return x * 2 })
-//	assert.Equal(t, gust.Some(2), doubled.Next())
+//	assert.Equal(t, option.Some(2), doubled.Next())
 //	// Can chain: doubled.Filter(...).Collect()
 //
 //go:inline
@@ -527,14 +528,14 @@ func (it Iterator[T]) Fold(init T, f func(T, T) T) T {
 // # Examples
 //
 //	var iter = FromSlice([]int{1, 2, 3})
-//	var sum = iterator.XTryFold(0, func(acc any, x int) gust.Result[any] {
-//		return gust.Ok(any(acc.(int) + x))
+//	var sum = iterator.XTryFold(0, func(acc any, x int) result.Result[any] {
+//		return result.Ok[any](any(acc.(int) + x))
 //	})
 //	assert.True(t, sum.IsOk())
 //	assert.Equal(t, 6, sum.Unwrap().(int))
 //
 //go:inline
-func (it Iterator[T]) XTryFold(init any, f func(any, T) gust.Result[any]) gust.Result[any] {
+func (it Iterator[T]) XTryFold(init any, f func(any, T) result.Result[any]) result.Result[any] {
 	return TryFold(it, init, f)
 }
 
@@ -543,14 +544,14 @@ func (it Iterator[T]) XTryFold(init any, f func(any, T) gust.Result[any]) gust.R
 // # Examples
 //
 //	var iter = FromSlice([]int{1, 2, 3})
-//	var sum = iterator.TryFold(0, func(acc int, x int) gust.Result[int] {
-//		return gust.Ok(acc + x)
+//	var sum = iterator.TryFold(0, func(acc int, x int) result.Result[int] {
+//		return result.Ok(acc + x)
 //	})
 //	assert.True(t, sum.IsOk())
 //	assert.Equal(t, 6, sum.Unwrap())
 //
 //go:inline
-func (it Iterator[T]) TryFold(init T, f func(T, T) gust.Result[T]) gust.Result[T] {
+func (it Iterator[T]) TryFold(init T, f func(T, T) result.Result[T]) result.Result[T] {
 	return TryFold(it, init, f)
 }
 
@@ -573,11 +574,11 @@ func (it Iterator[T]) Partition(f func(T) bool) (truePart []T, falsePart []T) {
 // # Examples
 //
 //	var iter = FromSlice([]int{1, 2, 3})
-//	assert.Equal(t, gust.Some(uint(1)), iterator.Position(func(x int) bool { return x == 2 }))
+//	assert.Equal(t, option.Some(uint(1)), iterator.Position(func(x int) bool { return x == 2 }))
 //
 //go:inline
 //go:inline
-func (it Iterator[T]) Position(predicate func(T) bool) gust.Option[uint] {
+func (it Iterator[T]) Position(predicate func(T) bool) option.Option[uint] {
 	return positionImpl(it.iterable, predicate)
 }
 
@@ -589,7 +590,7 @@ func (it Iterator[T]) Position(predicate func(T) bool) gust.Option[uint] {
 //	assert.True(t, iterator.AdvanceBy(2).IsOk())
 //
 //go:inline
-func (it Iterator[T]) AdvanceBy(n uint) gust.VoidResult {
+func (it Iterator[T]) AdvanceBy(n uint) result.VoidResult {
 	return advanceByImpl(it.iterable, n)
 }
 
@@ -598,10 +599,10 @@ func (it Iterator[T]) AdvanceBy(n uint) gust.VoidResult {
 // # Examples
 //
 //	var iter = FromSlice([]int{1, 2, 3})
-//	assert.Equal(t, gust.Some(2), iterator.Nth(1))
+//	assert.Equal(t, option.Some(2), iterator.Nth(1))
 //
 //go:inline
-func (it Iterator[T]) Nth(n uint) gust.Option[T] {
+func (it Iterator[T]) Nth(n uint) option.Option[T] {
 	return nthImpl(it.iterable, n)
 }
 
@@ -624,8 +625,8 @@ func (it Iterator[T]) NextChunk(n uint) ChunkResult[[]T] {
 //
 //	var iter = FromSlice([]int{0, 1, 2})
 //	var interspersed = iterator.Intersperse(100)
-//	assert.Equal(t, gust.Some(0), interspersed.Next())
-//	assert.Equal(t, gust.Some(100), interspersed.Next())
+//	assert.Equal(t, option.Some(0), interspersed.Next())
+//	assert.Equal(t, option.Some(100), interspersed.Next())
 //
 //go:inline
 func (it Iterator[T]) Intersperse(separator T) Iterator[T] {
@@ -638,8 +639,8 @@ func (it Iterator[T]) Intersperse(separator T) Iterator[T] {
 //
 //	var iter = FromSlice([]int{0, 1, 2})
 //	var interspersed = iterator.IntersperseWith(func() int { return 99 })
-//	assert.Equal(t, gust.Some(0), interspersed.Next())
-//	assert.Equal(t, gust.Some(99), interspersed.Next())
+//	assert.Equal(t, option.Some(0), interspersed.Next())
+//	assert.Equal(t, option.Some(99), interspersed.Next())
 //
 //go:inline
 func (it Iterator[T]) IntersperseWith(separator func() T) Iterator[T] {
@@ -652,10 +653,10 @@ func (it Iterator[T]) IntersperseWith(separator func() T) Iterator[T] {
 //
 //	var iter = FromSlice([]int{1, 2, 3})
 //	var cycled = iterator.Cycle()
-//	assert.Equal(t, gust.Some(1), cycled.Next())
-//	assert.Equal(t, gust.Some(2), cycled.Next())
-//	assert.Equal(t, gust.Some(3), cycled.Next())
-//	assert.Equal(t, gust.Some(1), cycled.Next()) // starts over
+//	assert.Equal(t, option.Some(1), cycled.Next())
+//	assert.Equal(t, option.Some(2), cycled.Next())
+//	assert.Equal(t, option.Some(3), cycled.Next())
+//	assert.Equal(t, option.Some(1), cycled.Next()) // starts over
 //
 //go:inline
 func (it Iterator[T]) Cycle() Iterator[T] {
@@ -667,19 +668,19 @@ func (it Iterator[T]) Cycle() Iterator[T] {
 // # Examples
 //
 //	var iter = FromSlice([]string{"1", "two", "NaN", "four", "5"})
-//	var filtered = iterator.XFilterMap(func(s string) gust.Option[any] {
+//	var filtered = iterator.XFilterMap(func(s string) option.Option[any] {
 //		if s == "1" {
-//			return gust.Some(any(1))
+//			return option.Some(any(1))
 //		}
 //		if s == "5" {
-//			return gust.Some(any(5))
+//			return option.Some(any(5))
 //		}
-//		return gust.None[any]()
+//		return option.None[any]()
 //	})
 //	// Can chain: filtered.Filter(...).Collect()
 //
 //go:inline
-func (it Iterator[T]) XFilterMap(f func(T) gust.Option[any]) Iterator[any] {
+func (it Iterator[T]) XFilterMap(f func(T) option.Option[any]) Iterator[any] {
 	return FilterMap(it, f)
 }
 
@@ -688,30 +689,30 @@ func (it Iterator[T]) XFilterMap(f func(T) gust.Option[any]) Iterator[any] {
 // # Examples
 //
 //	var iter = FromSlice([]string{"1", "two", "NaN", "four", "5"})
-//	var filtered = iterator.FilterMap(func(s string) gust.Option[string] {
+//	var filtered = iterator.FilterMap(func(s string) option.Option[string] {
 //		if s == "1" || s == "5" {
-//			return gust.Some(s)
+//			return option.Some(s)
 //		}
-//		return gust.None[string]()
+//		return option.None[string]()
 //	})
 //	// Can chain: filtered.Filter(...).Collect()
 //
 //go:inline
-func (it Iterator[T]) FilterMap(f func(T) gust.Option[T]) Iterator[T] {
+func (it Iterator[T]) FilterMap(f func(T) option.Option[T]) Iterator[T] {
 	return FilterMap(it, f)
 }
 
 // XMapWhile creates an iterator that both yields elements based on a predicate and maps (any version).
 //
 //go:inline
-func (it Iterator[T]) XMapWhile(predicate func(T) gust.Option[any]) Iterator[any] {
+func (it Iterator[T]) XMapWhile(predicate func(T) option.Option[any]) Iterator[any] {
 	return MapWhile(it, predicate)
 }
 
 // MapWhile creates an iterator that both yields elements based on a predicate and maps.
 //
 //go:inline
-func (it Iterator[T]) MapWhile(predicate func(T) gust.Option[T]) Iterator[T] {
+func (it Iterator[T]) MapWhile(predicate func(T) option.Option[T]) Iterator[T] {
 	return MapWhile(it, predicate)
 }
 
@@ -720,15 +721,15 @@ func (it Iterator[T]) MapWhile(predicate func(T) gust.Option[T]) Iterator[T] {
 // # Examples
 //
 //	var iter = FromSlice([]int{1, 2, 3})
-//	var scanned = iterator.XScan(0, func(state *any, x int) gust.Option[any] {
+//	var scanned = iterator.XScan(0, func(state *any, x int) option.Option[any] {
 //		s := (*state).(int) + x
 //		*state = s
-//		return gust.Some(any(s))
+//		return option.Some(any(s))
 //	})
 //	// Can chain: scanned.Filter(...).Collect()
 //
 //go:inline
-func (it Iterator[T]) XScan(initialState any, f func(*any, T) gust.Option[any]) Iterator[any] {
+func (it Iterator[T]) XScan(initialState any, f func(*any, T) option.Option[any]) Iterator[any] {
 	return Scan(it, initialState, f)
 }
 
@@ -737,14 +738,14 @@ func (it Iterator[T]) XScan(initialState any, f func(*any, T) gust.Option[any]) 
 // # Examples
 //
 //	var iter = FromSlice([]int{1, 2, 3})
-//	var scanned = iterator.Scan(0, func(state *int, x int) gust.Option[int] {
+//	var scanned = iterator.Scan(0, func(state *int, x int) option.Option[int] {
 //		*state = *state + x
-//		return gust.Some(*state)
+//		return option.Some(*state)
 //	})
 //	// Can chain: scanned.Filter(...).Collect()
 //
 //go:inline
-func (it Iterator[T]) Scan(initialState T, f func(*T, T) gust.Option[T]) Iterator[T] {
+func (it Iterator[T]) Scan(initialState T, f func(*T, T) option.Option[T]) Iterator[T] {
 	return Scan(it, initialState, f)
 }
 
@@ -793,10 +794,10 @@ func (it Iterator[T]) MapWindows(windowSize uint, f func([]T) T) Iterator[T] {
 //		}
 //		return 0
 //	})
-//	assert.Equal(t, gust.Some(5), max)
+//	assert.Equal(t, option.Some(5), max)
 //
 //go:inline
-func (it Iterator[T]) MaxBy(compare func(T, T) int) gust.Option[T] {
+func (it Iterator[T]) MaxBy(compare func(T, T) int) option.Option[T] {
 	return maxByImpl(it, compare)
 }
 
@@ -815,10 +816,10 @@ func (it Iterator[T]) MaxBy(compare func(T, T) int) gust.Option[T] {
 //		}
 //		return 0
 //	})
-//	assert.Equal(t, gust.Some(-10), min)
+//	assert.Equal(t, option.Some(-10), min)
 //
 //go:inline
-func (it Iterator[T]) MinBy(compare func(T, T) int) gust.Option[T] {
+func (it Iterator[T]) MinBy(compare func(T, T) int) option.Option[T] {
 	return minByImpl(it, compare)
 }
 
@@ -828,14 +829,14 @@ func (it Iterator[T]) MinBy(compare func(T, T) int) gust.Option[T] {
 // # Examples
 //
 //	var data = []string{"no_tea.txt", "stale_bread.json", "torrential_rain.png"}
-//	var res = iterator.TryForEach(func(x string) gust.Result[any] {
+//	var res = iterator.TryForEach(func(x string) result.Result[any] {
 //		fmt.Println(x)
-//		return gust.Ok[any](nil)
+//		return result.Ok[any](nil)
 //	})
 //	assert.True(t, res.IsOk())
 //
 //go:inline
-func (it Iterator[T]) XTryForEach(f func(T) gust.Result[any]) gust.Result[any] {
+func (it Iterator[T]) XTryForEach(f func(T) result.Result[any]) result.Result[any] {
 	return TryForEach(it, f)
 }
 
@@ -845,15 +846,15 @@ func (it Iterator[T]) XTryForEach(f func(T) gust.Result[any]) gust.Result[any] {
 // # Examples
 //
 //	var data = []string{"no_tea.txt", "stale_bread.json", "torrential_rain.png"}
-//	var res = iterator.TryForEach(func(x string) gust.Result[string] {
+//	var res = iterator.TryForEach(func(x string) result.Result[string] {
 //		fmt.Println(x)
-//		return gust.Ok[string](x+"_processed")
+//		return result.Ok[string](x+"_processed")
 //	})
 //	assert.True(t, res.IsOk())
 //	assert.Equal(t, "no_tea.txt_processed", res.Unwrap())
 //
 //go:inline
-func (it Iterator[T]) TryForEach(f func(T) gust.Result[T]) gust.Result[T] {
+func (it Iterator[T]) TryForEach(f func(T) result.Result[T]) result.Result[T] {
 	return TryForEach(it, f)
 }
 
@@ -862,16 +863,16 @@ func (it Iterator[T]) TryForEach(f func(T) gust.Result[T]) gust.Result[T] {
 // # Examples
 //
 //	var numbers = []int{10, 20, 5, 23, 0}
-//	var sum = iterator.TryReduce(func(x, y int) gust.Result[int] {
+//	var sum = iterator.TryReduce(func(x, y int) result.Result[int] {
 //		if x+y > 100 {
-//			return gust.Err[int](errors.New("overflow"))
+//			return result.TryErr[int](errors.New("overflow"))
 //		}
-//		return gust.Ok(x + y)
+//		return result.Ok(x + y)
 //	})
 //	assert.True(t, sum.IsOk())
 //
 //go:inline
-func (it Iterator[T]) TryReduce(f func(T, T) gust.Result[T]) gust.Result[gust.Option[T]] {
+func (it Iterator[T]) TryReduce(f func(T, T) result.Result[T]) result.Result[option.Option[T]] {
 	return tryReduceImpl(it, f)
 }
 
@@ -881,19 +882,19 @@ func (it Iterator[T]) TryReduce(f func(T, T) gust.Result[T]) gust.Result[gust.Op
 // # Examples
 //
 //	var a = []string{"1", "2", "lol", "NaN", "5"}
-//	var result = iterator.TryFind(func(s string) gust.Result[bool] {
+//	var res = iterator.TryFind(func(s string) result.Result[bool] {
 //		if s == "lol" {
-//			return gust.Err[bool](errors.New("invalid"))
+//			return result.TryErr[bool](errors.New("invalid"))
 //		}
 //		if v, err := strconv.Atoi(s); err == nil {
-//			return gust.Ok(v == 2)
+//			return result.Ok(v == 2)
 //		}
-//		return gust.Ok(false)
+//		return result.Ok(false)
 //	})
 //	assert.True(t, result.IsOk())
 //
 //go:inline
-func (it Iterator[T]) TryFind(f func(T) gust.Result[bool]) gust.Result[gust.Option[T]] {
+func (it Iterator[T]) TryFind(f func(T) result.Result[bool]) result.Result[option.Option[T]] {
 	return tryFindImpl(it, f)
 }
 
@@ -903,12 +904,12 @@ func (it Iterator[T]) TryFind(f func(T) gust.Result[bool]) gust.Result[gust.Opti
 //
 //	var iter = FromSlice([]int{1, 2, 3})
 //	var peekable = iterator.Peekable()
-//	assert.Equal(t, gust.Some(1), peekable.Peek())
-//	assert.Equal(t, gust.Some(1), peekable.Next())
+//	assert.Equal(t, option.Some(1), peekable.Peek())
+//	assert.Equal(t, option.Some(1), peekable.Next())
 //
 //	// Can use all Iterator methods:
 //	var filtered = peekable.Filter(func(x int) bool { return x > 1 })
-//	assert.Equal(t, gust.Some(2), filtered.Next())
+//	assert.Equal(t, option.Some(2), filtered.Next())
 //
 //go:inline
 func (it Iterator[T]) Peekable() PeekableIterator[T] {

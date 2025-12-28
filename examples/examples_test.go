@@ -4,9 +4,10 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/andeya/gust"
 	"github.com/andeya/gust/dict"
 	"github.com/andeya/gust/iterator"
+	"github.com/andeya/gust/option"
+	"github.com/andeya/gust/result"
 	"github.com/andeya/gust/vec"
 	"github.com/stretchr/testify/assert"
 )
@@ -17,18 +18,18 @@ func TestExamples(t *testing.T) {
 	numbers := []string{"1", "2", "three", "4"}
 	results := iterator.FilterMap(
 		iterator.RetMap(iterator.FromSlice(numbers), strconv.Atoi),
-		gust.Result[int].Ok,
+		result.Result[int].Ok,
 	).
 		Collect()
 
 	assert.Equal(t, []int{1, 2, 4}, results)
 
 	// Test Option example
-	divide := func(a, b float64) gust.Option[float64] {
+	divide := func(a, b float64) option.Option[float64] {
 		if b == 0 {
-			return gust.None[float64]()
+			return option.None[float64]()
 		}
-		return gust.Some(a / b)
+		return option.Some(a / b)
 	}
 	result := divide(10, 2).UnwrapOr(0)
 	assert.Equal(t, 5.0, result)

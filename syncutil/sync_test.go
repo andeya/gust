@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/andeya/gust"
+	"github.com/andeya/gust/option"
+	"github.com/andeya/gust/result"
 	"github.com/andeya/gust/syncutil"
 	"github.com/stretchr/testify/assert"
 )
@@ -48,27 +49,27 @@ func TestMutex(t *testing.T) {
 
 func TestSyncMap(t *testing.T) {
 	var m syncutil.SyncMap[string, int]
-	assert.Equal(t, gust.None[int](), m.Load("a"))
+	assert.Equal(t, option.None[int](), m.Load("a"))
 	m.Store("a", 1)
-	assert.Equal(t, gust.Some(1), m.Load("a"))
+	assert.Equal(t, option.Some(1), m.Load("a"))
 	m.Delete("a")
-	assert.Equal(t, gust.None[int](), m.Load("a"))
+	assert.Equal(t, option.None[int](), m.Load("a"))
 
 	// Test LoadOrStore
 	existing := m.LoadOrStore("b", 2)
 	assert.True(t, existing.IsNone()) // Key doesn't exist
-	assert.Equal(t, gust.Some(2), m.Load("b"))
+	assert.Equal(t, option.Some(2), m.Load("b"))
 
 	existing2 := m.LoadOrStore("b", 3)
 	assert.True(t, existing2.IsSome()) // Key exists
 	assert.Equal(t, 2, existing2.Unwrap())
-	assert.Equal(t, gust.Some(2), m.Load("b")) // Value unchanged
+	assert.Equal(t, option.Some(2), m.Load("b")) // Value unchanged
 
 	// Test LoadAndDelete
 	deleted := m.LoadAndDelete("b")
 	assert.True(t, deleted.IsSome())
 	assert.Equal(t, 2, deleted.Unwrap())
-	assert.Equal(t, gust.None[int](), m.Load("b"))
+	assert.Equal(t, option.None[int](), m.Load("b"))
 
 	deleted2 := m.LoadAndDelete("nonexistent")
 	assert.True(t, deleted2.IsNone())
@@ -98,14 +99,14 @@ func TestSyncMap(t *testing.T) {
 
 func TestAtomicValue(t *testing.T) {
 	var m syncutil.AtomicValue[int]
-	assert.Equal(t, gust.None[int](), m.Load())
+	assert.Equal(t, option.None[int](), m.Load())
 	m.Store(1)
-	assert.Equal(t, gust.Some(1), m.Load())
-	assert.Equal(t, gust.Some(1), m.Swap(2))
-	assert.Equal(t, gust.Some(2), m.Load())
+	assert.Equal(t, option.Some(1), m.Load())
+	assert.Equal(t, option.Some(1), m.Swap(2))
+	assert.Equal(t, option.Some(2), m.Load())
 	assert.False(t, m.CompareAndSwap(1, 3))
 	assert.True(t, m.CompareAndSwap(2, 3))
-	assert.Equal(t, gust.Some(3), m.Load())
+	assert.Equal(t, option.Some(3), m.Load())
 }
 
 type one int
@@ -123,13 +124,13 @@ func runLazyValue(t *testing.T, once *syncutil.LazyValue[*one], c chan bool) {
 }
 
 func TestLazyValue(t *testing.T) {
-	assert.Equal(t, gust.TryErr[int](syncutil.ErrLazyValueWithoutInit), new(syncutil.LazyValue[int]).TryGetValue())
+	assert.Equal(t, result.TryErr[int](syncutil.ErrLazyValueWithoutInit), new(syncutil.LazyValue[int]).TryGetValue())
 	assert.Equal(t, 0, new(syncutil.LazyValue[int]).SetInitValue(0).TryGetValue().Unwrap())
 	assert.Equal(t, 1, new(syncutil.LazyValue[int]).SetInitValue(1).TryGetValue().Unwrap())
 	o := new(one)
-	once := new(syncutil.LazyValue[*one]).SetInitFunc(func() gust.Result[*one] {
+	once := new(syncutil.LazyValue[*one]).SetInitFunc(func() result.Result[*one] {
 		o.Increment()
-		return gust.Ok(o)
+		return result.Ok(o)
 	})
 	c := make(chan bool)
 	const N = 10
@@ -152,7 +153,7 @@ func TestLazyValuePanic1(t *testing.T) {
 			t.Fatalf("should painc")
 		}
 	}()
-	var once = new(syncutil.LazyValue[struct{}]).SetInitFunc(func() gust.Result[struct{}] {
+	var once = new(syncutil.LazyValue[struct{}]).SetInitFunc(func() result.Result[struct{}] {
 		panic("failed")
 	})
 	_ = once.TryGetValue().Unwrap()
@@ -243,9 +244,9 @@ func TestNewRWMutex(t *testing.T) {
 	swapCount := 0
 	m.TryBest(func(val int) bool {
 		return val > 50 // Condition fails
-	}, func(old int) gust.Option[int] {
+	}, func(old int) option.Option[int] {
 		swapCount++
-		return gust.Some(100) // Swap to 100
+		return option.Some(100) // Swap to 100
 	})
 	assert.Equal(t, 1, swapCount)
 	result5 := m.TryLock()
@@ -256,8 +257,8 @@ func TestNewRWMutex(t *testing.T) {
 	// Test TryBest with successful condition
 	m.TryBest(func(val int) bool {
 		return val > 50 // Condition succeeds
-	}, func(old int) gust.Option[int] {
-		return gust.Some(200) // Should not be called
+	}, func(old int) option.Option[int] {
+		return option.Some(200) // Should not be called
 	})
 	result6 := m.TryLock()
 	assert.True(t, result6.IsSome())
@@ -269,55 +270,55 @@ func TestLazyValueNewFunctions(t *testing.T) {
 	// Test NewLazyValue
 	lv1 := syncutil.NewLazyValue[int]()
 	assert.False(t, lv1.IsInitialized())
-	assert.Equal(t, gust.TryErr[int](syncutil.ErrLazyValueWithoutInit), lv1.TryGetValue())
+	assert.Equal(t, result.TryErr[int](syncutil.ErrLazyValueWithoutInit), lv1.TryGetValue())
 
 	// Test NewLazyValueWithValue - lazy initialization
 	lv2 := syncutil.NewLazyValueWithValue(42)
 	assert.False(t, lv2.IsInitialized()) // Not initialized until TryGetValue is called
-	assert.Equal(t, gust.Some(42), lv2.TryGetValue().Ok())
+	assert.Equal(t, option.Some(42), lv2.TryGetValue().Ok())
 	assert.True(t, lv2.IsInitialized()) // Now initialized after TryGetValue
 
 	// Test NewLazyValueWithZero - lazy initialization
 	lv3 := syncutil.NewLazyValueWithZero[int]()
 	assert.False(t, lv3.IsInitialized()) // Not initialized until TryGetValue is called
-	assert.Equal(t, gust.Some(0), lv3.TryGetValue().Ok())
+	assert.Equal(t, option.Some(0), lv3.TryGetValue().Ok())
 	assert.True(t, lv3.IsInitialized()) // Now initialized after TryGetValue
 
 	// Test NewLazyValueWithFunc - lazy initialization
-	lv4 := syncutil.NewLazyValueWithFunc[int](func() gust.Result[int] {
-		return gust.Ok(100)
+	lv4 := syncutil.NewLazyValueWithFunc[int](func() result.Result[int] {
+		return result.Ok(100)
 	})
 	assert.False(t, lv4.IsInitialized()) // Not initialized until TryGetValue is called
-	assert.Equal(t, gust.Some(100), lv4.TryGetValue().Ok())
+	assert.Equal(t, option.Some(100), lv4.TryGetValue().Ok())
 	assert.True(t, lv4.IsInitialized()) // Now initialized after TryGetValue
 
 	// Test SetInitFunc on uninitialized
 	lv5 := syncutil.NewLazyValue[string]()
-	lv5.SetInitFunc(func() gust.Result[string] {
-		return gust.Ok("test")
+	lv5.SetInitFunc(func() result.Result[string] {
+		return result.Ok("test")
 	})
-	assert.Equal(t, gust.Some("test"), lv5.TryGetValue().Ok())
+	assert.Equal(t, option.Some("test"), lv5.TryGetValue().Ok())
 
 	// Test SetInitFunc on initialized (should not change)
 	lv6 := syncutil.NewLazyValueWithValue("original")
 	// First call to TryGetValue initializes it
-	assert.Equal(t, gust.Some("original"), lv6.TryGetValue().Ok())
+	assert.Equal(t, option.Some("original"), lv6.TryGetValue().Ok())
 	assert.True(t, lv6.IsInitialized())
 	// Now SetInitFunc should not change the value since it's already initialized
-	lv6.SetInitFunc(func() gust.Result[string] {
-		return gust.Ok("new")
+	lv6.SetInitFunc(func() result.Result[string] {
+		return result.Ok("new")
 	})
-	assert.Equal(t, gust.Some("original"), lv6.TryGetValue().Ok())
+	assert.Equal(t, option.Some("original"), lv6.TryGetValue().Ok())
 
 	// Test SetInitValue
 	lv7 := syncutil.NewLazyValue[int]()
 	lv7.SetInitValue(200)
-	assert.Equal(t, gust.Some(200), lv7.TryGetValue().Ok())
+	assert.Equal(t, option.Some(200), lv7.TryGetValue().Ok())
 
 	// Test SetInitZero
 	lv8 := syncutil.NewLazyValue[int]()
 	lv8.SetInitZero()
-	assert.Equal(t, gust.Some(0), lv8.TryGetValue().Ok())
+	assert.Equal(t, option.Some(0), lv8.TryGetValue().Ok())
 
 	// Test Zero
 	var zero int
@@ -337,8 +338,8 @@ func BenchmarkLazyValue(b *testing.B) {
 func TestRWMutex_TryBest_NilReadAndDo(t *testing.T) {
 	m := syncutil.NewRWMutex(10)
 	// Should not panic with nil readAndDo
-	m.TryBest(nil, func(old int) gust.Option[int] {
-		return gust.Some(20)
+	m.TryBest(nil, func(old int) option.Option[int] {
+		return option.Some(20)
 	})
 	assert.Equal(t, 10, m.Lock())
 	m.Unlock()
@@ -358,8 +359,8 @@ func TestRWMutex_TryBest_SwapWhenFalseReturnsNone(t *testing.T) {
 	m := syncutil.NewRWMutex(10)
 	m.TryBest(func(val int) bool {
 		return val > 50
-	}, func(old int) gust.Option[int] {
-		return gust.None[int]() // Return None, should not swap
+	}, func(old int) option.Option[int] {
+		return option.None[int]() // Return None, should not swap
 	})
 	assert.Equal(t, 10, m.Lock()) // Value unchanged
 	m.Unlock()
@@ -576,15 +577,15 @@ func TestAtomicValue_CompareAndSwap(t *testing.T) {
 
 	// Test successful swap
 	assert.True(t, v.CompareAndSwap(10, 20))
-	assert.Equal(t, gust.Some(20), v.Load())
+	assert.Equal(t, option.Some(20), v.Load())
 
 	// Test failed swap (old value doesn't match)
 	assert.False(t, v.CompareAndSwap(10, 30))
-	assert.Equal(t, gust.Some(20), v.Load()) // Value unchanged
+	assert.Equal(t, option.Some(20), v.Load()) // Value unchanged
 
 	// Test successful swap with correct old value
 	assert.True(t, v.CompareAndSwap(20, 30))
-	assert.Equal(t, gust.Some(30), v.Load())
+	assert.Equal(t, option.Some(30), v.Load())
 }
 
 func TestLazyValue_SetInitFunc_AlreadyInitialized(t *testing.T) {
@@ -594,27 +595,27 @@ func TestLazyValue_SetInitFunc_AlreadyInitialized(t *testing.T) {
 	assert.True(t, lv.IsInitialized())
 
 	// Try to set init func after initialization
-	lv.SetInitFunc(func() gust.Result[string] {
-		return gust.Ok("new")
+	lv.SetInitFunc(func() result.Result[string] {
+		return result.Ok("new")
 	})
 
 	// Should still return original value
-	assert.Equal(t, gust.Some("original"), lv.TryGetValue().Ok())
+	assert.Equal(t, option.Some("original"), lv.TryGetValue().Ok())
 }
 
 func TestLazyValue_SetInitFunc_AlreadySet(t *testing.T) {
 	lv := syncutil.NewLazyValue[string]()
-	lv.SetInitFunc(func() gust.Result[string] {
-		return gust.Ok("first")
+	lv.SetInitFunc(func() result.Result[string] {
+		return result.Ok("first")
 	})
 
 	// Try to set another init func
-	lv.SetInitFunc(func() gust.Result[string] {
-		return gust.Ok("second")
+	lv.SetInitFunc(func() result.Result[string] {
+		return result.Ok("second")
 	})
 
 	// Should use first function
-	assert.Equal(t, gust.Some("first"), lv.TryGetValue().Ok())
+	assert.Equal(t, option.Some("first"), lv.TryGetValue().Ok())
 }
 
 func TestLazyValue_Zero(t *testing.T) {

@@ -1,37 +1,83 @@
+<div align="center">
+
 # gust 🌬️
 
-[![tag](https://img.shields.io/github/tag/andeya/gust.svg)](https://github.com/andeya/gust/releases)
-![Go Version](https://img.shields.io/badge/Go-%3E%3D%201.23-%23007d9c)
-[![GoDoc](https://godoc.org/github.com/andeya/gust?status.svg)](https://pkg.go.dev/github.com/andeya/gust)
-![Build Status](https://github.com/andeya/gust/actions/workflows/go-ci.yml/badge.svg)
-[![Go report](https://goreportcard.com/badge/github.com/andeya/gust)](https://goreportcard.com/report/github.com/andeya/gust)
-[![Coverage](https://img.shields.io/codecov/c/github/andeya/gust)](https://codecov.io/gh/andeya/gust)
-[![License](https://img.shields.io/github/license/andeya/gust)](./LICENSE)
+**Bring Rust's Elegance to Go**
 
-**Bring Rust's elegance to Go** - A powerful library that makes error handling, optional values, and iteration as beautiful and safe as in Rust.
+*A production-ready library that makes error handling, optional values, and iteration as beautiful and safe as in Rust.*
 
-> 🎯 **Zero dependencies** • 🚀 **Production ready** • 📚 **Well documented** • ✨ **Type-safe**
+[![GitHub release](https://img.shields.io/github/release/andeya/gust.svg)](https://github.com/andeya/gust/releases)
+[![Go Version](https://img.shields.io/badge/Go-%3E%3D%201.23-00ADD8?style=flat&logo=go)](https://golang.org)
+[![GoDoc](https://pkg.go.dev/badge/github.com/andeya/gust.svg)](https://pkg.go.dev/github.com/andeya/gust)
+[![CI Status](https://github.com/andeya/gust/actions/workflows/go-ci.yml/badge.svg)](https://github.com/andeya/gust/actions)
+[![Go Report Card](https://goreportcard.com/badge/github.com/andeya/gust)](https://goreportcard.com/report/github.com/andeya/gust)
+[![Code Coverage](https://codecov.io/gh/andeya/gust/branch/main/graph/badge.svg)](https://codecov.io/gh/andeya/gust)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
-**Languages:** [English](./README.md) | [中文](./README_ZH.md)
+**[English](./README.md)** | **[中文](./README_ZH.md)**
 
-## ✨ Why gust?
+</div>
 
-Tired of writing `if err != nil` everywhere? Frustrated with nil pointer panics? Want Rust-like iterator chains in Go?
+---
 
-**gust** brings Rust's best patterns to Go, making your code:
-- 🛡️ **Safer** - No more nil pointer panics
-- 🎯 **Cleaner** - Chain operations elegantly
-- 🚀 **More Expressive** - Write what you mean, not boilerplate
+## 🎯 What is gust?
 
-### From Imperative to Declarative
+**gust** is a comprehensive Go library that brings Rust's most powerful patterns to Go, enabling you to write safer, cleaner, and more expressive code. With **zero dependencies** and **production-ready** quality, gust transforms how you handle errors, optional values, and data iteration in Go.
 
-gust helps you shift from **imperative** (focusing on *how*) to **declarative** (focusing on *what*) programming:
+### ✨ Key Features
 
-![Declarative vs Imperative](./doc/declarative_vs_imperative.jpg)
+- 🛡️ **Type-Safe Error Handling** - Replace `(T, error)` with chainable `Result[T]`
+- 🎯 **No More Nil Panics** - Use `Option[T]` instead of `*T` or `(T, bool)`
+- 🚀 **Rust-like Iterators** - Full Iterator trait implementation with 60+ methods
+- ⚡ **Zero Dependencies** - Pure Go, no external dependencies
+- 📚 **Well Documented** - Comprehensive docs with real-world examples
+- 🔒 **Production Ready** - High test coverage and battle-tested
 
-With gust, you describe **what** you want to achieve, not **how** to achieve it step-by-step. This makes your code more readable, maintainable, and less error-prone.
+---
 
-### Before gust (Traditional Go)
+## 🚀 Quick Start
+
+```bash
+go get github.com/andeya/gust
+```
+
+### Your First gust Program
+
+```go
+package main
+
+import (
+    "fmt"
+    "github.com/andeya/gust/result"
+)
+
+func main() {
+    // Chain operations elegantly
+    res := result.Ok(10).
+        Map(func(x int) int { return x * 2 }).
+        AndThen(func(x int) result.Result[int] {
+            if x > 15 {
+                return result.TryErr[int]("too large")
+            }
+            return result.Ok(x + 5)
+        })
+
+    if res.IsOk() {
+        fmt.Println("Success:", res.Unwrap())
+    } else {
+        fmt.Println("Error:", res.UnwrapErr())
+    }
+}
+```
+
+---
+
+## 💡 Why gust?
+
+### The Problem with Traditional Go
+
+Traditional Go code is verbose and error-prone:
+
 ```go
 func fetchUserData(userID int) (string, error) {
     // Step 1: Fetch from database
@@ -55,72 +101,88 @@ func fetchUserData(userID int) (string, error) {
     }
     
     // Step 4: Format result
-    result := fmt.Sprintf("%s: %s", user.Name, profile.Bio)
-    return result, nil
+    return fmt.Sprintf("%s: %s", user.Name, profile.Bio), nil
 }
 ```
 
-### After gust (Elegant & Safe)
+**Issues:**
+- ❌ Repetitive error handling boilerplate
+- ❌ Nested if-else statements
+- ❌ Hard to compose and test
+- ❌ Easy to forget error checks
+
+### The gust Solution
+
+With gust, write declarative, composable code:
+
 ```go
-import "github.com/andeya/gust"
 import "github.com/andeya/gust/result"
 
-func fetchUserData(userID int) gust.Result[string] {
-    return result.AndThen(gust.Ret(getUser(userID)), func(user *User) gust.Result[string] {
+func fetchUserData(userID int) result.Result[string] {
+    return result.AndThen(result.Ret(getUser(userID)), func(user *User) result.Result[string] {
         if user == nil || user.Email == "" {
-            return gust.TryErr[string]("invalid user")
+            return result.TryErr[string]("invalid user")
         }
-        return result.Map(gust.Ret(getProfile(user.Email)), func(profile *Profile) string {
+        return result.Map(result.Ret(getProfile(user.Email)), func(profile *Profile) string {
             return fmt.Sprintf("%s: %s", user.Name, profile.Bio)
         })
     })
 }
-
-// See ExampleResult_fetchUserData in examples/ for a complete runnable example
 ```
 
-**What changed?**
+**Benefits:**
 - ✅ **No error boilerplate** - Errors flow naturally through the chain
-- ✅ **No nested if-else** - Linear flow, easy to read
+- ✅ **Linear flow** - Easy to read and understand
 - ✅ **Automatic propagation** - Errors stop the chain automatically
 - ✅ **Composable** - Each step is independent and testable
 - ✅ **Type-safe** - Compiler enforces correct error handling
 
-## 🚀 Quick Start
+### From Imperative to Declarative
 
-```bash
-go get github.com/andeya/gust
-```
+gust helps you shift from **imperative** (focusing on *how*) to **declarative** (focusing on *what*) programming:
+
+![Declarative vs Imperative](./doc/declarative_vs_imperative.jpg)
+
+With gust, you describe **what** you want to achieve, not **how** to achieve it step-by-step. This makes your code more readable, maintainable, and less error-prone.
+
+---
 
 ## 📚 Core Features
 
 ### 1. Result<T> - Elegant Error Handling
 
-Replace `(T, error)` with chainable `Result[T]`:
+Replace `(T, error)` with chainable `Result[T]` for type-safe error handling:
 
 ```go
-import "github.com/andeya/gust"
+import "github.com/andeya/gust/result"
 
 // Chain operations that can fail
-result := gust.Ok(10).
+res := result.Ok(10).
     Map(func(x int) int { return x * 2 }).
-    AndThen(func(x int) gust.Result[int] {
+    AndThen(func(x int) result.Result[int] {
         if x > 15 {
-            return gust.TryErr[int]("too large")
+            return result.TryErr[int]("too large")
         }
-        return gust.Ok(x + 5)
+        return result.Ok(x + 5)
     }).
-    OrElse(func(err error) gust.Result[int] {
+    OrElse(func(err error) result.Result[int] {
         fmt.Println("Error handled:", err)
-        return gust.Ok(0) // Fallback
+        return result.Ok(0) // Fallback
     })
 
-fmt.Println("Final value:", result.Unwrap())
+fmt.Println("Final value:", res.Unwrap())
 // Output: Error handled: too large
 // Final value: 0
 ```
 
-**Key Benefits:**
+**Key Methods:**
+- `Map` - Transform the value if Ok
+- `AndThen` - Chain operations that return Result
+- `OrElse` - Handle errors with fallback
+- `Unwrap` / `UnwrapOr` - Extract values safely
+- `IsOk` / `IsErr` - Check result state
+
+**Benefits:**
 - ✅ No more `if err != nil` boilerplate
 - ✅ Automatic error propagation
 - ✅ Chain multiple operations elegantly
@@ -131,22 +193,31 @@ fmt.Println("Final value:", result.Unwrap())
 Replace `*T` and `(T, bool)` with safe `Option[T]`:
 
 ```go
+import "github.com/andeya/gust/option"
+
 // Safe division without nil checks
-divide := func(a, b float64) gust.Option[float64] {
+divide := func(a, b float64) option.Option[float64] {
     if b == 0 {
-        return gust.None[float64]()
+        return option.None[float64]()
     }
-    return gust.Some(a / b)
+    return option.Some(a / b)
 }
 
-result := divide(10, 2).
+res := divide(10, 2).
     Map(func(x float64) float64 { return x * 2 }).
     UnwrapOr(0)
 
-fmt.Println(result) // 10
+fmt.Println(res) // 10
 ```
 
-**Key Benefits:**
+**Key Methods:**
+- `Map` - Transform the value if Some
+- `AndThen` - Chain operations that return Option
+- `Filter` - Conditionally filter values
+- `Unwrap` / `UnwrapOr` - Extract values safely
+- `IsSome` / `IsNone` - Check option state
+
+**Benefits:**
 - ✅ Eliminates nil pointer panics
 - ✅ Explicit optional values
 - ✅ Chain operations safely
@@ -154,7 +225,7 @@ fmt.Println(result) // 10
 
 ### 3. Iterator - Rust-like Iteration in Go
 
-Full Rust Iterator trait implementation with method chaining:
+Full Rust Iterator trait implementation with method chaining and lazy evaluation:
 
 ```go
 import "github.com/andeya/gust/iterator"
@@ -173,26 +244,34 @@ fmt.Println(sum) // 56 (4 + 16 + 36)
 ```
 
 **Available Methods:**
-- **Constructors**: `FromSlice()`, `FromElements()`, `FromRange()`, `FromFunc()`, `FromIterable()`, `Empty()`, `Once()`, `Repeat()` - Create iterators from various sources
-- **BitSet Iterators**: `FromBitSet()`, `FromBitSetOnes()`, `FromBitSetZeros()`, `FromBitSetBytes()`, `FromBitSetBytesOnes()`, `FromBitSetBytesZeros()` - Iterate over bits in bit sets or byte slices
-- **Go Integration**: `FromSeq()`, `FromSeq2()`, `FromPull()`, `FromPull2()` - Convert from Go's standard iterators; `Seq()`, `Seq2()`, `Pull()`, `Pull2()` - Convert to Go's standard iterators
-- **Adapters**: `Map`, `Filter`, `Chain`, `Zip`, `Enumerate`, `Skip`, `Take`, `StepBy`, `FlatMap`, `Flatten`
-- **Consumers**: `Fold`, `Reduce`, `Collect`, `Count`, `All`, `Any`, `Find`, `Sum`, `Product`, `Partition`
-- **Advanced**: `Scan`, `Intersperse`, `Peekable`, `ArrayChunks`, `FindMap`, `MapWhile`
-- **Double-Ended**: `NextBack`, `Rfold`, `TryRfold`, `Rfind`
-- And 60+ more methods from Rust's Iterator trait!
+
+| Category | Methods |
+|----------|---------|
+| **Constructors** | `FromSlice`, `FromElements`, `FromRange`, `FromFunc`, `FromIterable`, `Empty`, `Once`, `Repeat` |
+| **BitSet Iterators** | `FromBitSet`, `FromBitSetOnes`, `FromBitSetZeros`, `FromBitSetBytes`, etc. |
+| **Go Integration** | `FromSeq`, `FromSeq2`, `FromPull`, `FromPull2`, `Seq`, `Seq2`, `Pull`, `Pull2` |
+| **Adapters** | `Map`, `Filter`, `Chain`, `Zip`, `Enumerate`, `Skip`, `Take`, `StepBy`, `FlatMap`, `Flatten` |
+| **Consumers** | `Fold`, `Reduce`, `Collect`, `Count`, `All`, `Any`, `Find`, `Sum`, `Product`, `Partition` |
+| **Advanced** | `Scan`, `Intersperse`, `Peekable`, `ArrayChunks`, `FindMap`, `MapWhile` |
+| **Double-Ended** | `NextBack`, `Rfold`, `TryRfold`, `Rfind` |
+
+**60+ methods** from Rust's Iterator trait!
 
 **Note:** For type-changing operations (e.g., `Map` from `string` to `int`), use the function-style API:
+
 ```go
 iterator.Map(iterator.FromSlice(strings), func(s string) int { return len(s) })
 ```
 
 For same-type operations, you can use method chaining:
+
 ```go
-iterator.FromSlice(numbers).Filter(func(x int) bool { return x > 0 }).Map(func(x int) int { return x * 2 })
+iterator.FromSlice(numbers).
+    Filter(func(x int) bool { return x > 0 }).
+    Map(func(x int) int { return x * 2 })
 ```
 
-**Key Benefits:**
+**Benefits:**
 - ✅ Rust-like method chaining
 - ✅ Lazy evaluation
 - ✅ Type-safe transformations
@@ -203,7 +282,10 @@ iterator.FromSlice(numbers).Filter(func(x int) bool { return x > 0 }).Map(func(x
 Create iterators from various sources:
 
 ```go
-import "github.com/andeya/gust/iterator"
+import (
+    "github.com/andeya/gust/iterator"
+    "github.com/andeya/gust/option"
+)
 
 // From slice
 iter1 := iterator.FromSlice([]int{1, 2, 3})
@@ -216,12 +298,12 @@ iter3 := iterator.FromRange(0, 5) // 0, 1, 2, 3, 4
 
 // From function
 count := 0
-iter4 := iterator.FromFunc(func() gust.Option[int] {
+iter4 := iterator.FromFunc(func() option.Option[int] {
     if count < 3 {
         count++
-        return gust.Some(count)
+        return option.Some(count)
     }
-    return gust.None[int]()
+    return option.None[int]()
 })
 
 // Empty iterator
@@ -239,6 +321,7 @@ iter7 := iterator.Repeat("hello") // "hello", "hello", "hello", ...
 gust iterators seamlessly integrate with Go 1.23+ standard iterators:
 
 **Convert gust Iterator to Go's `iter.Seq[T]`:**
+
 ```go
 import "github.com/andeya/gust/iterator"
 
@@ -252,6 +335,7 @@ for v := range gustIter.Seq() {
 ```
 
 **Convert Go's `iter.Seq[T]` to gust Iterator:**
+
 ```go
 import "github.com/andeya/gust/iterator"
 
@@ -273,7 +357,7 @@ fmt.Println(result) // [0 2 4 6 8]
 
 ### 4. Double-Ended Iterator
 
-Iterate from both ends:
+Iterate from both ends efficiently:
 
 ```go
 import "github.com/andeya/gust/iterator"
@@ -292,41 +376,46 @@ if val := deIter.NextBack(); val.IsSome() {
 }
 ```
 
-## 📖 Examples
+---
+
+## 📖 Real-World Examples
 
 ### Parse and Filter with Error Handling
 
 ```go
-import "github.com/andeya/gust"
-import "github.com/andeya/gust/iterator"
-import "strconv"
+import (
+    "github.com/andeya/gust/iterator"
+    "github.com/andeya/gust/result"
+    "strconv"
+)
 
 // Parse strings to integers, automatically filtering out errors
 numbers := []string{"1", "2", "three", "4", "five"}
 
 results := iterator.FilterMap(
     iterator.RetMap(iterator.FromSlice(numbers), strconv.Atoi),
-    gust.Result[int].Ok,
-).
-    Collect()
+    result.Result[int].Ok,
+).Collect()
 
 fmt.Println("Parsed numbers:", results)
 // Output: Parsed numbers: [1 2 4]
 ```
 
-### Real-World Data Pipeline
+### Data Processing Pipeline
 
 ```go
-import "github.com/andeya/gust"
-import "github.com/andeya/gust/iterator"
-import "strconv"
+import (
+    "github.com/andeya/gust/iterator"
+    "github.com/andeya/gust/result"
+    "strconv"
+)
 
 // Process user input: parse, validate, transform, limit
 input := []string{"10", "20", "invalid", "30", "0", "40"}
 
 results := iterator.FilterMap(
     iterator.RetMap(iterator.FromSlice(input), strconv.Atoi),
-    gust.Result[int].Ok,
+    result.Result[int].Ok,
 ).
     Filter(func(x int) bool { return x > 0 }).
     Map(func(x int) int { return x * 2 }).
@@ -339,11 +428,13 @@ fmt.Println(results) // [20 40 60]
 ### Option Chain Operations
 
 ```go
-import "github.com/andeya/gust"
-import "fmt"
+import (
+    "fmt"
+    "github.com/andeya/gust/option"
+)
 
 // Chain operations on optional values with filtering
-result := gust.Some(5).
+res := option.Some(5).
     Map(func(x int) int { return x * 2 }).
     Filter(func(x int) bool { return x > 8 }).
     XMap(func(x int) any {
@@ -351,14 +442,16 @@ result := gust.Some(5).
     }).
     UnwrapOr("No value")
 
-fmt.Println(result) // "Value: 10"
+fmt.Println(res) // "Value: 10"
 ```
 
 ### Partition Data
 
 ```go
-import "github.com/andeya/gust/iterator"
-import "fmt"
+import (
+    "fmt"
+    "github.com/andeya/gust/iterator"
+)
 
 // Split numbers into evens and odds
 numbers := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
@@ -375,8 +468,10 @@ fmt.Println("Odds:", odds)   // [1 3 5 7 9]
 Iterate over bits in bit sets or byte slices with full iterator support:
 
 ```go
-import "github.com/andeya/gust/iterator"
-import "fmt"
+import (
+    "fmt"
+    "github.com/andeya/gust/iterator"
+)
 
 // Iterate over bits in a byte slice
 bytes := []byte{0b10101010, 0b11001100}
@@ -395,41 +490,26 @@ fmt.Println(count) // 8
 sum := iterator.FromBitSetBytesOnes(bytes).
     Fold(0, func(acc, offset int) int { return acc + offset })
 fmt.Println(sum) // 54 (0+2+4+6+8+9+12+13)
-
-// Works with any BitSetLike implementation
-type MyBitSet struct {
-    bits []byte
-}
-
-func (b *MyBitSet) Size() int { return len(b.bits) * 8 }
-func (b *MyBitSet) Get(offset int) bool {
-    if offset < 0 || offset >= b.Size() {
-        return false
-    }
-    byteIdx := offset / 8
-    bitIdx := offset % 8
-    return (b.bits[byteIdx] & (1 << (7 - bitIdx))) != 0
-}
-
-bitset := &MyBitSet{bits: []byte{0b10101010}}
-ones := iterator.FromBitSetOnes(bitset).Collect()
-fmt.Println(ones) // [0 2 4 6]
 ```
+
+---
 
 ## 📦 Additional Packages
 
 gust provides several utility packages to extend its functionality:
 
-- **`gust/dict`** - Generic map utilities (Filter, Map, Keys, Values, etc.)
-- **`gust/vec`** - Generic slice utilities  
-- **`gust/conv`** - Type-safe value conversion and reflection utilities
-- **`gust/digit`** - Number conversion utilities (base conversion, etc.)
-- **`gust/opt`** - Helper functions for `Option[T]` (Map, AndThen, Zip, Unzip, Assert, etc.)
-- **`gust/result`** - Helper functions for `Result[T]` (Map, AndThen, Assert, Flatten, etc.)
-- **`gust/iterator`** - Rust-like iterator implementation (see [Iterator section](#3-iterator---rust-like-iteration-in-go) above)
-- **`gust/syncutil`** - Concurrent utilities (SyncMap, Mutex wrappers, Lazy initialization, etc.)
-- **`gust/errutil`** - Error utilities (Stack traces, Panic recovery, etc.)
-- **`gust/constraints`** - Type constraints (Ordering, Numeric, etc.)
+| Package | Description |
+|---------|-------------|
+| **`gust/dict`** | Generic map utilities (Filter, Map, Keys, Values, Get, etc.) |
+| **`gust/vec`** | Generic slice utilities (MapAlone, Get, Copy, Dict, etc.) |
+| **`gust/conv`** | Type-safe value conversion and reflection utilities |
+| **`gust/digit`** | Number conversion utilities (base conversion, FormatByDict, ParseByDict) |
+| **`gust/opt`** | Helper functions for `Option[T]` (Map, AndThen, Zip, Unzip, Assert) |
+| **`gust/result`** | Helper functions for `Result[T]` (Map, AndThen, Assert, Flatten) |
+| **`gust/iterator`** | Rust-like iterator implementation (see [Iterator section](#3-iterator---rust-like-iteration-in-go)) |
+| **`gust/syncutil`** | Concurrent utilities (SyncMap, Mutex wrappers, Lazy initialization) |
+| **`gust/errutil`** | Error utilities (Stack traces, Panic recovery, ErrBox) |
+| **`gust/constraints`** | Type constraints (Ordering, Numeric, etc.) |
 
 ### Quick Examples
 
@@ -450,95 +530,7 @@ numbers := []int{1, 2, 3, 4, 5}
 doubled := vec.MapAlone(numbers, func(x int) int { return x * 2 })
 ```
 
-**Opt utilities:**
-```go
-import "github.com/andeya/gust/opt"
-
-some := gust.Some(5)
-doubled := opt.Map(some, func(x int) int { return x * 2 })
-```
-
-**Result utilities:**
-```go
-import "github.com/andeya/gust"
-import "github.com/andeya/gust/result"
-
-result := gust.Ok(10)
-doubled := result.Map(result, func(x int) int { return x * 2 })
-```
-
-For more details, see the [full documentation](https://pkg.go.dev/github.com/andeya/gust) and [examples](./examples/).
-
-### Detailed Examples
-
-#### Dict Utilities
-
-```go
-import "github.com/andeya/gust/dict"
-
-m := map[string]int{"a": 1, "b": 2, "c": 3}
-
-// Get with Option
-value := dict.Get(m, "b")
-fmt.Println(value.UnwrapOr(0)) // 2
-
-// Filter map
-filtered := dict.Filter(m, func(k string, v int) bool {
-    return v > 1
-})
-fmt.Println(filtered) // map[b:2 c:3]
-
-// Map values
-mapped := dict.MapValue(m, func(k string, v int) int {
-    return v * 2
-})
-fmt.Println(mapped) // map[a:2 b:4 c:6]
-```
-
-#### Vec Utilities
-```go
-import "github.com/andeya/gust/vec"
-
-numbers := []int{1, 2, 3, 4, 5}
-doubled := vec.MapAlone(numbers, func(x int) int { return x * 2 })
-fmt.Println(doubled) // [2 4 6 8 10]
-```
-
-#### Opt Utilities
-```go
-import "github.com/andeya/gust/opt"
-
-some := gust.Some(5)
-doubled := opt.Map(some, func(x int) int { return x * 2 })
-zipped := opt.Zip(gust.Some(1), gust.Some("hello"))
-```
-
-#### Result Utilities
-```go
-import "github.com/andeya/gust"
-import "github.com/andeya/gust/result"
-
-result := gust.Ok(10)
-doubled := result.Map(result, func(x int) int { return x * 2 })
-chained := result.AndThen(gust.Ok(5), func(x int) gust.Result[int] {
-    return gust.Ok(x * 2)
-})
-```
-
-#### Conv Utilities
-```go
-import "github.com/andeya/gust/conv"
-
-// Type-safe conversions
-value := conv.To[int]("42") // Returns Option[int]
-
-// Reflection utilities
-if conv.IsNil(someValue) {
-    // Handle nil case
-}
-```
-
-#### SyncUtil Utilities
+**SyncUtil utilities:**
 ```go
 import "github.com/andeya/gust/syncutil"
 
@@ -554,43 +546,66 @@ lazy := syncutil.NewLazy(func() int {
 value := lazy.Get() // Computed only once
 ```
 
-#### Digit Utilities
-```go
-import "github.com/andeya/gust/digit"
+For more details, see the [full documentation](https://pkg.go.dev/github.com/andeya/gust) and [examples](./examples/).
 
-// Base conversion (e.g., base62)
-encoded := digit.Itoa62(12345) // Convert to base62 string
-decoded := digit.Atoi62(encoded) // Convert back, returns Result[int]
-```
+---
 
 ## 🔗 Resources
 
-- 📖 [Full Documentation](https://pkg.go.dev/github.com/andeya/gust) - Complete API reference
-- 💡 [Examples](./examples/) - Comprehensive examples organized by feature
-- 🌐 [中文文档](./README_ZH.md) - Chinese documentation
-- 🐛 [Issue Tracker](https://github.com/andeya/gust/issues) - Report bugs or request features
-- 💬 [Discussions](https://github.com/andeya/gust/discussions) - Ask questions and share ideas
+- 📖 **[Full Documentation](https://pkg.go.dev/github.com/andeya/gust)** - Complete API reference with examples
+- 💡 **[Examples](./examples/)** - Comprehensive examples organized by feature
+- 🌐 **[中文文档](./README_ZH.md)** - Chinese documentation
+- 🐛 **[Issue Tracker](https://github.com/andeya/gust/issues)** - Report bugs or request features
+- 💬 **[Discussions](https://github.com/andeya/gust/discussions)** - Ask questions and share ideas
+
+---
 
 ## 📋 Requirements
 
-Requires **Go 1.23+** (for generics and standard iterator support)
+- **Go 1.23+** (required for generics and standard iterator support)
+
+---
 
 ## 🤝 Contributing
 
-Contributions are welcome! Whether it's:
-- 🐛 Reporting bugs
-- 💡 Suggesting new features
-- 📝 Improving documentation
-- 🔧 Submitting pull requests
+We welcome contributions! Whether you're:
 
-Every contribution makes gust better! Please feel free to submit a Pull Request or open an issue.
+- 🐛 **Reporting bugs** - Help us improve by reporting issues
+- 💡 **Suggesting features** - Share your ideas for new features
+- 📝 **Improving docs** - Help make our documentation better
+- 🔧 **Submitting PRs** - Contribute code improvements
+
+Every contribution makes gust better! Please see our [Contributing Guidelines](CONTRIBUTING.md) (if available) or feel free to submit a Pull Request or open an issue.
+
+### Development Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/andeya/gust.git
+cd gust
+
+# Run tests
+go test ./...
+
+# Run tests with coverage
+go test -coverprofile=coverage.out ./...
+go tool cover -html=coverage.out
+```
+
+---
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+This project is licensed under the **MIT License** - see the [LICENSE](./LICENSE) file for details.
 
 ---
+
+<div align="center">
 
 **Made with ❤️ for the Go community**
 
 *Inspired by Rust's `Result`, `Option`, and `Iterator` traits*
+
+[⭐ Star us on GitHub](https://github.com/andeya/gust) • [📖 Documentation](https://pkg.go.dev/github.com/andeya/gust) • [🐛 Report Bug](https://github.com/andeya/gust/issues) • [💡 Request Feature](https://github.com/andeya/gust/issues/new)
+
+</div>

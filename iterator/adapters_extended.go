@@ -1,7 +1,7 @@
 package iterator
 
 import (
-	"github.com/andeya/gust"
+	"github.com/andeya/gust/option"
 )
 
 //go:inline
@@ -15,13 +15,13 @@ type skipWhileIterable[T any] struct {
 	done      bool
 }
 
-func (s *skipWhileIterable[T]) Next() gust.Option[T] {
+func (s *skipWhileIterable[T]) Next() option.Option[T] {
 	if !s.done {
 		for {
 			item := s.iter.Next()
 			if item.IsNone() {
 				s.done = true
-				return gust.None[T]()
+				return option.None[T]()
 			}
 			if !s.predicate(item.Unwrap()) {
 				s.done = true
@@ -32,7 +32,7 @@ func (s *skipWhileIterable[T]) Next() gust.Option[T] {
 	return s.iter.Next()
 }
 
-func (s *skipWhileIterable[T]) SizeHint() (uint, gust.Option[uint]) {
+func (s *skipWhileIterable[T]) SizeHint() (uint, option.Option[uint]) {
 	// SkipWhile can reduce the size, but we don't know by how much
 	_, upper := s.iter.SizeHint()
 	return 0, upper
@@ -48,18 +48,18 @@ type takeWhileIterable[T any] struct {
 	predicate func(T) bool
 }
 
-func (t *takeWhileIterable[T]) Next() gust.Option[T] {
+func (t *takeWhileIterable[T]) Next() option.Option[T] {
 	item := t.iter.Next()
 	if item.IsNone() {
-		return gust.None[T]()
+		return option.None[T]()
 	}
 	if t.predicate(item.Unwrap()) {
 		return item
 	}
-	return gust.None[T]()
+	return option.None[T]()
 }
 
-func (t *takeWhileIterable[T]) SizeHint() (uint, gust.Option[uint]) {
+func (t *takeWhileIterable[T]) SizeHint() (uint, option.Option[uint]) {
 	_, upper := t.iter.SizeHint()
 	// TakeWhile can reduce the size, but we don't know by how much
 	return 0, upper
@@ -69,41 +69,41 @@ func (t *takeWhileIterable[T]) SizeHint() (uint, gust.Option[uint]) {
 //
 // MapWhile() takes a closure as an argument. It will call this
 // closure on each element of the iterator, and yield elements
-// while it returns gust.Some(_).
+// while it returns option.Some(_).
 //
 // # Examples
 //
 // Basic usage:
 //
 //	var a = []int{-1, 4, 0, 1}
-//	var iter = MapWhile(FromSlice(a), func(x int) gust.Option[int] {
+//	var iter = MapWhile(FromSlice(a), func(x int) option.Option[int] {
 //		if x != 0 {
-//			return gust.Some(16 / x)
+//			return option.Some(16 / x)
 //		}
-//		return gust.None[int]()
+//		return option.None[int]()
 //	})
 //
-//	assert.Equal(t, gust.Some(-16), iterator.Next())
-//	assert.Equal(t, gust.Some(4), iterator.Next())
-//	assert.Equal(t, gust.None[int](), iterator.Next())
-func MapWhile[T any, U any](iter Iterator[T], predicate func(T) gust.Option[U]) Iterator[U] {
+//	assert.Equal(t, option.Some(-16), iterator.Next())
+//	assert.Equal(t, option.Some(4), iterator.Next())
+//	assert.Equal(t, option.None[int](), iterator.Next())
+func MapWhile[T any, U any](iter Iterator[T], predicate func(T) option.Option[U]) Iterator[U] {
 	return Iterator[U]{iterable: &mapWhileIterable[T, U]{iter: iter.iterable, predicate: predicate}}
 }
 
 type mapWhileIterable[T any, U any] struct {
 	iter      Iterable[T]
-	predicate func(T) gust.Option[U]
+	predicate func(T) option.Option[U]
 }
 
-func (m *mapWhileIterable[T, U]) Next() gust.Option[U] {
+func (m *mapWhileIterable[T, U]) Next() option.Option[U] {
 	item := m.iter.Next()
 	if item.IsNone() {
-		return gust.None[U]()
+		return option.None[U]()
 	}
 	return m.predicate(item.Unwrap())
 }
 
-func (m *mapWhileIterable[T, U]) SizeHint() (uint, gust.Option[uint]) {
+func (m *mapWhileIterable[T, U]) SizeHint() (uint, option.Option[uint]) {
 	_, upper := m.iter.SizeHint()
 	// MapWhile can reduce the size, but we don't know by how much
 	return 0, upper
@@ -119,44 +119,44 @@ func (m *mapWhileIterable[T, U]) SizeHint() (uint, gust.Option[uint]) {
 // iterations.
 //
 // On iteration, the closure will be applied to each element of the
-// iterator and the return value from the closure, an gust.Option, is
+// iterator and the return value from the closure, an option.Option, is
 // returned by the Next() method. Thus the closure can return
-// gust.Some(value) to yield value, or gust.None[T]() to end the iteration.
+// option.Some(value) to yield value, or option.None[T]() to end the iteration.
 //
 // # Examples
 //
 //	var a = []int{1, 2, 3, 4}
-//	var iter = Scan(FromSlice(a), 1, func(state *int, x int) gust.Option[int] {
+//	var iter = Scan(FromSlice(a), 1, func(state *int, x int) option.Option[int] {
 //		*state = *state * x
 //		if *state > 6 {
-//			return gust.None[int]()
+//			return option.None[int]()
 //		}
-//		return gust.Some(-*state)
+//		return option.Some(-*state)
 //	})
 //
-//	assert.Equal(t, gust.Some(-1), iterator.Next())
-//	assert.Equal(t, gust.Some(-2), iterator.Next())
-//	assert.Equal(t, gust.Some(-6), iterator.Next())
-//	assert.Equal(t, gust.None[int](), iterator.Next())
-func Scan[T any, U any, St any](iter Iterator[T], initialState St, f func(*St, T) gust.Option[U]) Iterator[U] {
+//	assert.Equal(t, option.Some(-1), iterator.Next())
+//	assert.Equal(t, option.Some(-2), iterator.Next())
+//	assert.Equal(t, option.Some(-6), iterator.Next())
+//	assert.Equal(t, option.None[int](), iterator.Next())
+func Scan[T any, U any, St any](iter Iterator[T], initialState St, f func(*St, T) option.Option[U]) Iterator[U] {
 	return Iterator[U]{iterable: &scanIterable[T, U, St]{iter: iter.iterable, state: initialState, f: f}}
 }
 
 type scanIterable[T any, U any, St any] struct {
 	iter  Iterable[T]
 	state St
-	f     func(*St, T) gust.Option[U]
+	f     func(*St, T) option.Option[U]
 }
 
-func (s *scanIterable[T, U, St]) Next() gust.Option[U] {
+func (s *scanIterable[T, U, St]) Next() option.Option[U] {
 	item := s.iter.Next()
 	if item.IsNone() {
-		return gust.None[U]()
+		return option.None[U]()
 	}
 	return s.f(&s.state, item.Unwrap())
 }
 
-func (s *scanIterable[T, U, St]) SizeHint() (uint, gust.Option[uint]) {
+func (s *scanIterable[T, U, St]) SizeHint() (uint, option.Option[uint]) {
 	// Scan can terminate early, so we can't provide accurate size hint
 	_, upper := s.iter.SizeHint()
 	return 0, upper
@@ -194,7 +194,7 @@ type flatMapIterable[T any, U any] struct {
 	current Iterable[U]
 }
 
-func (f *flatMapIterable[T, U]) Next() gust.Option[U] {
+func (f *flatMapIterable[T, U]) Next() option.Option[U] {
 	for {
 		if f.current != nil {
 			item := f.current.Next()
@@ -206,16 +206,16 @@ func (f *flatMapIterable[T, U]) Next() gust.Option[U] {
 
 		item := f.iter.Next()
 		if item.IsNone() {
-			return gust.None[U]()
+			return option.None[U]()
 		}
 		it := f.f(item.Unwrap())
 		f.current = it.iterable
 	}
 }
 
-func (f *flatMapIterable[T, U]) SizeHint() (uint, gust.Option[uint]) {
+func (f *flatMapIterable[T, U]) SizeHint() (uint, option.Option[uint]) {
 	// FlatMap can expand or contract the size, so we can't provide accurate size hint
-	return 0, gust.None[uint]()
+	return 0, option.None[uint]()
 }
 
 // Flatten creates an iterator that flattens nested structure.
@@ -249,7 +249,7 @@ type flattenIterable[T any] struct {
 	current Iterable[T]
 }
 
-func (f *flattenIterable[T]) Next() gust.Option[T] {
+func (f *flattenIterable[T]) Next() option.Option[T] {
 	for {
 		if f.current != nil {
 			item := f.current.Next()
@@ -261,16 +261,16 @@ func (f *flattenIterable[T]) Next() gust.Option[T] {
 
 		item := f.iter.Next()
 		if item.IsNone() {
-			return gust.None[T]()
+			return option.None[T]()
 		}
 		it := item.Unwrap()
 		f.current = it.iterable
 	}
 }
 
-func (f *flattenIterable[T]) SizeHint() (uint, gust.Option[uint]) {
+func (f *flattenIterable[T]) SizeHint() (uint, option.Option[uint]) {
 	// Flatten can expand or contract the size, so we can't provide accurate size hint
-	return 0, gust.None[uint]()
+	return 0, option.None[uint]()
 }
 
 //go:inline
@@ -283,9 +283,9 @@ type fuseIterable[T any] struct {
 	done bool
 }
 
-func (f *fuseIterable[T]) Next() gust.Option[T] {
+func (f *fuseIterable[T]) Next() option.Option[T] {
 	if f.done {
-		return gust.None[T]()
+		return option.None[T]()
 	}
 	item := f.iter.Next()
 	if item.IsNone() {
@@ -294,7 +294,7 @@ func (f *fuseIterable[T]) Next() gust.Option[T] {
 	return item
 }
 
-func (f *fuseIterable[T]) SizeHint() (uint, gust.Option[uint]) {
+func (f *fuseIterable[T]) SizeHint() (uint, option.Option[uint]) {
 	return f.iter.SizeHint()
 }
 
@@ -308,7 +308,7 @@ type inspectIterable[T any] struct {
 	f    func(T)
 }
 
-func (i *inspectIterable[T]) Next() gust.Option[T] {
+func (i *inspectIterable[T]) Next() option.Option[T] {
 	item := i.iter.Next()
 	if item.IsSome() {
 		i.f(item.Unwrap())
@@ -316,7 +316,7 @@ func (i *inspectIterable[T]) Next() gust.Option[T] {
 	return item
 }
 
-func (i *inspectIterable[T]) SizeHint() (uint, gust.Option[uint]) {
+func (i *inspectIterable[T]) SizeHint() (uint, option.Option[uint]) {
 	return i.iter.SizeHint()
 }
 
@@ -327,7 +327,7 @@ func intersperseImpl[T any](iter Iterable[T], separator T) Iterator[T] {
 
 //go:inline
 func intersperseWithImpl[T any](iter Iterable[T], separator func() T) Iterator[T] {
-	return Iterator[T]{iterable: &intersperseIterable[T]{iter: iter, separator: separator, peeked: gust.None[T](), state: intersperseStateFirst}}
+	return Iterator[T]{iterable: &intersperseIterable[T]{iter: iter, separator: separator, peeked: option.None[T](), state: intersperseStateFirst}}
 }
 
 type intersperseState int
@@ -341,16 +341,16 @@ const (
 type intersperseIterable[T any] struct {
 	iter      Iterable[T]
 	separator func() T
-	peeked    gust.Option[T]
+	peeked    option.Option[T]
 	state     intersperseState
 }
 
-func (i *intersperseIterable[T]) Next() gust.Option[T] {
+func (i *intersperseIterable[T]) Next() option.Option[T] {
 	switch i.state {
 	case intersperseStateFirst:
 		item := i.iter.Next()
 		if item.IsNone() {
-			return gust.None[T]()
+			return option.None[T]()
 		}
 		i.peeked = i.iter.Next()
 		if i.peeked.IsNone() {
@@ -361,7 +361,7 @@ func (i *intersperseIterable[T]) Next() gust.Option[T] {
 		return item
 	case intersperseStateSeparator:
 		i.state = intersperseStateItem
-		return gust.Some(i.separator())
+		return option.Some(i.separator())
 	case intersperseStateItem:
 		item := i.peeked
 		i.peeked = i.iter.Next()
@@ -371,10 +371,10 @@ func (i *intersperseIterable[T]) Next() gust.Option[T] {
 		i.state = intersperseStateSeparator
 		return item
 	}
-	return gust.None[T]()
+	return option.None[T]()
 }
 
-func (i *intersperseIterable[T]) SizeHint() (uint, gust.Option[uint]) {
+func (i *intersperseIterable[T]) SizeHint() (uint, option.Option[uint]) {
 	lower, upper := i.iter.SizeHint()
 	if lower > 0 {
 		lower = lower*2 - 1
@@ -382,7 +382,7 @@ func (i *intersperseIterable[T]) SizeHint() (uint, gust.Option[uint]) {
 	if upper.IsSome() {
 		upperVal := upper.Unwrap()
 		if upperVal > 0 {
-			upper = gust.Some(upperVal*2 - 1)
+			upper = option.Some(upperVal*2 - 1)
 		}
 	}
 	return lower, upper
@@ -434,7 +434,7 @@ type arrayChunksIterable[T any] struct {
 	buffer    []T
 }
 
-func (a *arrayChunksIterable[T]) Next() gust.Option[[]T] {
+func (a *arrayChunksIterable[T]) Next() option.Option[[]T] {
 	// Clear buffer but keep capacity
 	a.buffer = a.buffer[:0]
 
@@ -442,12 +442,12 @@ func (a *arrayChunksIterable[T]) Next() gust.Option[[]T] {
 		item := a.iter.Next()
 		if item.IsNone() {
 			if len(a.buffer) == 0 {
-				return gust.None[[]T]()
+				return option.None[[]T]()
 			}
 			// Return partial chunk
 			result := make([]T, len(a.buffer))
 			copy(result, a.buffer)
-			return gust.Some(result)
+			return option.Some(result)
 		}
 		a.buffer = append(a.buffer, item.Unwrap())
 	}
@@ -455,10 +455,10 @@ func (a *arrayChunksIterable[T]) Next() gust.Option[[]T] {
 	// Full chunk
 	result := make([]T, len(a.buffer))
 	copy(result, a.buffer)
-	return gust.Some(result)
+	return option.Some(result)
 }
 
-func (a *arrayChunksIterable[T]) SizeHint() (uint, gust.Option[uint]) {
+func (a *arrayChunksIterable[T]) SizeHint() (uint, option.Option[uint]) {
 	lower, upper := a.iter.SizeHint()
 	if lower > 0 {
 		lower = (lower + a.chunkSize - 1) / a.chunkSize
@@ -466,7 +466,7 @@ func (a *arrayChunksIterable[T]) SizeHint() (uint, gust.Option[uint]) {
 	if upper.IsSome() {
 		upperVal := upper.Unwrap()
 		if upperVal > 0 {
-			upper = gust.Some((upperVal + a.chunkSize - 1) / a.chunkSize)
+			upper = option.Some((upperVal + a.chunkSize - 1) / a.chunkSize)
 		}
 	}
 	return lower, upper
@@ -499,7 +499,7 @@ func (a *arrayChunksIterable[T]) SizeHint() (uint, gust.Option[uint]) {
 //
 //go:inline
 func chunkByImpl[T any](iter Iterable[T], predicate func(T, T) bool) Iterable[[]T] {
-	return &chunkByIterable[T]{iter: iter, predicate: predicate, first: true, prev: gust.None[T](), current: []T{}}
+	return &chunkByIterable[T]{iter: iter, predicate: predicate, first: true, prev: option.None[T](), current: []T{}}
 }
 
 func ChunkBy[T any](iter Iterator[T], predicate func(T, T) bool) Iterator[[]T] {
@@ -510,15 +510,15 @@ type chunkByIterable[T any] struct {
 	iter      Iterable[T]
 	predicate func(T, T) bool
 	first     bool
-	prev      gust.Option[T]
+	prev      option.Option[T]
 	current   []T
 }
 
-func (c *chunkByIterable[T]) Next() gust.Option[[]T] {
+func (c *chunkByIterable[T]) Next() option.Option[[]T] {
 	if c.first {
 		item := c.iter.Next()
 		if item.IsNone() {
-			return gust.None[[]T]()
+			return option.None[[]T]()
 		}
 		c.prev = item
 		c.current = []T{item.Unwrap()}
@@ -529,12 +529,12 @@ func (c *chunkByIterable[T]) Next() gust.Option[[]T] {
 		item := c.iter.Next()
 		if item.IsNone() {
 			if len(c.current) == 0 {
-				return gust.None[[]T]()
+				return option.None[[]T]()
 			}
 			result := make([]T, len(c.current))
 			copy(result, c.current)
 			c.current = []T{}
-			return gust.Some(result)
+			return option.Some(result)
 		}
 
 		itemVal := item.Unwrap()
@@ -548,14 +548,14 @@ func (c *chunkByIterable[T]) Next() gust.Option[[]T] {
 			copy(result, c.current)
 			c.current = []T{itemVal}
 			c.prev = item
-			return gust.Some(result)
+			return option.Some(result)
 		}
 	}
 }
 
-func (c *chunkByIterable[T]) SizeHint() (uint, gust.Option[uint]) {
+func (c *chunkByIterable[T]) SizeHint() (uint, option.Option[uint]) {
 	// We can't know the exact size without iterating
-	return 0, gust.None[uint]()
+	return 0, option.None[uint]()
 }
 
 // MapWindows creates an iterator that applies a function to overlapping windows
@@ -573,10 +573,10 @@ func (c *chunkByIterable[T]) SizeHint() (uint, gust.Option[uint]) {
 //	var iter = MapWindows(FromSlice([]int{1, 2, 3, 4, 5}), 3, func(window []int) int {
 //		return window[0] + window[1] + window[2]
 //	})
-//	assert.Equal(t, gust.Some(6), iterator.Next())  // 1+2+3
-//	assert.Equal(t, gust.Some(9), iterator.Next())  // 2+3+4
-//	assert.Equal(t, gust.Some(12), iterator.Next()) // 3+4+5
-//	assert.Equal(t, gust.None[int](), iterator.Next())
+//	assert.Equal(t, option.Some(6), iterator.Next())  // 1+2+3
+//	assert.Equal(t, option.Some(9), iterator.Next())  // 2+3+4
+//	assert.Equal(t, option.Some(12), iterator.Next()) // 3+4+5
+//	assert.Equal(t, option.None[int](), iterator.Next())
 func MapWindows[T any, U any](iter Iterator[T], windowSize uint, f func([]T) U) Iterator[U] {
 	if windowSize == 0 {
 		panic("MapWindows: window_size must be non-zero")
@@ -591,12 +591,12 @@ type mapWindowsIterable[T any, U any] struct {
 	buffer     []T
 }
 
-func (m *mapWindowsIterable[T, U]) Next() gust.Option[U] {
+func (m *mapWindowsIterable[T, U]) Next() option.Option[U] {
 	// Fill buffer to windowSize
 	for uint(len(m.buffer)) < m.windowSize {
 		item := m.iter.Next()
 		if item.IsNone() {
-			return gust.None[U]()
+			return option.None[U]()
 		}
 		m.buffer = append(m.buffer, item.Unwrap())
 	}
@@ -607,10 +607,10 @@ func (m *mapWindowsIterable[T, U]) Next() gust.Option[U] {
 	// Shift window: remove first element
 	m.buffer = m.buffer[1:]
 
-	return gust.Some(result)
+	return option.Some(result)
 }
 
-func (m *mapWindowsIterable[T, U]) SizeHint() (uint, gust.Option[uint]) {
+func (m *mapWindowsIterable[T, U]) SizeHint() (uint, option.Option[uint]) {
 	lower, upper := m.iter.SizeHint()
 	if lower >= m.windowSize {
 		lower = lower - m.windowSize + 1
@@ -620,9 +620,9 @@ func (m *mapWindowsIterable[T, U]) SizeHint() (uint, gust.Option[uint]) {
 	if upper.IsSome() {
 		upperVal := upper.Unwrap()
 		if upperVal >= m.windowSize {
-			upper = gust.Some(upperVal - m.windowSize + 1)
+			upper = option.Some(upperVal - m.windowSize + 1)
 		} else {
-			upper = gust.Some(uint(0))
+			upper = option.Some(uint(0))
 		}
 	}
 	return lower, upper

@@ -1,7 +1,7 @@
 package iterator
 
 import (
-	"github.com/andeya/gust"
+	"github.com/andeya/gust/pair"
 )
 
 // Unzip converts an iterator of pairs into a pair of containers.
@@ -14,7 +14,7 @@ import (
 //
 // # Examples
 //
-//	var a = []gust.Pair[int, string]{
+//	var a = []pair.Pair[int, string]{
 //		{A: 1, B: "a"},
 //		{A: 2, B: "b"},
 //		{A: 3, B: "c"},
@@ -22,7 +22,7 @@ import (
 //	var (left, right) = Unzip(FromSlice(a))
 //	assert.Equal(t, []int{1, 2, 3}, left)
 //	assert.Equal(t, []string{"a", "b", "c"}, right)
-func Unzip[T any, U any](iter Iterator[gust.Pair[T, U]]) ([]T, []U) {
+func Unzip[T any, U any](iter Iterator[pair.Pair[T, U]]) ([]T, []U) {
 	var left []T
 	var right []U
 	for {

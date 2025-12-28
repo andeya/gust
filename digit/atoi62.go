@@ -5,15 +5,15 @@ import (
 	"math"
 	"strconv"
 
-	"github.com/andeya/gust"
+	"github.com/andeya/gust/result"
 )
 
 // ParseUint is like ParseInt but for unsigned numbers.
 // NOTE:
 //
 //	Compatible with standard package strconv.
-func ParseUint(s string, base int, bitSize int) gust.Result[uint64] {
-	return gust.Ret(parseUint(s, base, bitSize))
+func ParseUint(s string, base int, bitSize int) result.Result[uint64] {
+	return result.Ret(parseUint(s, base, bitSize))
 }
 
 func parseUint(s string, base int, bitSize int) (uint64, error) {
@@ -107,8 +107,8 @@ func parseUint(s string, base int, bitSize int) (uint64, error) {
 // NOTE:
 //
 //	Compatible with standard package strconv.
-func ParseInt(s string, base int, bitSize int) gust.Result[int64] {
-	return gust.Ret(parseInt(s, base, bitSize))
+func ParseInt(s string, base int, bitSize int) result.Result[int64] {
+	return result.Ret(parseInt(s, base, bitSize))
 }
 
 func parseInt(s string, base int, bitSize int) (i int64, err error) {

@@ -3,7 +3,7 @@ package syncutil
 import (
 	"sync"
 
-	"github.com/andeya/gust"
+	"github.com/andeya/gust/option"
 )
 
 // SyncMap is a better generic-type wrapper for `sync.Map`.
@@ -34,8 +34,8 @@ type SyncMap[K any, V any] struct {
 }
 
 // Load returns the value stored in the map for a key.
-func (m *SyncMap[K, V]) Load(key K) gust.Option[V] {
-	return gust.BoolAssertOpt[V](m.inner.Load(key))
+func (m *SyncMap[K, V]) Load(key K) option.Option[V] {
+	return option.BoolAssertOpt[V](m.inner.Load(key))
 }
 
 // Store sets the value for a key.
@@ -45,13 +45,13 @@ func (m *SyncMap[K, V]) Store(key K, value V) {
 
 // LoadOrStore returns the existing value for the key if present.
 // Otherwise, it stores the given value, and returns None.
-func (m *SyncMap[K, V]) LoadOrStore(key K, value V) (existingValue gust.Option[V]) {
-	return gust.BoolAssertOpt[V](m.inner.LoadOrStore(key, value))
+func (m *SyncMap[K, V]) LoadOrStore(key K, value V) (existingValue option.Option[V]) {
+	return option.BoolAssertOpt[V](m.inner.LoadOrStore(key, value))
 }
 
 // LoadAndDelete deletes the value for a key, returning the previous value if any.
-func (m *SyncMap[K, V]) LoadAndDelete(key K) (deletedValue gust.Option[V]) {
-	return gust.BoolAssertOpt[V](m.inner.LoadAndDelete(key))
+func (m *SyncMap[K, V]) LoadAndDelete(key K) (deletedValue option.Option[V]) {
+	return option.BoolAssertOpt[V](m.inner.LoadAndDelete(key))
 }
 
 // Delete deletes the value for a key.

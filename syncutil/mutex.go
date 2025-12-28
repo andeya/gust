@@ -3,7 +3,7 @@ package syncutil
 import (
 	"sync"
 
-	"github.com/andeya/gust"
+	"github.com/andeya/gust/option"
 )
 
 // NewMutex returns a new *Mutex.
@@ -46,11 +46,11 @@ func (m *Mutex[T]) Lock() T {
 // Note that while correct uses of TryLock do exist, they are rare,
 // and use of TryLock is often a sign of a deeper problem
 // in a particular use of mutexes.
-func (m *Mutex[T]) TryLock() gust.Option[T] {
+func (m *Mutex[T]) TryLock() option.Option[T] {
 	if m.inner.TryLock() {
-		return gust.Some(m.data)
+		return option.Some(m.data)
 	}
-	return gust.None[T]()
+	return option.None[T]()
 }
 
 // Unlock unlocks m.
@@ -119,11 +119,11 @@ func (m *RWMutex[T]) Lock() T {
 //
 // Note that while correct uses of TryLock do exist, they are rare,
 // and use of TryLock is often a sign of a deeper problem
-func (m *RWMutex[T]) TryLock() gust.Option[T] {
+func (m *RWMutex[T]) TryLock() option.Option[T] {
 	if m.inner.TryLock() {
-		return gust.Some(m.data)
+		return option.Some(m.data)
 	}
-	return gust.None[T]()
+	return option.None[T]()
 }
 
 // Unlock unlocks rw for writing. It is a run-time error if rw is
@@ -182,11 +182,11 @@ func (m *RWMutex[T]) RLock() T {
 // Note that while correct uses of TryRLock do exist, they are rare,
 // and use of TryRLock is often a sign of a deeper problem
 // in a particular use of mutexes.
-func (m *RWMutex[T]) TryRLock() gust.Option[T] {
+func (m *RWMutex[T]) TryRLock() option.Option[T] {
 	if m.inner.TryRLock() {
-		return gust.Some(m.data)
+		return option.Some(m.data)
 	}
-	return gust.None[T]()
+	return option.None[T]()
 }
 
 // RUnlock undoes a single RLock call;
@@ -214,7 +214,7 @@ func (m *RWMutex[T]) RLockScope(read func(T)) {
 
 // TryBest tries to read and do the data in the RWMutex[T] safely,
 // swapping the data when readAndDo returns false and then trying to do again.
-func (m *RWMutex[T]) TryBest(readAndDo func(T) bool, swapWhenFalse func(old T) (new gust.Option[T])) {
+func (m *RWMutex[T]) TryBest(readAndDo func(T) bool, swapWhenFalse func(old T) (new option.Option[T])) {
 	if readAndDo == nil {
 		return
 	}
