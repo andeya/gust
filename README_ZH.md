@@ -7,7 +7,7 @@
 *一个生产就绪的库，让错误处理、可选值和迭代在 Go 中变得像在 Rust 中一样优雅和安全。*
 
 [![GitHub release](https://img.shields.io/github/release/andeya/gust.svg)](https://github.com/andeya/gust/releases)
-[![Go Version](https://img.shields.io/badge/Go-%3E%3D%201.23-00ADD8?style=flat&logo=go)](https://golang.org)
+[![Go Version](https://img.shields.io/badge/Go-%3E%3D%201.24-00ADD8?style=flat&logo=go)](https://golang.org)
 [![GoDoc](https://pkg.go.dev/badge/github.com/andeya/gust.svg)](https://pkg.go.dev/github.com/andeya/gust)
 [![CI Status](https://github.com/andeya/gust/actions/workflows/go-ci.yml/badge.svg)](https://github.com/andeya/gust/actions)
 [![Go Report Card](https://goreportcard.com/badge/github.com/andeya/gust)](https://goreportcard.com/report/github.com/andeya/gust)
@@ -318,7 +318,7 @@ iter7 := iterator.Repeat("hello") // "hello", "hello", "hello", ...
 
 #### Go 标准迭代器集成
 
-gust 迭代器与 Go 1.23+ 标准迭代器无缝集成：
+gust 迭代器与 Go 1.24+ 标准迭代器无缝集成：
 
 **将 gust Iterator 转换为 Go 的 `iter.Seq[T]`：**
 
@@ -562,7 +562,7 @@ value := lazy.TryGetValue() // 只计算一次
 
 ## 📋 要求
 
-- **Go 1.23+**（需要支持泛型和标准迭代器）
+- **Go 1.24+**（需要支持泛型和标准迭代器）
 
 ---
 

@@ -7,7 +7,7 @@
 *A production-ready library that makes error handling, optional values, and iteration as beautiful and safe as in Rust.*
 
 [![GitHub release](https://img.shields.io/github/release/andeya/gust.svg)](https://github.com/andeya/gust/releases)
-[![Go Version](https://img.shields.io/badge/Go-%3E%3D%201.23-00ADD8?style=flat&logo=go)](https://golang.org)
+[![Go Version](https://img.shields.io/badge/Go-%3E%3D%201.24-00ADD8?style=flat&logo=go)](https://golang.org)
 [![GoDoc](https://pkg.go.dev/badge/github.com/andeya/gust.svg)](https://pkg.go.dev/github.com/andeya/gust)
 [![CI Status](https://github.com/andeya/gust/actions/workflows/go-ci.yml/badge.svg)](https://github.com/andeya/gust/actions)
 [![Go Report Card](https://goreportcard.com/badge/github.com/andeya/gust)](https://goreportcard.com/report/github.com/andeya/gust)
@@ -318,7 +318,7 @@ iter7 := iterator.Repeat("hello") // "hello", "hello", "hello", ...
 
 #### Go Standard Iterator Integration
 
-gust iterators seamlessly integrate with Go 1.23+ standard iterators:
+gust iterators seamlessly integrate with Go 1.24+ standard iterators:
 
 **Convert gust Iterator to Go's `iter.Seq[T]`:**
 
@@ -562,7 +562,7 @@ For more details, see the [full documentation](https://pkg.go.dev/github.com/and
 
 ## 📋 Requirements
 
-- **Go 1.23+** (required for generics and standard iterator support)
+- **Go 1.24+** (required for generics and standard iterator support)
 
 ---
 

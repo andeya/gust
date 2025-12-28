@@ -1,8 +1,5 @@
 
 BIN=go
-# Enable generic type alias support (required for Go 1.23)
-export GOEXPERIMENT=aliastypeparams
-export GODEBUG=gotypesalias=1
 # Limit compiler concurrency to reduce memory usage (default: 4)
 # Set COVERAGE_MAXPROCS environment variable to override
 COVERAGE_MAXPROCS ?= 4
