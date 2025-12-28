@@ -56,7 +56,7 @@ func main() {
     res := result.Ok(10).
         Map(func(x int) int { return x * 2 }).
         AndThen(func(x int) result.Result[int] {
-            if x > 15 {
+            if x > 20 {
                 return result.TryErr[int]("too large")
             }
             return result.Ok(x + 5)

@@ -24,6 +24,8 @@ jobs:
           go-version: 1.23.0
       - uses: actions/checkout@v3
       - name: Test
+        env:
+          GOEXPERIMENT: aliastypeparams
         run: make coverage-modular
       - name: Codecov
         uses: codecov/codecov-action@v4.0.1
@@ -37,6 +39,8 @@ jobs:
           # To fix: Go to https://codecov.io/gh/andeya/gust/settings and copy the repository upload token
           # Then add it as a secret named CODECOV_TOKEN in GitHub repository settings
       - name: golangci-lint
+        env:
+          GOEXPERIMENT: aliastypeparams
         uses: golangci/golangci-lint-action@v3
         with:
           # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
