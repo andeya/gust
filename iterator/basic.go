@@ -6,6 +6,130 @@ import (
 	"github.com/andeya/gust/result"
 )
 
+// XMap creates an iterator which calls a closure on each element (any version).
+//
+// # Examples
+//
+//	var iter = FromSlice([]int{1, 2, 3})
+//	var doubled = iterator.XMap(func(x int) any { return x * 2 })
+//	assert.Equal(t, option.Some(2), doubled.Next())
+//	// Can chain: doubled.Filter(...).Collect()
+//
+//go:inline
+func (it Iterator[T]) XMap(f func(T) any) Iterator[any] {
+	return Map(it, f)
+}
+
+// Map creates an iterator which calls a closure on each element.
+//
+// # Examples
+//
+//	var iter = FromSlice([]int{1, 2, 3})
+//	var doubled = iterator.Map(func(x int) int { return x * 2 })
+//	assert.Equal(t, option.Some(2), doubled.Next())
+//	// Can chain: doubled.Filter(...).Collect()
+//
+//go:inline
+func (it Iterator[T]) Map(f func(T) T) Iterator[T] {
+	return Map(it, f)
+}
+
+// Filter creates an iterator which uses a closure to determine if an element should be yielded.
+//
+// # Examples
+//
+//	var iter = FromSlice([]int{0, 1, 2})
+//	var filtered = iterator.Filter(func(x int) bool { return x > 0 })
+//	assert.Equal(t, option.Some(1), filtered.Next())
+//
+//go:inline
+func (it Iterator[T]) Filter(predicate func(T) bool) Iterator[T] {
+	return filterImpl(it, predicate)
+}
+
+// Chain takes two iterators and creates a new iterator over both in sequence.
+//
+// # Examples
+//
+//	var iter1 = FromSlice([]int{1, 2, 3})
+//	var iter2 = FromSlice([]int{4, 5, 6})
+//	var chained = iter1.Chain(iter2)
+//	assert.Equal(t, option.Some(1), chained.Next())
+//
+//go:inline
+func (it Iterator[T]) Chain(other Iterator[T]) Iterator[T] {
+	return chainImpl(it, other)
+}
+
+// XFilterMap creates an iterator that both filters and maps (any version).
+//
+// # Examples
+//
+//	var iter = FromSlice([]string{"1", "two", "NaN", "four", "5"})
+//	var filtered = iterator.XFilterMap(func(s string) option.Option[any] {
+//		if s == "1" {
+//			return option.Some(any(1))
+//		}
+//		if s == "5" {
+//			return option.Some(any(5))
+//		}
+//		return option.None[any]()
+//	})
+//	// Can chain: filtered.Filter(...).Collect()
+//
+//go:inline
+func (it Iterator[T]) XFilterMap(f func(T) option.Option[any]) Iterator[any] {
+	return FilterMap(it, f)
+}
+
+// FilterMap creates an iterator that both filters and maps.
+//
+// # Examples
+//
+//	var iter = FromSlice([]string{"1", "two", "NaN", "four", "5"})
+//	var filtered = iterator.FilterMap(func(s string) option.Option[string] {
+//		if s == "1" || s == "5" {
+//			return option.Some(s)
+//		}
+//		return option.None[string]()
+//	})
+//	// Can chain: filtered.Filter(...).Collect()
+//
+//go:inline
+func (it Iterator[T]) FilterMap(f func(T) option.Option[T]) Iterator[T] {
+	return FilterMap(it, f)
+}
+
+// XFlatMap creates an iterator that maps and flattens nested iterators (any version).
+//
+// # Examples
+//
+//	var iter = FromSlice([]int{1, 2, 3})
+//	var flatMapped = iterator.XFlatMap(func(x int) Iterator[any] {
+//		return FromSlice([]any{x, x * 2})
+//	})
+//	// Can chain: flatMapped.Filter(...).Collect()
+//
+//go:inline
+func (it Iterator[T]) XFlatMap(f func(T) Iterator[any]) Iterator[any] {
+	return FlatMap(it, f)
+}
+
+// FlatMap creates an iterator that maps and flattens nested iterators.
+//
+// # Examples
+//
+//	var iter = FromSlice([]int{1, 2, 3})
+//	var flatMapped = iterator.FlatMap(func(x int) Iterator[int] {
+//		return FromSlice([]int{x, x * 2})
+//	})
+//	// Can chain: flatMapped.Filter(...).Collect()
+//
+//go:inline
+func (it Iterator[T]) FlatMap(f func(T) Iterator[T]) Iterator[T] {
+	return FlatMap(it, f)
+}
+
 // Map creates an iterator which calls a closure on each element.
 //
 // Map() transforms one iterator into another, by means of its argument:
@@ -40,12 +164,29 @@ func Map[T any, U any](iter Iterator[T], f func(T) U) Iterator[U] {
 	return Iterator[U]{iterable: &mapIterable[T, U]{iter: iter.iterable, f: f}}
 }
 
+type mapIterable[T any, U any] struct {
+	iter Iterable[T]
+	f    func(T) U
+}
+
+func (m *mapIterable[T, U]) Next() option.Option[U] {
+	item := m.iter.Next()
+	if item.IsNone() {
+		return option.None[U]()
+	}
+	return option.Some(m.f(item.Unwrap()))
+}
+
+func (m *mapIterable[T, U]) SizeHint() (uint, option.Option[uint]) {
+	return m.iter.SizeHint()
+}
+
 // RetMap creates an iterator which calls a closure on each element and returns a Result[U].
 //
 // # Examples
 //
 // iter := RetMap(FromSlice([]string{"1", "2", "3", "NaN"}), strconv.Atoi)
-
+//
 // assert.Equal(t, option.Some(result.Ok(1)), iterator.Next())
 // assert.Equal(t, option.Some(result.Ok(2)), iterator.Next())
 // assert.Equal(t, option.Some(result.Ok(3)), iterator.Next())
@@ -90,51 +231,6 @@ func OptMap[T any, U any](iter Iterator[T], f func(T) *U) Iterator[option.Option
 	return Map(iter, func(t T) option.Option[*U] {
 		return option.PtrOpt(f(t))
 	})
-}
-
-type mapIterable[T any, U any] struct {
-	iter Iterable[T]
-	f    func(T) U
-}
-
-func (m *mapIterable[T, U]) Next() option.Option[U] {
-	item := m.iter.Next()
-	if item.IsNone() {
-		return option.None[U]()
-	}
-	return option.Some(m.f(item.Unwrap()))
-}
-
-func (m *mapIterable[T, U]) SizeHint() (uint, option.Option[uint]) {
-	return m.iter.SizeHint()
-}
-
-//go:inline
-func filterImpl[T any](iter Iterator[T], predicate func(T) bool) Iterator[T] {
-	return Iterator[T]{iterable: &filterIterable[T]{iter: iter.iterable, predicate: predicate}}
-}
-
-type filterIterable[T any] struct {
-	iter      Iterable[T]
-	predicate func(T) bool
-}
-
-func (f *filterIterable[T]) Next() option.Option[T] {
-	for {
-		item := f.iter.Next()
-		if item.IsNone() {
-			return option.None[T]()
-		}
-		if f.predicate(item.Unwrap()) {
-			return item
-		}
-	}
-}
-
-func (f *filterIterable[T]) SizeHint() (uint, option.Option[uint]) {
-	_, upper := f.iter.SizeHint()
-	// Filter can reduce the size, but we don't know by how much
-	return 0, upper
 }
 
 // FilterMap creates an iterator that both filters and maps.
@@ -188,6 +284,34 @@ func (f *filterMapIterable[T, U]) Next() option.Option[U] {
 func (f *filterMapIterable[T, U]) SizeHint() (uint, option.Option[uint]) {
 	_, upper := f.iter.SizeHint()
 	// FilterMap can reduce the size, but we don't know by how much
+	return 0, upper
+}
+
+//go:inline
+func filterImpl[T any](iter Iterator[T], predicate func(T) bool) Iterator[T] {
+	return Iterator[T]{iterable: &filterIterable[T]{iter: iter.iterable, predicate: predicate}}
+}
+
+type filterIterable[T any] struct {
+	iter      Iterable[T]
+	predicate func(T) bool
+}
+
+func (f *filterIterable[T]) Next() option.Option[T] {
+	for {
+		item := f.iter.Next()
+		if item.IsNone() {
+			return option.None[T]()
+		}
+		if f.predicate(item.Unwrap()) {
+			return item
+		}
+	}
+}
+
+func (f *filterIterable[T]) SizeHint() (uint, option.Option[uint]) {
+	_, upper := f.iter.SizeHint()
+	// Filter can reduce the size, but we don't know by how much
 	return 0, upper
 }
 
@@ -369,115 +493,4 @@ func (e *enumerateIterable[T]) Next() option.Option[pair.Pair[uint, T]] {
 
 func (e *enumerateIterable[T]) SizeHint() (uint, option.Option[uint]) {
 	return e.iter.SizeHint()
-}
-
-//go:inline
-func skipImpl[T any](iter Iterator[T], n uint) Iterator[T] {
-	return Iterator[T]{iterable: &skipIterable[T]{iter: iter.iterable, n: n, done: false}}
-}
-
-type skipIterable[T any] struct {
-	iter Iterable[T]
-	n    uint
-	done bool
-}
-
-func (s *skipIterable[T]) Next() option.Option[T] {
-	if !s.done {
-		advanceByImpl(s.iter, s.n)
-		s.done = true
-	}
-	return s.iter.Next()
-}
-
-func (s *skipIterable[T]) SizeHint() (uint, option.Option[uint]) {
-	lower, upper := s.iter.SizeHint()
-	if lower >= s.n {
-		lower -= s.n
-	} else {
-		lower = 0
-	}
-	if upper.IsSome() {
-		upperVal := upper.Unwrap()
-		if upperVal >= s.n {
-			upper = option.Some(upperVal - s.n)
-		} else {
-			upper = option.Some(uint(0))
-		}
-	}
-	return lower, upper
-}
-
-//go:inline
-func takeImpl[T any](iter Iterator[T], n uint) Iterator[T] {
-	return Iterator[T]{iterable: &takeIterable[T]{iter: iter.iterable, n: n, taken: 0}}
-}
-
-type takeIterable[T any] struct {
-	iter  Iterable[T]
-	n     uint
-	taken uint
-}
-
-func (t *takeIterable[T]) Next() option.Option[T] {
-	if t.taken >= t.n {
-		return option.None[T]()
-	}
-	item := t.iter.Next()
-	if item.IsSome() {
-		t.taken++
-	}
-	return item
-}
-
-func (t *takeIterable[T]) SizeHint() (uint, option.Option[uint]) {
-	lower, upper := t.iter.SizeHint()
-	if lower > t.n {
-		lower = t.n
-	}
-	if upper.IsSome() && upper.Unwrap() > t.n {
-		upper = option.Some(t.n)
-	}
-	return lower, upper
-}
-
-//go:inline
-func stepByImpl[T any](iter Iterator[T], step uint) Iterator[T] {
-	if step == 0 {
-		panic("StepBy: step must be non-zero")
-	}
-	return Iterator[T]{iterable: &stepByIterable[T]{iter: iter.iterable, step: step, first: true}}
-}
-
-type stepByIterable[T any] struct {
-	iter  Iterable[T]
-	step  uint
-	first bool
-}
-
-func (s *stepByIterable[T]) Next() option.Option[T] {
-	if s.first {
-		s.first = false
-		return s.iter.Next()
-	}
-	if advanceByImpl(s.iter, s.step-1).IsErr() {
-		return option.None[T]()
-	}
-	return s.iter.Next()
-}
-
-func (s *stepByIterable[T]) SizeHint() (uint, option.Option[uint]) {
-	lower, upper := s.iter.SizeHint()
-	if lower > 0 {
-		lower = (lower + s.step - 1) / s.step
-	}
-	if upper.IsSome() {
-		upperVal := upper.Unwrap()
-		if upperVal > 0 {
-			upper = option.Some((upperVal + s.step - 1) / s.step)
-		} else {
-			upper = option.Some(uint(0))
-		}
-	}
-	return lower, upper
 }

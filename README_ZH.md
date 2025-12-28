@@ -250,12 +250,37 @@ fmt.Println(sum) // 56 (4 + 16 + 36)
 | **构造函数** | `FromSlice`, `FromElements`, `FromRange`, `FromFunc`, `FromIterable`, `Empty`, `Once`, `Repeat` |
 | **位集合迭代器** | `FromBitSet`, `FromBitSetOnes`, `FromBitSetZeros`, `FromBitSetBytes`, 等 |
 | **Go 集成** | `FromSeq`, `FromSeq2`, `FromPull`, `FromPull2`, `Seq`, `Seq2`, `Pull`, `Pull2` |
-| **适配器** | `Map`, `Filter`, `Chain`, `Zip`, `Enumerate`, `Skip`, `Take`, `StepBy`, `FlatMap`, `Flatten` |
-| **消费者** | `Fold`, `Reduce`, `Collect`, `Count`, `All`, `Any`, `Find`, `Sum`, `Product`, `Partition` |
-| **高级** | `Scan`, `Intersperse`, `Peekable`, `ArrayChunks`, `FindMap`, `MapWhile` |
-| **双端** | `NextBack`, `Rfold`, `TryRfold`, `Rfind` |
+| **基础适配器** | `Map`, `FilterMap`, `RetMap`, `OptMap`, `Chain`, `Zip`, `Enumerate` |
+| **过滤适配器** | `Filter`, `Skip`, `Take`, `StepBy`, `SkipWhile`, `TakeWhile` |
+| **转换适配器** | `MapWhile`, `Scan`, `FlatMap`, `Flatten` |
+| **分块适配器** | `MapWindows`, `ArrayChunks`, `ChunkBy` |
+| **工具适配器** | `Fuse`, `Inspect`, `Intersperse`, `IntersperseWith`, `Cycle`, `Peekable` |
+| **消费者** | `Fold`, `Reduce`, `Collect`, `Count`, `Last`, `All`, `Any`, `Find`, `Sum`, `Product`, `Partition`, `AdvanceBy`, `Nth`, `NextChunk` |
+| **查找与搜索** | `Find`, `FindMap`, `Position`, `All`, `Any` |
+| **最值** | `Max`, `Min`, `MaxBy`, `MinBy`, `MaxByKey`, `MinByKey` |
+| **Try 方法** | `TryFold`, `TryForEach`, `TryReduce`, `TryFind` |
+| **双端** | `NextBack`, `Rfold`, `TryRfold`, `Rfind`, `AdvanceBackBy`, `NthBack` |
 
 **60+ 个方法**来自 Rust Iterator trait！
+
+**代码组织：**
+
+iterator 包按功能模块化组织，便于维护：
+
+- **核心** (`core.go`): 核心接口 (`Iterable`, `Iterator`, `DoubleEndedIterator`) 和基础类型，包括双端迭代器方法 (`NextBack`, `AdvanceBackBy`, `NthBack`, `Remaining`)
+- **构造函数** (`constructors.go`): 从各种数据源创建迭代器的函数
+- **基础适配器** (`basic.go`): Map, FilterMap, Chain, Zip, Enumerate, FlatMap
+- **过滤适配器** (`filtering.go`): Skip, Take, StepBy, SkipWhile, TakeWhile
+- **转换适配器** (`transforming.go`): MapWhile, Scan, Flatten
+- **分块适配器** (`chunking.go`): MapWindows, ArrayChunks, ChunkBy
+- **工具适配器** (`utility.go`): Fuse, Inspect, Intersperse, IntersperseWith, Cycle, Peekable, Cloned
+- **消费者** (`consumers.go`): Collect, Count, Last, Partition, AdvanceBy, Nth, NextChunk, Sum, Product, Unzip, TryReduce, TryForEach
+- **折叠与归约** (`fold_reduce.go`): Fold, Reduce, ForEach, TryFold, Rfold, TryRfold
+- **查找与搜索** (`find_search.go`): Find, FindMap, Position, All, Any, TryFind, Rfind
+- **最值** (`min_max.go`): Max, Min, MaxBy, MinBy, MaxByKey, MinByKey
+- **比较** (`comparison.go`): 比较工具
+
+每个模块都是自包含的，包含自己的实现函数 (`_Impl`) 和可迭代结构体 (`_Iterable`)，确保独立性和可维护性。双端迭代器方法已集成到相应的功能模块中（例如，`Rfold` 在 `fold_reduce.go` 中，`Rfind` 在 `find_search.go` 中）。
 
 **注意：** 对于类型转换操作（例如，从 `string` 到 `int` 的 `Map`），请使用函数式 API：
 

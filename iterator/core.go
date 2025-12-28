@@ -4,8 +4,11 @@
 package iterator
 
 import (
+	"iter"
+
 	"github.com/andeya/gust/option"
 	"github.com/andeya/gust/result"
+	"github.com/andeya/gust/void"
 )
 
 // Iterable represents a sequence of values that can be iterated over.
@@ -122,3 +125,275 @@ var (
 	// Verify that Option[T] implements DoubleEndedIterable[T]
 	_ DoubleEndedIterable[any] = new(option.Option[any])
 )
+
+// Next advances the iterator and returns the next value.
+// This implements gust.Iterable[T] interface.
+//
+//go:inline
+func (it Iterator[T]) Next() option.Option[T] {
+	return it.iterable.Next()
+}
+
+// SizeHint returns the bounds on the remaining length of the iterator.
+// This implements gust.IterableSizeHint interface.
+//
+//go:inline
+func (it Iterator[T]) SizeHint() (uint, option.Option[uint]) {
+	return it.iterable.SizeHint()
+}
+
+// MustToDoubleEnded converts to a DoubleEndedIterator[T] if the underlying
+// iterator supports double-ended iteration. Otherwise, it panics.
+//
+// # Examples
+//
+//	var iter = FromSlice([]int{1, 2, 3})
+//	var deIter = iterator.MustToDoubleEnded()
+//	assert.Equal(t, option.Some(3), deIter.NextBack())
+//	// Can use Iterator methods:
+//	var doubled = deIter.Map(func(x int) any { return x * 2 })
+func (it Iterator[T]) MustToDoubleEnded() DoubleEndedIterator[T] {
+	if deCore, ok := it.iterable.(DoubleEndedIterable[T]); ok {
+		return DoubleEndedIterator[T]{
+			Iterator: Iterator[T]{iterable: deCore}, // Embed Iterator with the same core
+			iterable: deCore,
+		}
+	}
+	panic("iterator does not support double-ended iteration")
+}
+
+// TryToDoubleEnded converts to a DoubleEndedIterator[T] if the underlying
+// iterator supports double-ended iteration. Otherwise, it returns None.
+//
+// # Examples
+//
+//	var iter = FromSlice([]int{1, 2, 3})
+//	var deIter = iterator.TryToDoubleEnded()
+//	assert.Equal(t, option.Some(3), deIter.NextBack())
+//	// Can use Iterator methods:
+//	var doubled = deIter.Map(func(x int) any { return x * 2 })
+func (it Iterator[T]) TryToDoubleEnded() option.Option[DoubleEndedIterator[T]] {
+	if deCore, ok := it.iterable.(DoubleEndedIterable[T]); ok {
+		return option.Some(DoubleEndedIterator[T]{
+			Iterator: Iterator[T]{iterable: deCore}, // Embed Iterator with the same core
+			iterable: deCore,
+		})
+	}
+	return option.None[DoubleEndedIterator[T]]()
+}
+
+// Seq converts the Iterator[T] to Go's standard iterator.Seq[T].
+// This allows using gust iterators with Go's built-in iteration support (for loops).
+//
+// # Examples
+//
+//	iter := FromSlice([]int{1, 2, 3})
+//	for v := range iterator.Seq() {
+//		fmt.Println(v) // prints 1, 2, 3
+//	}
+func (it Iterator[T]) Seq() iter.Seq[T] {
+	return func(yield func(T) bool) {
+		for {
+			opt := it.Next()
+			if opt.IsNone() {
+				return
+			}
+			if !yield(opt.Unwrap()) {
+				return
+			}
+		}
+	}
+}
+
+// Seq2 converts the Iterator[T] to Go's standard iterator.Seq2[T].
+// This allows using gust iterators with Go's built-in iteration support (for loops).
+//
+// # Examples
+//
+// iter := FromSlice([]int{1, 2, 3})
+//
+//	for k, v := range iterator.Seq2() {
+//		fmt.Println(k, v) // prints 0 1, 1 2, 2 3
+//	}
+func (it Iterator[T]) Seq2() iter.Seq2[uint, T] {
+	pairIter := enumerateImpl(it.iterable)
+	return func(yield func(uint, T) bool) {
+		for {
+			opt := pairIter.Next()
+			if opt.IsNone() {
+				return
+			}
+			pair := opt.Unwrap()
+			if !yield(pair.A, pair.B) {
+				return
+			}
+		}
+	}
+}
+
+// Pull converts the Iterator[T] to a pull-style iterator using Go's standard iterator.Pull.
+// This returns two functions: next (to pull values) and stop (to stop iteration).
+// The caller should defer stop() to ensure proper cleanup.
+//
+// # Examples
+//
+//	iter := FromSlice([]int{1, 2, 3, 4, 5})
+//	next, stop := iterator.Pull()
+//	defer stop()
+//
+//	// Pull values manually
+//	for {
+//		v, ok := next()
+//		if !ok {
+//			break
+//		}
+//		fmt.Println(v)
+//		if v == 3 {
+//			break // Early termination
+//		}
+//	}
+func (it Iterator[T]) Pull() (next func() (T, bool), stop func()) {
+	return func() (T, bool) {
+			return it.Next().Split()
+		}, func() {
+			// No need to stop here since the iterator will clean up automatically
+		}
+}
+
+// Pull2 converts the Iterator[T] to a pull-style iterator using Go's standard iterator.Pull2.
+// This returns two functions: next (to pull key-value pairs) and stop (to stop iteration).
+// The caller should defer stop() to ensure proper cleanup.
+//
+// # Examples
+//
+//	iter := FromSlice([]int{1, 2, 3, 4, 5})
+//	next, stop := iterator.Pull2()
+//	defer stop()
+//
+//	// Pull key-value pairs manually
+//	for {
+//		k, v, ok := next()
+//		if !ok {
+//			break
+//		}
+//		fmt.Println(k, v)
+//		if v == 3 {
+//			break // Early termination
+//		}
+//	}
+func (it Iterator[T]) Pull2() (next func() (uint, T, bool), stop func()) {
+	pairIter := enumerateImpl(it.iterable)
+	return func() (uint, T, bool) {
+			pair, ok := pairIter.Next().Split()
+			return pair.A, pair.B, ok
+		}, func() {
+			// No need to stop here since the iterator will clean up automatically
+		}
+}
+
+// Remaining returns the number of elements remaining in the iterator.
+//
+// # Examples
+//
+// var numbers = []int{1, 2, 3, 4, 5, 6}
+// var deIter = FromSlice(numbers).MustToDoubleEnded()
+// assert.Equal(t, uint(6), deIter.Remaining())
+// deIter.Next()
+// assert.Equal(t, uint(5), deIter.Remaining())
+// deIter.NextBack()
+// assert.Equal(t, uint(4), deIter.Remaining())
+// deIter.NextBack()
+// assert.Equal(t, uint(3), deIter.Remaining())
+// deIter.NextBack()
+// assert.Equal(t, uint(2), deIter.Remaining())
+// deIter.NextBack()
+// assert.Equal(t, uint(1), deIter.Remaining())
+// deIter.NextBack()
+// assert.Equal(t, uint(0), deIter.Remaining())
+// deIter.NextBack()
+// assert.Equal(t, uint(0), deIter.Remaining())
+func (de DoubleEndedIterator[T]) Remaining() uint {
+	return de.iterable.Remaining()
+}
+
+// NextBack removes and returns an element from the end of the iterator.
+//
+// Returns None when there are no more elements.
+//
+// # Examples
+//
+//	var numbers = []int{1, 2, 3, 4, 5, 6}
+//	var deIter = FromSlice(numbers).MustToDoubleEnded()
+//	assert.Equal(t, option.Some(6), deIter.NextBack())
+//	assert.Equal(t, option.Some(5), deIter.NextBack())
+//	assert.Equal(t, option.Some(4), deIter.NextBack())
+//	assert.Equal(t, option.Some(3), deIter.NextBack())
+//	assert.Equal(t, option.Some(2), deIter.NextBack())
+//	assert.Equal(t, option.Some(1), deIter.NextBack())
+//	assert.Equal(t, option.None[int](), deIter.NextBack())
+//
+//go:inline
+func (de DoubleEndedIterator[T]) NextBack() option.Option[T] {
+	return de.iterable.NextBack()
+}
+
+// AdvanceBackBy advances the iterator from the back by n elements.
+//
+// AdvanceBackBy is the reverse version of AdvanceBy. This method will
+// eagerly skip n elements starting from the back by calling NextBack up
+// to n times until None is encountered.
+//
+// AdvanceBackBy(n) will return Ok[Void](nil) if the iterator successfully advances by
+// n elements, or Err[Void](k) with value k if None is encountered, where k
+// is remaining number of steps that could not be advanced because the iterator ran out.
+// If iter is empty and n is non-zero, then this returns Err[Void](n).
+// Otherwise, k is always less than n.
+//
+// Calling AdvanceBackBy(0) can do meaningful work.
+//
+// # Examples
+//
+//	var a = []int{3, 4, 5, 6}
+//	var deIter = FromSlice(a).MustToDoubleEnded()
+//	assert.True(t, deIter.AdvanceBackBy(2).IsOk())
+//	assert.Equal(t, option.Some(4), deIter.NextBack())
+//	assert.True(t, deIter.AdvanceBackBy(0).IsOk())
+//	assert.True(t, deIter.AdvanceBackBy(100).IsErr())
+func (de DoubleEndedIterator[T]) AdvanceBackBy(n uint) result.VoidResult {
+	for i := uint(0); i < n; i++ {
+		if de.iterable.NextBack().IsNone() {
+			return result.TryErr[void.Void](n - i)
+		}
+	}
+	return result.Ok[void.Void](nil)
+}
+
+// NthBack returns the nth element from the end of the iterator.
+//
+// This is essentially the reversed version of Nth().
+// Although like most indexing operations, the count starts from zero, so
+// NthBack(0) returns the first value from the end, NthBack(1) the
+// second, and so on.
+//
+// Note that all elements between the end and the returned element will be
+// consumed, including the returned element. This also means that calling
+// NthBack(0) multiple times on the same iterator will return different
+// elements.
+//
+// NthBack() will return None if n is greater than or equal to the length of the
+// iterator.
+//
+// # Examples
+//
+//	var a = []int{1, 2, 3}
+//	var deIter = FromSlice(a).MustToDoubleEnded()
+//	assert.Equal(t, option.Some(1), deIter.NthBack(2))
+//	assert.Equal(t, option.Some(2), deIter.NthBack(1))
+//	assert.Equal(t, option.Some(3), deIter.NthBack(0))
+//	assert.Equal(t, option.None[int](), deIter.NthBack(10))
+func (de DoubleEndedIterator[T]) NthBack(n uint) option.Option[T] {
+	if de.AdvanceBackBy(n).IsErr() {
+		return option.None[T]()
+	}
+	return de.iterable.NextBack()
+}

@@ -167,3 +167,47 @@ func minByImpl[T any](iter Iterator[T], compare func(T, T) int) option.Option[T]
 	})
 	return option.Some(result)
 }
+
+// MaxBy returns the element that gives the maximum value with respect to the
+// specified comparison function.
+//
+// # Examples
+//
+//	var iter = FromSlice([]int{-3, 0, 1, 5, -10})
+//	var max = iterator.MaxBy(func(x, y int) int {
+//		if x < y {
+//			return -1
+//		}
+//		if x > y {
+//			return 1
+//		}
+//		return 0
+//	})
+//	assert.Equal(t, option.Some(5), max)
+//
+//go:inline
+func (it Iterator[T]) MaxBy(compare func(T, T) int) option.Option[T] {
+	return maxByImpl(it, compare)
+}
+
+// MinBy returns the element that gives the minimum value with respect to the
+// specified comparison function.
+//
+// # Examples
+//
+//	var iter = FromSlice([]int{-3, 0, 1, 5, -10})
+//	var min = iterator.MinBy(func(x, y int) int {
+//		if x < y {
+//			return -1
+//		}
+//		if x > y {
+//			return 1
+//		}
+//		return 0
+//	})
+//	assert.Equal(t, option.Some(-10), min)
+//
+//go:inline
+func (it Iterator[T]) MinBy(compare func(T, T) int) option.Option[T] {
+	return minByImpl(it, compare)
+}

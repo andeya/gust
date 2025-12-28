@@ -250,12 +250,37 @@ fmt.Println(sum) // 56 (4 + 16 + 36)
 | **Constructors** | `FromSlice`, `FromElements`, `FromRange`, `FromFunc`, `FromIterable`, `Empty`, `Once`, `Repeat` |
 | **BitSet Iterators** | `FromBitSet`, `FromBitSetOnes`, `FromBitSetZeros`, `FromBitSetBytes`, etc. |
 | **Go Integration** | `FromSeq`, `FromSeq2`, `FromPull`, `FromPull2`, `Seq`, `Seq2`, `Pull`, `Pull2` |
-| **Adapters** | `Map`, `Filter`, `Chain`, `Zip`, `Enumerate`, `Skip`, `Take`, `StepBy`, `FlatMap`, `Flatten` |
-| **Consumers** | `Fold`, `Reduce`, `Collect`, `Count`, `All`, `Any`, `Find`, `Sum`, `Product`, `Partition` |
-| **Advanced** | `Scan`, `Intersperse`, `Peekable`, `ArrayChunks`, `FindMap`, `MapWhile` |
-| **Double-Ended** | `NextBack`, `Rfold`, `TryRfold`, `Rfind` |
+| **Basic Adapters** | `Map`, `FilterMap`, `RetMap`, `OptMap`, `Chain`, `Zip`, `Enumerate` |
+| **Filtering Adapters** | `Filter`, `Skip`, `Take`, `StepBy`, `SkipWhile`, `TakeWhile` |
+| **Transforming Adapters** | `MapWhile`, `Scan`, `FlatMap`, `Flatten` |
+| **Chunking Adapters** | `MapWindows`, `ArrayChunks`, `ChunkBy` |
+| **Utility Adapters** | `Fuse`, `Inspect`, `Intersperse`, `IntersperseWith`, `Cycle`, `Peekable` |
+| **Consumers** | `Fold`, `Reduce`, `Collect`, `Count`, `Last`, `All`, `Any`, `Find`, `Sum`, `Product`, `Partition`, `AdvanceBy`, `Nth`, `NextChunk` |
+| **Search & Find** | `Find`, `FindMap`, `Position`, `All`, `Any` |
+| **Min/Max** | `Max`, `Min`, `MaxBy`, `MinBy`, `MaxByKey`, `MinByKey` |
+| **Try Methods** | `TryFold`, `TryForEach`, `TryReduce`, `TryFind` |
+| **Double-Ended** | `NextBack`, `Rfold`, `TryRfold`, `Rfind`, `AdvanceBackBy`, `NthBack` |
 
 **60+ methods** from Rust's Iterator trait!
+
+**Code Organization:**
+
+The iterator package is organized into functional modules for better maintainability:
+
+- **Core** (`core.go`): Core interfaces (`Iterable`, `Iterator`, `DoubleEndedIterator`) and base types, including double-ended methods (`NextBack`, `AdvanceBackBy`, `NthBack`, `Remaining`)
+- **Constructors** (`constructors.go`): Functions to create iterators from various sources
+- **Basic Adapters** (`basic.go`): Map, FilterMap, Chain, Zip, Enumerate, FlatMap
+- **Filtering Adapters** (`filtering.go`): Skip, Take, StepBy, SkipWhile, TakeWhile
+- **Transforming Adapters** (`transforming.go`): MapWhile, Scan, Flatten
+- **Chunking Adapters** (`chunking.go`): MapWindows, ArrayChunks, ChunkBy
+- **Utility Adapters** (`utility.go`): Fuse, Inspect, Intersperse, IntersperseWith, Cycle, Peekable, Cloned
+- **Consumers** (`consumers.go`): Collect, Count, Last, Partition, AdvanceBy, Nth, NextChunk, Sum, Product, Unzip, TryReduce, TryForEach
+- **Fold & Reduce** (`fold_reduce.go`): Fold, Reduce, ForEach, TryFold, Rfold, TryRfold
+- **Find & Search** (`find_search.go`): Find, FindMap, Position, All, Any, TryFind, Rfind
+- **Min & Max** (`min_max.go`): Max, Min, MaxBy, MinBy, MaxByKey, MinByKey
+- **Comparison** (`comparison.go`): Comparison utilities
+
+Each module is self-contained with its own implementation functions (`_Impl`) and iterable structs (`_Iterable`), ensuring independence and maintainability. Double-ended iterator methods are integrated into their respective functional modules (e.g., `Rfold` in `fold_reduce.go`, `Rfind` in `find_search.go`).
 
 **Note:** For type-changing operations (e.g., `Map` from `string` to `int`), use the function-style API:
 
