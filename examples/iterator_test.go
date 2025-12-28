@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/andeya/gust"
-	"github.com/andeya/gust/iter"
+	"github.com/andeya/gust/iterator"
 	"github.com/andeya/gust/vec"
 )
 
@@ -13,7 +13,7 @@ import (
 func ExampleIterator() {
 	numbers := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 
-	sum := iter.FromSlice(numbers).
+	sum := iterator.FromSlice(numbers).
 		Filter(func(x int) bool { return x%2 == 0 }).
 		Map(func(x int) int { return x * x }).
 		Take(3).
@@ -28,7 +28,7 @@ func ExampleIterator() {
 // ExampleDoubleEndedIterator demonstrates bidirectional iteration.
 func ExampleDoubleEndedIterator() {
 	numbers := []int{1, 2, 3, 4, 5}
-	deIter := iter.FromSlice(numbers).MustToDoubleEnded()
+	deIter := iterator.FromSlice(numbers).MustToDoubleEnded()
 
 	// Iterate from front
 	fmt.Print("Front: ")
@@ -62,13 +62,13 @@ func ExampleEnumerate() {
 	data := []string{"hello", "world", "rust", "go", "iterator"}
 
 	// Chain operations elegantly - use function API for Enumerate, then continue chaining
-	enumerated := iter.Enumerate(
-		iter.FromSlice(data).
+	enumerated := iterator.Enumerate(
+		iterator.FromSlice(data).
 			Filter(func(s string) bool { return len(s) > 2 }).
 			XMap(func(s string) any { return len(s) }),
 	)
 	// Enumerate returns Iterator[gust.Pair[uint, any]], so we need to use Map with proper type
-	result := iter.Map(enumerated, func(p gust.Pair[uint, any]) string {
+	result := iterator.Map(enumerated, func(p gust.Pair[uint, any]) string {
 		return fmt.Sprintf("%d: %d", p.A, p.B)
 	}).
 		Collect()
@@ -81,9 +81,9 @@ func ExampleEnumerate() {
 func ExampleFlatMap() {
 	words := []string{"hello", "world"}
 
-	chars := iter.FromSlice(words).
-		XFlatMap(func(s string) iter.Iterator[any] {
-			return iter.FromSlice([]rune(s)).XMap(func(r rune) any { return r })
+	chars := iterator.FromSlice(words).
+		XFlatMap(func(s string) iterator.Iterator[any] {
+			return iterator.FromSlice([]rune(s)).XMap(func(r rune) any { return r })
 		}).
 		Collect()
 
@@ -100,7 +100,7 @@ func ExampleFlatMap() {
 func ExampleFindMap() {
 	numbers := []string{"lol", "NaN", "2", "5"}
 
-	result := iter.FromSlice(numbers).
+	result := iterator.FromSlice(numbers).
 		XFilterMap(func(s string) gust.Option[any] {
 			return gust.RetAnyOpt[int](strconv.Atoi(s))
 		}).
@@ -119,7 +119,7 @@ func ExampleFindMap() {
 func Example_iteratorPartition() {
 	numbers := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 
-	evens, odds := iter.FromSlice(numbers).
+	evens, odds := iterator.FromSlice(numbers).
 		Partition(func(x int) bool {
 			return x%2 == 0
 		})
@@ -136,7 +136,7 @@ func ExampleIterator_Chain() {
 	numbers := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 
 	// Chain multiple operations: filter, map, take, fold
-	result := iter.FromSlice(numbers).
+	result := iterator.FromSlice(numbers).
 		Filter(func(x int) bool { return x%2 == 0 }).
 		Map(func(x int) int { return x * x }).
 		Take(3).
@@ -148,10 +148,10 @@ func ExampleIterator_Chain() {
 	// Output: Result: 56
 }
 
-// ExampleIterator_Seq demonstrates converting gust Iterator to Go's standard iter.Seq.
+// ExampleIterator_Seq demonstrates converting gust Iterator to Go's standard iterator.Seq.
 func ExampleIterator_Seq() {
 	numbers := []int{1, 2, 3, 4, 5}
-	gustIter := iter.FromSlice(numbers).Filter(func(x int) bool { return x%2 == 0 })
+	gustIter := iterator.FromSlice(numbers).Filter(func(x int) bool { return x%2 == 0 })
 
 	// Use gust Iterator in Go's standard for-range loop
 	fmt.Print("Even numbers: ")
@@ -162,7 +162,7 @@ func ExampleIterator_Seq() {
 	// Output: Even numbers: 2 4
 }
 
-// ExampleFromSeq demonstrates converting Go's standard iter.Seq to gust Iterator.
+// ExampleFromSeq demonstrates converting Go's standard iterator.Seq to gust Iterator.
 func ExampleFromSeq() {
 	// Create a Go standard iterator sequence
 	goSeq := func(yield func(int) bool) {
@@ -174,7 +174,7 @@ func ExampleFromSeq() {
 	}
 
 	// Convert to gust Iterator and use gust methods
-	gustIter, deferStop := iter.FromSeq(goSeq)
+	gustIter, deferStop := iterator.FromSeq(goSeq)
 	defer deferStop()
 	result := gustIter.
 		Filter(func(x int) bool { return x > 1 }).

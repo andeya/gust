@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/andeya/gust"
+	"github.com/andeya/gust/constraints"
 )
 
 // TryFromString converts ~string to digit.
@@ -15,11 +16,11 @@ import (
 // and base 10 otherwise. Also, for base == 0 only, underscore
 // characters are permitted per the Go integer literal syntax.
 // If base is below 0, is 1, or is above 62, an error is returned.
-func TryFromString[T ~string, D gust.Digit](v T, base int, bitSize int) gust.Result[D] {
+func TryFromString[T ~string, D constraints.Digit](v T, base int, bitSize int) gust.Result[D] {
 	return gust.Ret[D](tryFromString[T, D](v, base, bitSize))
 }
 
-func tryFromString[T ~string, D gust.Digit](v T, base int, bitSize int) (D, error) {
+func tryFromString[T ~string, D constraints.Digit](v T, base int, bitSize int) (D, error) {
 	var d *D
 	var x interface{} = d
 	switch x.(type) {
@@ -65,11 +66,11 @@ func tryFromString[T ~string, D gust.Digit](v T, base int, bitSize int) (D, erro
 	return 0, nil
 }
 
-func TryFromStrings[T ~string, D gust.Digit](a []T, base int, bitSize int) gust.Result[[]D] {
+func TryFromStrings[T ~string, D constraints.Digit](a []T, base int, bitSize int) gust.Result[[]D] {
 	return gust.Ret(tryFromStrings[T, D](a, base, bitSize))
 }
 
-func tryFromStrings[T ~string, D gust.Digit](a []T, base int, bitSize int) (b []D, err error) {
+func tryFromStrings[T ~string, D constraints.Digit](a []T, base int, bitSize int) (b []D, err error) {
 	b = make([]D, len(a))
 	for i, t := range a {
 		b[i], err = tryFromString[T, D](t, base, bitSize)
@@ -81,13 +82,13 @@ func tryFromStrings[T ~string, D gust.Digit](a []T, base int, bitSize int) (b []
 }
 
 // ToBool converts D to bool.
-func ToBool[T gust.Digit](v T) bool {
+func ToBool[T constraints.Digit](v T) bool {
 	zero := new(T)
 	return v != *zero
 }
 
 // ToBools converts []D to []bool.
-func ToBools[T gust.Digit](a []T) []bool {
+func ToBools[T constraints.Digit](a []T) []bool {
 	b := make([]bool, len(a))
 	for i, t := range a {
 		b[i] = ToBool(t)
@@ -96,14 +97,14 @@ func ToBools[T gust.Digit](a []T) []bool {
 }
 
 // FromBool converts bool to digit.
-func FromBool[T ~bool, D gust.Digit](v T) D {
+func FromBool[T ~bool, D constraints.Digit](v T) D {
 	if v {
 		return D(1)
 	}
 	return D(0)
 }
 
-func FromBools[T ~bool, D gust.Digit](a []T) (b []D) {
+func FromBools[T ~bool, D constraints.Digit](a []T) (b []D) {
 	b = make([]D, len(a))
 	for i, t := range a {
 		b[i] = FromBool[T, D](t)
@@ -111,11 +112,11 @@ func FromBools[T ~bool, D gust.Digit](a []T) (b []D) {
 	return b
 }
 
-func As[T gust.Digit, D gust.Digit](v T) gust.Result[D] {
+func As[T constraints.Digit, D constraints.Digit](v T) gust.Result[D] {
 	return gust.Ret(as[T, D](v))
 }
 
-func as[T gust.Digit, D gust.Digit](v T) (D, error) {
+func as[T constraints.Digit, D constraints.Digit](v T) (D, error) {
 	var d *D
 	var x interface{} = d
 	switch x.(type) {
@@ -198,7 +199,7 @@ func as[T gust.Digit, D gust.Digit](v T) (D, error) {
 }
 
 // SliceAs creates a copy of the digit slice.
-func SliceAs[T gust.Digit, D gust.Digit](a []T) (b []D, err error) {
+func SliceAs[T constraints.Digit, D constraints.Digit](a []T) (b []D, err error) {
 	b = make([]D, len(a))
 	for i, t := range a {
 		b[i], err = as[T, D](t)
@@ -210,12 +211,12 @@ func SliceAs[T gust.Digit, D gust.Digit](a []T) (b []D, err error) {
 }
 
 // digitToFloat64 converts digit to float64.
-func digitToFloat64[T gust.Digit](v T) float64 {
+func digitToFloat64[T constraints.Digit](v T) float64 {
 	return float64(v)
 }
 
 // digitToFloat32 converts digit to float32.
-func digitToFloat32[T gust.Digit](v T) (float32, error) {
+func digitToFloat32[T constraints.Digit](v T) (float32, error) {
 	f := float64(v)
 	if f > math.MaxFloat32 || f < -math.MaxFloat32 {
 		return 0, errOverflowValue
@@ -224,7 +225,7 @@ func digitToFloat32[T gust.Digit](v T) (float32, error) {
 }
 
 // digitToInt converts digit to int.
-func digitToInt[T gust.Digit](v T) (int, error) {
+func digitToInt[T constraints.Digit](v T) (int, error) {
 	f := float64(v)
 	if f > math.MaxInt || f < math.MinInt {
 		return 0, errOverflowValue
@@ -233,7 +234,7 @@ func digitToInt[T gust.Digit](v T) (int, error) {
 }
 
 // digitToInt8 converts digit to int8.
-func digitToInt8[T gust.Digit](v T) (int8, error) {
+func digitToInt8[T constraints.Digit](v T) (int8, error) {
 	if v > 0 {
 		if v > math.MaxInt8 {
 			return 0, errOverflowValue
@@ -247,7 +248,7 @@ func digitToInt8[T gust.Digit](v T) (int8, error) {
 }
 
 // digitToInt16 converts digit to int16.
-func digitToInt16[T gust.Digit](v T) (int16, error) {
+func digitToInt16[T constraints.Digit](v T) (int16, error) {
 	f := float64(v)
 	if f > math.MaxInt16 || f < math.MinInt16 {
 		return 0, errOverflowValue
@@ -256,7 +257,7 @@ func digitToInt16[T gust.Digit](v T) (int16, error) {
 }
 
 // digitToInt32 converts digit to int32.
-func digitToInt32[T gust.Digit](v T) (int32, error) {
+func digitToInt32[T constraints.Digit](v T) (int32, error) {
 	f := float64(v)
 	if f > math.MaxInt32 || f < math.MinInt32 {
 		return 0, errOverflowValue
@@ -265,7 +266,7 @@ func digitToInt32[T gust.Digit](v T) (int32, error) {
 }
 
 // digitToInt64 converts digit to int64.
-func digitToInt64[T gust.Digit](v T) (int64, error) {
+func digitToInt64[T constraints.Digit](v T) (int64, error) {
 	f := float64(v)
 	if f > math.MaxInt64 || f < math.MinInt64 {
 		return 0, errOverflowValue
@@ -274,7 +275,7 @@ func digitToInt64[T gust.Digit](v T) (int64, error) {
 }
 
 // digitToUint converts digit to uint.
-func digitToUint[T gust.Digit](v T) (uint, error) {
+func digitToUint[T constraints.Digit](v T) (uint, error) {
 	if v < 0 {
 		return 0, errNegativeValue
 	}
@@ -285,7 +286,7 @@ func digitToUint[T gust.Digit](v T) (uint, error) {
 }
 
 // digitToUint8 converts digit to uint8.
-func digitToUint8[T gust.Digit](v T) (uint8, error) {
+func digitToUint8[T constraints.Digit](v T) (uint8, error) {
 	if v < 0 {
 		return 0, errNegativeValue
 	}
@@ -296,7 +297,7 @@ func digitToUint8[T gust.Digit](v T) (uint8, error) {
 }
 
 // digitToUint16 converts digit to uint16.
-func digitToUint16[T gust.Digit](v T) (uint16, error) {
+func digitToUint16[T constraints.Digit](v T) (uint16, error) {
 	if v < 0 {
 		return 0, errNegativeValue
 	}
@@ -307,7 +308,7 @@ func digitToUint16[T gust.Digit](v T) (uint16, error) {
 }
 
 // digitToUint32 converts digit to uint32.
-func digitToUint32[T gust.Digit](v T) (uint32, error) {
+func digitToUint32[T constraints.Digit](v T) (uint32, error) {
 	if v < 0 {
 		return 0, errNegativeValue
 	}
@@ -318,7 +319,7 @@ func digitToUint32[T gust.Digit](v T) (uint32, error) {
 }
 
 // digitToUint64 converts digit to uint64.
-func digitToUint64[T gust.Digit](v T) (uint64, error) {
+func digitToUint64[T constraints.Digit](v T) (uint64, error) {
 	if v < 0 {
 		return 0, errNegativeValue
 	}

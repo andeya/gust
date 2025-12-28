@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/andeya/gust"
+	"github.com/andeya/gust/constraints"
 )
 
 const (
@@ -12,7 +13,7 @@ const (
 	Host32bit = ^uint(0)>>32 == 0
 )
 
-func Abs[T gust.Digit](d T) T {
+func Abs[T constraints.Digit](d T) T {
 	var zero T
 	if d < zero {
 		return -d
@@ -20,7 +21,7 @@ func Abs[T gust.Digit](d T) T {
 	return d
 }
 
-func Max[T gust.Integer]() T {
+func Max[T constraints.Integer]() T {
 	var t T
 	switch any(t).(type) {
 	case int:
@@ -57,28 +58,28 @@ func Max[T gust.Integer]() T {
 	}
 }
 
-func SaturatingAdd[T gust.Integer](a, b T) T {
+func SaturatingAdd[T constraints.Integer](a, b T) T {
 	if a < Max[T]()-b {
 		return a + b
 	}
 	return Max[T]()
 }
 
-func SaturatingSub[T gust.Digit](a, b T) T {
+func SaturatingSub[T constraints.Digit](a, b T) T {
 	if a > b {
 		return a - b
 	}
 	return 0
 }
 
-func CheckedAdd[T gust.Integer](a, b T) gust.Option[T] {
+func CheckedAdd[T constraints.Integer](a, b T) gust.Option[T] {
 	if a <= Max[T]()-b {
 		return gust.Some(a + b)
 	}
 	return gust.None[T]()
 }
 
-func CheckedMul[T gust.Integer](a, b T) gust.Option[T] {
+func CheckedMul[T constraints.Integer](a, b T) gust.Option[T] {
 	if a <= Max[T]()/b {
 		return gust.Some(a * b)
 	}

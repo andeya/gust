@@ -5,8 +5,8 @@ import (
 	"strconv"
 
 	"github.com/andeya/gust"
-	"github.com/andeya/gust/iter"
-	"github.com/andeya/gust/ret"
+	"github.com/andeya/gust/iterator"
+	"github.com/andeya/gust/result"
 )
 
 // ExampleResult demonstrates elegant error handling with Result.
@@ -14,8 +14,8 @@ func ExampleResult() {
 	// Parse numbers with automatic error handling
 	numbers := []string{"1", "2", "three", "4", "five"}
 
-	results := iter.FilterMap(
-		iter.RetMap(iter.FromSlice(numbers), strconv.Atoi),
+	results := iterator.FilterMap(
+		iterator.RetMap(iterator.FromSlice(numbers), strconv.Atoi),
 		gust.Result[int].Ok,
 	).
 		Collect()
@@ -31,7 +31,7 @@ func ExampleResult_AndThen() {
 		Map(func(x int) int { return x * 2 }).
 		AndThen(func(x int) gust.Result[int] {
 			if x > 15 {
-				return gust.Err[int]("too large")
+				return gust.TryErr[int]("too large")
 			}
 			return gust.Ok(x + 5)
 		}).
@@ -48,7 +48,7 @@ func ExampleResult_AndThen() {
 // ExampleAndThen demonstrates elegant error handling patterns.
 func ExampleAndThen() {
 	// Handle multiple operations with automatic error propagation
-	result := ret.AndThen(
+	result := result.AndThen(
 		gust.Ret(strconv.Atoi("42")),
 		func(n int) gust.Result[string] {
 			return gust.Ok(fmt.Sprintf("Number: %d", n))
@@ -70,9 +70,9 @@ func ExampleResult_beforeAfter() {
 	multiplied := gust.Ok(42).
 		Map(func(x int) int { return x * 2 })
 
-	result := ret.AndThen(multiplied, func(x int) gust.Result[string] {
+	result := result.AndThen(multiplied, func(x int) gust.Result[string] {
 		if x > 100 {
-			return gust.Err[string]("value too large")
+			return gust.TryErr[string]("value too large")
 		}
 		return gust.Ok(fmt.Sprintf("Result: %d", x))
 	})
@@ -116,11 +116,11 @@ func ExampleResult_fetchUserData() {
 
 	// Using gust.Result for elegant error handling
 	fetchUserData := func(userID int) gust.Result[string] {
-		return ret.AndThen(gust.Ret(getUser(userID)), func(user *User) gust.Result[string] {
+		return result.AndThen(gust.Ret(getUser(userID)), func(user *User) gust.Result[string] {
 			if user == nil || user.Email == "" {
-				return gust.Err[string]("invalid user")
+				return gust.TryErr[string]("invalid user")
 			}
-			return ret.Map(gust.Ret(getProfile(user.Email)), func(profile *Profile) string {
+			return result.Map(gust.Ret(getProfile(user.Email)), func(profile *Profile) string {
 				return fmt.Sprintf("%s: %s", user.Name, profile.Bio)
 			})
 		})

@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+
+	"github.com/andeya/gust/errutil"
 )
 
 type (
@@ -34,7 +36,7 @@ type (
 //go:inline
 func Ret[T any](some T, err error) Result[T] {
 	if err != nil {
-		return Err[T](err)
+		return TryErr[T](err)
 	}
 	return Ok(some)
 }
@@ -53,7 +55,7 @@ func RetVoid(maybeError any) VoidResult {
 	if maybeError == nil {
 		return Ok[Void](nil)
 	}
-	return Err[Void](maybeError)
+	return TryErr[Void](maybeError)
 }
 
 // Ok wraps a successful result.
@@ -76,41 +78,41 @@ func OkVoid() VoidResult {
 	return Ok[Void](nil)
 }
 
-// Err wraps a failure result.
-// NOTE: Even if err is nil, Err(nil) still represents an error state.
-// This follows declarative programming principles: calling Err() explicitly declares an error result,
-// regardless of the error value. This is consistent with Rust's Result::Err(()) semantics.
+// TryErr wraps a failure result.
+// NOTE: If err is nil, TryErr(nil) returns Ok with zero value.
+// This follows the principle that nil represents "no error", so TryErr(nil) should be Ok.
 //
 // Example:
 //
 //	```go
-//	result := gust.Err[string](nil)  // This is an error state, even though err is nil
-//	if result.IsErr() {
+//	result := gust.TryErr[string](nil)  // This is an ok state
+//	if result.IsOk() {
 //		fmt.Println("This will be printed")
 //	}
 //	```
 //
 //go:inline
-func Err[T any](err any) Result[T] {
+func TryErr[T any](err any) Result[T] {
 	eb := BoxErr(err)
-	if eb == nil {
-		return Result[T]{e: ErrBox{}}
+	if eb.IsEmpty() {
+		return Ok[T](defaultValue[T]())
 	}
-	return Result[T]{e: *eb}
+	return Result[T]{t: None[T](), e: *eb}
 }
 
-// ErrVoid wraps a failure result as VoidResult.
+// TryErrVoid wraps a failure result as VoidResult.
+// NOTE: If err is nil, TryErrVoid(nil) returns OkVoid().
 //
 //go:inline
-func ErrVoid(err any) VoidResult {
-	return Err[Void](err)
+func TryErrVoid(err any) VoidResult {
+	return TryErr[Void](err)
 }
 
 // FmtErr wraps a failure result with a formatted error.
 //
 //go:inline
 func FmtErr[T any](format string, a ...any) Result[T] {
-	return Err[T](fmt.Errorf(format, a...))
+	return TryErr[T](fmt.Errorf(format, a...))
 }
 
 // AssertRet returns the Result[T] of asserting `i` to type `T`
@@ -348,7 +350,7 @@ func (r Result[T]) XMapOrElse(defaultFn func(error) any, f func(T) any) any {
 //go:inline
 func (r Result[T]) MapErr(op func(error) (newErr any)) Result[T] {
 	if r.IsErr() {
-		return Err[T](op(r.safeGetE()))
+		return TryErr[T](op(r.safeGetE()))
 	}
 	return r
 }
@@ -373,28 +375,12 @@ func (r Result[T]) InspectErr(f func(error)) Result[T] {
 	return r
 }
 
-// wrapError wraps an error with a message.
-func (r Result[T]) wrapError(msg string) error {
-	if r.IsErr() {
-		val := (&r.e).Value()
-		if val == nil {
-			// Err(nil) case: provide a descriptive error message
-			return BoxErr(fmt.Errorf("%s: gust.Err(nil)", msg)).ToError()
-		}
-		if err, ok := val.(error); ok {
-			return BoxErr(fmt.Errorf("%s: %w", msg, err)).ToError()
-		}
-		return BoxErr(fmt.Errorf("%s: %v", msg, val)).ToError()
-	}
-	return BoxErr(msg).ToError()
-}
-
 // Expect returns the contained Ok value.
 // Panics if the value is an error, with a panic message including the
 // passed message, and the content of the error.
 func (r Result[T]) Expect(msg string) T {
 	if r.IsErr() {
-		panic(r.wrapError(msg))
+		panic(fmt.Errorf("%s: %w", msg, r.e.ToError()))
 	}
 	return r.safeGetT()
 }
@@ -405,7 +391,7 @@ func (r Result[T]) Expect(msg string) T {
 // NOTE: This panics *ErrBox (not error) to be consistent with Result.UnwrapOrThrow() and allow Result.Catch() to properly handle it.
 func (r Result[T]) Unwrap() T {
 	if r.IsErr() {
-		panic(&r.e)
+		panic(r.e.ToError())
 	}
 	return r.safeGetT()
 }
@@ -434,7 +420,7 @@ func (r Result[T]) ExpectErr(msg string) error {
 	if r.IsErr() {
 		return r.safeGetE()
 	}
-	panic(BoxErr(fmt.Sprintf("%s: %v", msg, r.safeGetT())))
+	panic(fmt.Sprintf("%s: %v", msg, r.safeGetT()))
 }
 
 // UnwrapErr returns the contained error.
@@ -446,7 +432,7 @@ func (r Result[T]) UnwrapErr() error {
 	if r.IsErr() {
 		return r.safeGetE()
 	}
-	panic(BoxErr(fmt.Sprintf("called `Result.UnwrapErr()` on an `ok` value: %v", r.safeGetT())))
+	panic(fmt.Sprintf("called `Result.UnwrapErr()` on an `ok` value: %v", r.safeGetT()))
 }
 
 // And returns `r` if `r` is `Err`, otherwise returns `r2`.
@@ -484,7 +470,7 @@ func (r Result[T]) XAnd(res Result[any]) Result[any] {
 //go:inline
 func (r Result[T]) XAnd2(v2 any, err2 error) Result[any] {
 	if r.IsErr() {
-		return Err[any](r.Err())
+		return TryErr[any](r.Err())
 	}
 	return Ret[any](v2, err2)
 }
@@ -511,7 +497,7 @@ func (r Result[T]) AndThen2(op func(T) (T, error)) Result[T] {
 // This function can be used for control flow based on Result values.
 func (r Result[T]) XAndThen(op func(T) Result[any]) Result[any] {
 	if r.IsErr() {
-		return Err[any](r.Err())
+		return TryErr[any](r.Err())
 	}
 	return op(r.safeGetT())
 }
@@ -520,7 +506,7 @@ func (r Result[T]) XAndThen(op func(T) Result[any]) Result[any] {
 // This function can be used for control flow based on Result values.
 func (r Result[T]) XAndThen2(op func(T) (any, error)) Result[any] {
 	if r.IsErr() {
-		return Err[any](r.Err())
+		return TryErr[any](r.Err())
 	}
 	return Ret[any](op(r.safeGetT()))
 }
@@ -614,7 +600,7 @@ func (r Result[T]) ContainsErr(err any) bool {
 //go:inline
 func (r Result[T]) Flatten(err error) Result[T] {
 	if err != nil {
-		return Err[T](err)
+		return TryErr[T](err)
 	}
 	return r
 }
@@ -690,7 +676,7 @@ func (r *Result[T]) Remaining() uint {
 //	If there is an error, that panic should be caught with `Result.Catch()`
 func (r Result[T]) UnwrapOrThrow() T {
 	if r.IsErr() {
-		panic(r.e)
+		panic(r.e.ToError())
 	}
 	return r.safeGetT()
 }
@@ -746,32 +732,10 @@ func (r *Result[T]) Catch(withStackTrace ...bool) {
 
 	// Convert panic to error
 	if captureStack {
-		// Get panic stack trace
-		stack := PanicStackTrace()
-
 		// Convert panic to error with stack trace
-		var panicErr *panicError
-		switch p := p.(type) {
-		case *ErrBox:
-			// Gust's own ErrBox type (pointer)
-			if p != nil {
-				panicErr = newPanicError(p, stack)
-			} else {
-				panicErr = newPanicError(ErrBox{}, stack)
-			}
-		case ErrBox:
-			// Gust's own ErrBox type (value)
-			panicErr = newPanicError(p, stack)
-		case error:
-			// Regular error panic - wrap in ErrBox with stack trace
-			panicErr = newPanicError(p, stack)
-		default:
-			// Other types - wrap in ErrBox with stack trace
-			panicErr = newPanicError(p, stack)
-		}
-
+		// Use newPanicError which properly handles ErrBox types
 		// Wrap panicError in ErrBox
-		eb := BoxErr(panicErr)
+		eb := BoxErr(errutil.NewPanicError(p, errutil.PanicStackTrace()))
 		if eb == nil {
 			r.e = ErrBox{}
 		} else {

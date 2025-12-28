@@ -1016,5 +1016,85 @@ func TestFormatBits_Host32bit_MultipleLoops(t *testing.T) {
 		if got2 != expectedMax {
 			t.Errorf("FormatUint(maxUint64, 10) = %q, want %q", got2, expectedMax)
 		}
+
+		// Test with number that triggers u >= 1e9 loop and us < 10 case
+		// This tests the us < 10 branch at line 1543-1546
+		// Use a number like 1e9 + 5, which will have us = 5 after the first iteration
+		testNum := uint64(1e9 + 5)
+		got3 := FormatUint(testNum, 10)
+		expected3 := "1000000005"
+		if got3 != expected3 {
+			t.Errorf("FormatUint(1e9+5, 10) = %q, want %q", got3, expected3)
+		}
+
+		// Test with number that requires multiple loops and has us < 10
+		// Use 1e18 + 3, which will loop twice and have us = 3 after the first iteration
+		testNum2 := uint64(1e18 + 3)
+		got4 := FormatUint(testNum2, 10)
+		expected4 := "1000000000000000003"
+		if got4 != expected4 {
+			t.Errorf("FormatUint(1e18+3, 10) = %q, want %q", got4, expected4)
+		}
+	}
+}
+
+// TestSmall_FastPath tests the fast path for small integers (fastSmalls && i < nSmalls && base == 10)
+func TestSmall_FastPath(t *testing.T) {
+	// Test FormatUint with small integers (should use fast path)
+	for i := 0; i < 100; i++ {
+		got := FormatUint(uint64(i), 10)
+		expected := Itoa(i)
+		if got != expected {
+			t.Errorf("FormatUint(%d, 10) = %q, want %q", i, got, expected)
+		}
+	}
+
+	// Test FormatInt with small integers (should use fast path)
+	for i := -99; i < 100; i++ {
+		got := FormatInt(int64(i), 10)
+		expected := Itoa(i)
+		if got != expected {
+			t.Errorf("FormatInt(%d, 10) = %q, want %q", i, got, expected)
+		}
+	}
+
+	// Test AppendUint with small integers (should use fast path)
+	for i := 0; i < 100; i++ {
+		dst := []byte("prefix")
+		got := AppendUint(dst, uint64(i), 10)
+		expected := "prefix" + Itoa(i)
+		if string(got) != expected {
+			t.Errorf("AppendUint([]byte(\"prefix\"), %d, 10) = %q, want %q", i, string(got), expected)
+		}
+	}
+
+	// Test AppendInt with small integers (should use fast path)
+	for i := -99; i < 100; i++ {
+		dst := []byte("prefix")
+		got := AppendInt(dst, int64(i), 10)
+		expected := "prefix" + Itoa(i)
+		if string(got) != expected {
+			t.Errorf("AppendInt([]byte(\"prefix\"), %d, 10) = %q, want %q", i, string(got), expected)
+		}
+	}
+}
+
+// TestSmall_FastPath_NonBase10 tests that fast path is not used for non-base-10
+func TestSmall_FastPath_NonBase10(t *testing.T) {
+	// Test that small integers with base != 10 don't use fast path
+	// They should still work correctly
+	for i := 0; i < 100; i++ {
+		got := FormatUint(uint64(i), 16)
+		// Verify it's a valid hex representation
+		if len(got) == 0 {
+			t.Errorf("FormatUint(%d, 16) should return non-empty string", i)
+		}
+		// Verify it can be parsed back
+		result := ParseUint(got, 16, 64)
+		if result.IsErr() {
+			t.Errorf("FormatUint(%d, 16) = %q, but ParseUint failed: %v", i, got, result.Err())
+		} else if result.Unwrap() != uint64(i) {
+			t.Errorf("FormatUint(%d, 16) = %q, but ParseUint returned %d", i, got, result.Unwrap())
+		}
 	}
 }

@@ -3,7 +3,7 @@ package vec
 
 import (
 	"github.com/andeya/gust"
-	"github.com/andeya/gust/valconv"
+	"github.com/andeya/gust/conv"
 )
 
 // Get returns the gust.Option[T] at the specified index.
@@ -19,7 +19,7 @@ func One[T any](s []T) T {
 	if len(s) > 0 {
 		return s[0]
 	}
-	return valconv.Zero[T]()
+	return conv.Zero[T]()
 }
 
 // Copy creates a copy of the slice.
@@ -275,7 +275,7 @@ L:
 //	If no initialValue is supplied, the first element in the slice will be used and skipped.
 func Reduce[T any](s []T, fn func(k int, v, accumulator T) T, initialValue ...T) T {
 	if len(s) == 0 {
-		return valconv.Zero[T]()
+		return conv.Zero[T]()
 	}
 	start := 0
 	acc := s[start]
@@ -304,7 +304,7 @@ func Reduce[T any](s []T, fn func(k int, v, accumulator T) T, initialValue ...T)
 //	If no initialValue is supplied, the first element in the slice will be used and skipped.
 func ReduceRight[T any](s []T, fn func(k int, v, accumulator T) T, initialValue ...T) T {
 	if len(s) == 0 {
-		return valconv.Zero[T]()
+		return conv.Zero[T]()
 	}
 	end := len(s) - 1
 	acc := s[end]

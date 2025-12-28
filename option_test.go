@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/andeya/gust"
-	"github.com/andeya/gust/opt"
-	"github.com/andeya/gust/valconv"
+	"github.com/andeya/gust/conv"
+	"github.com/andeya/gust/option"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -37,7 +37,7 @@ func ExampleOption() {
 	type B struct {
 		Y string
 	}
-	var d = opt.Map(a, func(t A) B {
+	var d = option.Map(a, func(t A) B {
 		return B{
 			Y: strconv.Itoa(t.X),
 		}
@@ -367,9 +367,9 @@ func TestOption_Expect(t *testing.T) {
 		assert.Equal(t, "value", x.Expect("fruits are healthy"))
 	}
 	defer func() {
-		assert.Equal(t, gust.BoxErr("fruits are healthy 1"), recover())
+		assert.Equal(t, "fruits are healthy 1", recover())
 		defer func() {
-			assert.Equal(t, gust.BoxErr("fruits are healthy 2"), recover())
+			assert.Equal(t, "fruits are healthy 2", recover())
 		}()
 		var x gust.Option[string]
 		x.Expect("fruits are healthy 2") // panics with `fruits are healthy 2`
@@ -389,11 +389,11 @@ func TestOption_Filter(t *testing.T) {
 
 func TestOption_GetOrInsertDefault(t *testing.T) {
 	none := gust.None[int]()
-	assert.Equal(t, valconv.Ref(0), none.GetOrInsertDefault())
-	assert.Equal(t, valconv.Ref(0), none.AsPtr())
+	assert.Equal(t, conv.Ref(0), none.GetOrInsertDefault())
+	assert.Equal(t, conv.Ref(0), none.AsPtr())
 	some := gust.Some[int](1)
-	assert.Equal(t, valconv.Ref(1), some.GetOrInsertDefault())
-	assert.Equal(t, valconv.Ref(1), some.AsPtr())
+	assert.Equal(t, conv.Ref(1), some.GetOrInsertDefault())
+	assert.Equal(t, conv.Ref(1), some.AsPtr())
 }
 
 func TestOption_GetOrInsert(t *testing.T) {
@@ -504,7 +504,7 @@ func TestOption_OkOrElse(t *testing.T) {
 	}
 	{
 		var x gust.Option[string]
-		assert.Equal(t, gust.Err[string](0), x.OkOrElse(func() any { return 0 }))
+		assert.Equal(t, gust.TryErr[string](0), x.OkOrElse(func() any { return 0 }))
 	}
 }
 
@@ -515,7 +515,7 @@ func TestOption_OkOr(t *testing.T) {
 	}
 	{
 		var x gust.Option[string]
-		assert.Equal(t, gust.Err[string](0), x.OkOr(0))
+		assert.Equal(t, gust.TryErr[string](0), x.OkOr(0))
 	}
 }
 
@@ -591,7 +591,7 @@ func TestOption_UnwrapOrDefault(t *testing.T) {
 	assert.Equal(t, "", gust.None[string]().UnwrapOrDefault())
 	assert.Equal(t, time.Time{}, gust.None[time.Time]().UnwrapOrDefault())
 	assert.Equal(t, &time.Time{}, gust.None[*time.Time]().UnwrapOrDefault())
-	assert.Equal(t, valconv.Ref(&time.Time{}), gust.None[**time.Time]().UnwrapOrDefault())
+	assert.Equal(t, conv.Ref(&time.Time{}), gust.None[**time.Time]().UnwrapOrDefault())
 }
 
 func TestOption_UnwrapOrElse(t *testing.T) {
@@ -611,7 +611,7 @@ func TestOption_Unwrap(t *testing.T) {
 		assert.Equal(t, "air", x.Unwrap())
 	}
 	defer func() {
-		assert.Equal(t, gust.BoxErr("call Option[string].Unwrap() on none"), recover())
+		assert.Equal(t, "call Option[string].Unwrap() on none", recover())
 	}()
 	var x = gust.None[string]()
 	x.Unwrap()
@@ -654,7 +654,7 @@ func TestOption_UnwrapUnchecked(t *testing.T) {
 		assert.Equal(t, "", r.Ok().UnwrapUnchecked())
 	}
 	{
-		var r = gust.Err[string]("foo")
+		var r = gust.TryErr[string]("foo")
 		assert.Equal(t, "", r.Ok().UnwrapUnchecked())
 	}
 	{
@@ -701,7 +701,7 @@ func TestOption_XOkOr(t *testing.T) {
 	}
 	{
 		var x gust.Option[string]
-		assert.Equal(t, gust.Err[any](0), x.XOkOr(0))
+		assert.Equal(t, gust.TryErr[any](0), x.XOkOr(0))
 	}
 }
 
@@ -712,7 +712,7 @@ func TestOption_XOkOrElse(t *testing.T) {
 	}
 	{
 		var x gust.Option[string]
-		assert.Equal(t, gust.Err[any](0), x.XOkOrElse(func() any { return 0 }))
+		assert.Equal(t, gust.TryErr[any](0), x.XOkOrElse(func() any { return 0 }))
 	}
 }
 

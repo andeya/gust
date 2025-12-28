@@ -10,8 +10,9 @@ import (
 	"time"
 
 	"github.com/andeya/gust"
-	"github.com/andeya/gust/ret"
-	"github.com/andeya/gust/valconv"
+	"github.com/andeya/gust/conv"
+	"github.com/andeya/gust/errutil"
+	"github.com/andeya/gust/result"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,7 +37,7 @@ func ExampleResult_UnwrapOr() {
 // [`Result`] comes with some convenience methods that make working with it more succinct.
 func TestResult(t *testing.T) {
 	var goodResult1 = gust.Ok(10)
-	var badResult1 = gust.Err[int](10)
+	var badResult1 = gust.TryErr[int](10)
 
 	// The `IsOk` and `IsErr` methods do what they say.
 	assert.True(t, goodResult1.IsOk() && !goodResult1.IsErr())
@@ -47,7 +48,7 @@ func TestResult(t *testing.T) {
 	var badResult2 = badResult1.Map(func(i int) int { return i - 1 })
 
 	// Use `AndThen` to continue the computation.
-	var goodResult3 = ret.AndThen(goodResult2, func(i int) gust.Result[bool] { return gust.Ok(i == 11) })
+	var goodResult3 = result.AndThen(goodResult2, func(i int) gust.Result[bool] { return gust.Ok(i == 11) })
 
 	// Use `OrElse` to handle the error.
 	var _ = badResult2.OrElse(func(err error) gust.Result[int] {
@@ -71,7 +72,7 @@ func TestResult_AssertRet(t *testing.T) {
 }
 
 func TestResultJSON(t *testing.T) {
-	var r = gust.Err[any](errors.New("err"))
+	var r = gust.TryErr[any](errors.New("err"))
 	var b, err = json.Marshal(r)
 	assert.Equal(t, "json: error calling MarshalJSON for type gust.Result[interface {}]: err", err.Error())
 	assert.Nil(t, b)
@@ -104,13 +105,26 @@ func TestResultJSON(t *testing.T) {
 }
 
 func TestResultIsValid(t *testing.T) {
+	// Test nil pointer - covers r == nil branch
 	var r0 *gust.Result[any]
 	assert.False(t, r0.IsValid())
+
+	// Test zero value (both empty) - covers r.e.IsEmpty() && !r.t.IsSome() branch
 	var r1 gust.Result[any]
 	assert.False(t, r1.IsValid())
 	assert.False(t, (&gust.Result[any]{}).IsValid())
+
+	// Test Ok case - covers r.t.IsSome() branch
 	var r2 = gust.Ok[any](nil)
 	assert.True(t, r2.IsValid())
+
+	// Test Err case - covers !r.e.IsEmpty() branch (missing coverage)
+	var r3 = gust.TryErr[any]("test error")
+	assert.True(t, r3.IsValid())
+
+	// Test Err case with error interface - covers !r.e.IsEmpty() branch
+	var r4 = gust.TryErr[any](errors.New("error"))
+	assert.True(t, r4.IsValid())
 }
 
 func TestResultUnwrapOrThrow(t *testing.T) {
@@ -123,7 +137,7 @@ func TestResultUnwrapOrThrow(t *testing.T) {
 	var r gust.Result[string]
 	func() {
 		defer r.Catch()
-		var r2 = gust.Err[int]("err")
+		var r2 = gust.TryErr[int]("err")
 		_ = r2.UnwrapOrThrow() // This will panic
 	}()
 	assert.True(t, r.IsErr())
@@ -141,13 +155,13 @@ func TestResultUnwrapOrThrow(t *testing.T) {
 func TestResult_And(t *testing.T) {
 	{
 		x := gust.Ok(2)
-		y := gust.Err[int]("late error")
-		assert.Equal(t, gust.Err[int]("late error"), x.And(y))
+		y := gust.TryErr[int]("late error")
+		assert.Equal(t, gust.TryErr[int]("late error"), x.And(y))
 	}
 	{
-		x := gust.Err[uint]("early error")
+		x := gust.TryErr[uint]("early error")
 		y := gust.Ok[string]("foo")
-		assert.Equal(t, gust.Err[any]("early error"), x.XAnd(y.ToX()))
+		assert.Equal(t, gust.TryErr[any]("early error"), x.XAnd(y.ToX()))
 	}
 }
 
@@ -168,14 +182,14 @@ func TestResult_And2(t *testing.T) {
 	}
 	// Test with Err result (should return original error)
 	{
-		x := gust.Err[int]("early error")
+		x := gust.TryErr[int]("early error")
 		result := x.And2(3, nil)
 		assert.True(t, result.IsErr())
 		assert.Equal(t, "early error", result.Err().Error())
 	}
 	// Test with Err result and Err value (should return original error)
 	{
-		x := gust.Err[int]("early error")
+		x := gust.TryErr[int]("early error")
 		result := x.And2(3, errors.New("late error"))
 		assert.True(t, result.IsErr())
 		assert.Equal(t, "early error", result.Err().Error())
@@ -199,14 +213,14 @@ func TestResult_XAnd2(t *testing.T) {
 	}
 	// Test with Err result (should return original error)
 	{
-		x := gust.Err[int]("early error")
+		x := gust.TryErr[int]("early error")
 		result := x.XAnd2("foo", nil)
 		assert.True(t, result.IsErr())
 		assert.Equal(t, "early error", result.Err().Error())
 	}
 	// Test with Err result and Err value (should return original error)
 	{
-		x := gust.Err[int]("early error")
+		x := gust.TryErr[int]("early error")
 		result := x.XAnd2("foo", errors.New("late error"))
 		assert.True(t, result.IsErr())
 		assert.Equal(t, "early error", result.Err().Error())
@@ -216,7 +230,7 @@ func TestResult_XAnd2(t *testing.T) {
 func ExampleResult_AndThen() {
 	var divide = func(i, j float32) gust.Result[float32] {
 		if j == 0 {
-			return gust.Err[float32]("j can not be 0")
+			return gust.TryErr[float32]("j can not be 0")
 		}
 		return gust.Ok(i / j)
 	}
@@ -234,32 +248,45 @@ func TestResult_Err(t *testing.T) {
 		assert.Equal(t, error(nil), x.Err())
 	}
 	{
-		var x = gust.Err[int]("some error message")
+		var x = gust.TryErr[int]("some error message")
 		assert.Equal(t, "some error message", x.Err().Error())
 	}
 }
 
 func TestResult_ExpectErr(t *testing.T) {
 	defer func() {
-		assert.Equal(t, gust.BoxErr("Testing expect_err: 10"), recover())
+		assert.Equal(t, "Testing expect_err: 10", recover())
 	}()
 	err := gust.Ok(10).ExpectErr("Testing expect_err")
 	assert.NoError(t, err)
 
 	// Test IsErr branch (covers result.go:311-313)
-	err2 := gust.Err[int]("test error")
+	err2 := gust.TryErr[int]("test error")
 	result := err2.ExpectErr("should not panic")
 	assert.NotNil(t, result)
 	assert.Equal(t, "test error", result.Error())
 }
 
-// TestResult_String tests Result.String method (covers result.go:102-107)
+// TestResult_String tests Result.String method (covers result.go:180-185)
 func TestResult_String(t *testing.T) {
+	// Test Ok case - covers safeGetT() path
 	ok := gust.Ok(42)
 	assert.Equal(t, "Ok(42)", ok.String())
 
-	err := gust.Err[int]("error message")
-	assert.Contains(t, err.String(), "Err")
+	// Test Err case with string error - covers safeGetE() path with string error
+	err1 := gust.TryErr[int]("error message")
+	assert.Contains(t, err1.String(), "Err")
+	assert.Contains(t, err1.String(), "error message")
+
+	// Test Err case with error interface - covers safeGetE() path with error interface
+	err2 := gust.TryErr[int](errors.New("error interface"))
+	assert.Contains(t, err2.String(), "Err")
+	assert.Contains(t, err2.String(), "error interface")
+
+	// Test Err case with ErrBox - covers safeGetE() path with ErrBox
+	err3 := gust.TryErr[int](gust.BoxErr("boxed error"))
+	assert.Contains(t, err3.String(), "Err")
+	assert.Contains(t, err3.String(), "boxed error")
 }
 
 // TestResult_ErrValNil tests Result.ErrVal returning nil (covers result.go:165-169)
@@ -297,7 +324,7 @@ func TestResult_Inspect(t *testing.T) {
 
 func TestResult_IsErrAnd(t *testing.T) {
 	{
-		var x = gust.Err[int]("hey")
+		var x = gust.TryErr[int]("hey")
 		assert.True(t, x.IsErrAnd(func(err error) bool { return err.Error() == "hey" }))
 	}
 	{
@@ -312,7 +339,7 @@ func TestResult_IsErr(t *testing.T) {
 		assert.False(t, x.IsErr())
 	}
 	{
-		var x = gust.Err[int]("some error message")
+		var x = gust.TryErr[int]("some error message")
 		assert.True(t, x.IsErr())
 	}
 }
@@ -327,7 +354,7 @@ func TestResult_IsOkAnd(t *testing.T) {
 		assert.False(t, x.IsOkAnd(func(x int) bool { return x > 1 }))
 	}
 	{
-		var x = gust.Err[int]("hey")
+		var x = gust.TryErr[int]("hey")
 		assert.False(t, x.IsOkAnd(func(x int) bool { return x > 1 }))
 	}
 }
@@ -338,7 +365,7 @@ func TestResult_IsOk(t *testing.T) {
 		assert.True(t, x.IsOk())
 	}
 	{
-		var x = gust.Err[int]("some error message")
+		var x = gust.TryErr[int]("some error message")
 		assert.False(t, x.IsOk())
 	}
 }
@@ -350,8 +377,8 @@ func TestResult_MapErr(t *testing.T) {
 		assert.Equal(t, gust.Ok[uint32](2), x.MapErr(stringify))
 	}
 	{
-		var x = gust.Err[uint32](13)
-		assert.Equal(t, gust.Err[uint32]("error code: 13"), x.MapErr(stringify))
+		var x = gust.TryErr[uint32](13)
+		assert.Equal(t, gust.TryErr[uint32]("error code: 13"), x.MapErr(stringify))
 	}
 }
 
@@ -363,7 +390,7 @@ func TestResult_MapOrElse_2(t *testing.T) {
 		}, func(x string) string { return "test:" + x }))
 	}
 	{
-		var x = gust.Err[string]("foo")
+		var x = gust.TryErr[string]("foo")
 		assert.Equal(t, "bar", x.MapOrElse(func(err error) string {
 			return "bar"
 		}, func(x string) string { return "test:" + x }))
@@ -376,7 +403,7 @@ func TestResult_MapOr_2(t *testing.T) {
 		assert.Equal(t, "test:foo", x.MapOr("bar", func(x string) string { return "test:" + x }))
 	}
 	{
-		var x = gust.Err[string]("foo")
+		var x = gust.TryErr[string]("foo")
 		assert.Equal(t, "bar", x.MapOr("bar", func(x string) string { return "test:" + x }))
 	}
 }
@@ -397,7 +424,7 @@ func TestResult_Map_2(t *testing.T) {
 		return gust.Ret(strconv.Atoi(s)).XMap(func(x int) any { return x == search })
 	}
 	assert.Equal(t, gust.Ok[any](true), isMyNum("1", 1))
-	assert.Equal(t, gust.Ok[bool](true), ret.XAssert[bool](isMyNum("1", 1)))
+	assert.Equal(t, gust.Ok[bool](true), result.XAssert[bool](isMyNum("1", 1)))
 	assert.Equal(t, "Err(strconv.Atoi: parsing \"lol\": invalid syntax)", isMyNum("lol", 1).String())
 	assert.Equal(t, "Err(strconv.Atoi: parsing \"NaN\": invalid syntax)", isMyNum("NaN", 1).String())
 }
@@ -408,7 +435,7 @@ func TestResult_Ok(t *testing.T) {
 		assert.Equal(t, gust.Some[int](2), x.Ok())
 	}
 	{
-		var x = gust.Err[int]("some error message")
+		var x = gust.TryErr[int]("some error message")
 		assert.Equal(t, gust.None[int](), x.Ok())
 	}
 }
@@ -422,33 +449,33 @@ func TestResult_OrElse(t *testing.T) {
 		if err.Error() == "3" {
 			return gust.Ok(9) // 3 * 3
 		}
-		return gust.Err[int](err)
+		return gust.TryErr[int](err)
 	}
 	var errFn = func(err error) gust.Result[int] {
-		return gust.Err[int](err)
+		return gust.TryErr[int](err)
 	}
 
 	assert.Equal(t, gust.Ok(2), gust.Ok(2).OrElse(sq).OrElse(sq))
 	assert.Equal(t, gust.Ok(2), gust.Ok(2).OrElse(errFn).OrElse(sq))
-	assert.Equal(t, gust.Ok(9), gust.Err[int](fmt.Errorf("3")).OrElse(sq).OrElse(errFn))
-	assert.Equal(t, gust.Err[int](fmt.Errorf("3")), gust.Err[int](fmt.Errorf("3")).OrElse(errFn).OrElse(errFn))
+	assert.Equal(t, gust.Ok(9), gust.TryErr[int](fmt.Errorf("3")).OrElse(sq).OrElse(errFn))
+	assert.Equal(t, gust.TryErr[int](fmt.Errorf("3")), gust.TryErr[int](fmt.Errorf("3")).OrElse(errFn).OrElse(errFn))
 }
 
 func TestResult_Or(t *testing.T) {
 	{
 		x := gust.Ok(2)
-		y := gust.Err[int]("late error")
+		y := gust.TryErr[int]("late error")
 		assert.Equal(t, gust.Ok(2), x.Or(y))
 	}
 	{
-		x := gust.Err[uint]("early error")
+		x := gust.TryErr[uint]("early error")
 		y := gust.Ok[uint](2)
 		assert.Equal(t, gust.Ok[uint](2), x.Or(y))
 	}
 	{
-		x := gust.Err[uint]("not a 2")
-		y := gust.Err[uint]("late error")
-		assert.Equal(t, gust.Err[uint]("late error"), x.Or(y))
+		x := gust.TryErr[uint]("not a 2")
+		y := gust.TryErr[uint]("late error")
+		assert.Equal(t, gust.TryErr[uint]("late error"), x.Or(y))
 	}
 	{
 		x := gust.Ok[uint](2)
@@ -470,14 +497,14 @@ func TestResult_Ret(t *testing.T) {
 
 func TestResult_UnwrapErr_1(t *testing.T) {
 	defer func() {
-		assert.Equal(t, gust.BoxErr("called `Result.UnwrapErr()` on an `ok` value: 10"), recover())
+		assert.Equal(t, "called `Result.UnwrapErr()` on an `ok` value: 10", recover())
 	}()
 	err := gust.Ok(10).UnwrapErr()
 	assert.NoError(t, err)
 }
 
 func TestResult_UnwrapErr_2(t *testing.T) {
-	err := gust.Err[int]("emergency failure").UnwrapErr()
+	err := gust.TryErr[int]("emergency failure").UnwrapErr()
 	if assert.Error(t, err) {
 		assert.Equal(t, "emergency failure", err.Error())
 	} else {
@@ -508,7 +535,7 @@ func TestResult_Catch(t *testing.T) {
 	var result gust.Result[int]
 	func() {
 		defer result.Catch()
-		gust.Err[int]("test error").UnwrapOrThrow()
+		gust.TryErr[int]("test error").UnwrapOrThrow()
 	}()
 	assert.True(t, result.IsErr())
 	// Error() should only return error message, not stack trace
@@ -527,7 +554,7 @@ func TestResult_Catch_IsSomeBranch(t *testing.T) {
 	var result gust.Result[int] = gust.Ok(42)
 	func() {
 		defer result.Catch()
-		gust.Err[int]("panic error").UnwrapOrThrow()
+		gust.TryErr[int]("panic error").UnwrapOrThrow()
 	}()
 	assert.True(t, result.IsErr())
 	// Error() should only return error message, not stack trace
@@ -543,10 +570,10 @@ func TestResult_Catch_IsSomeBranch(t *testing.T) {
 
 func TestResult_UnwrapOrDefault(t *testing.T) {
 	assert.Equal(t, "car", gust.Ok("car").UnwrapOrDefault())
-	assert.Equal(t, "", gust.Err[string](nil).UnwrapOrDefault())
-	assert.Equal(t, time.Time{}, gust.Err[time.Time](nil).UnwrapOrDefault())
-	assert.Equal(t, &time.Time{}, gust.Err[*time.Time](nil).UnwrapOrDefault())
-	assert.Equal(t, valconv.Ref(&time.Time{}), gust.Err[**time.Time](nil).UnwrapOrDefault())
+	assert.Equal(t, "", gust.TryErr[string](nil).UnwrapOrDefault())
+	assert.Equal(t, time.Time{}, gust.TryErr[time.Time](nil).UnwrapOrDefault())
+	assert.Equal(t, &time.Time{}, gust.TryErr[*time.Time](nil).UnwrapOrDefault())
+	assert.Equal(t, conv.Ref(&time.Time{}), gust.TryErr[**time.Time](nil).UnwrapOrDefault())
 }
 
 func TestResult_UnwrapOrElse(t *testing.T) {
@@ -554,17 +581,16 @@ func TestResult_UnwrapOrElse(t *testing.T) {
 		return len(x.Error())
 	}
 	assert.Equal(t, 2, gust.Ok(2).UnwrapOrElse(count))
-	assert.Equal(t, 3, gust.Err[int]("foo").UnwrapOrElse(count))
+	assert.Equal(t, 3, gust.TryErr[int]("foo").UnwrapOrElse(count))
 }
 
 func TestResult_Unwrap(t *testing.T) {
 	defer func() {
 		p := recover()
-		if eb, ok := p.(*gust.ErrBox); ok {
-			// Unwrap() panics *ErrBox, convert to error for comparison
-			assert.Equal(t, "strconv.Atoi: parsing \"4x\": invalid syntax", eb.String())
+		if eb, ok := p.(*strconv.NumError); ok {
+			assert.Equal(t, "strconv.Atoi: parsing \"4x\": invalid syntax", eb.Error())
 		} else {
-			t.Fatalf("expected *gust.ErrBox, got %T: %v", p, p)
+			t.Fatalf("expected *strconv.NumError, got %T: %v", p, p)
 		}
 	}()
 	gust.Ret(strconv.Atoi("4x")).Unwrap()
@@ -576,7 +602,7 @@ func TestResult_UnwrapUnchecked(t *testing.T) {
 		assert.Equal(t, "", r.UnwrapUnchecked())
 	}
 	{
-		var r = gust.Err[string]("foo")
+		var r = gust.TryErr[string]("foo")
 		assert.Equal(t, "", r.UnwrapUnchecked())
 	}
 	{
@@ -591,7 +617,7 @@ func TestResult_XOk(t *testing.T) {
 		assert.Equal(t, gust.Some[any](2), x.XOk())
 	}
 	{
-		var x = gust.Err[int]("some error message")
+		var x = gust.TryErr[int]("some error message")
 		assert.Equal(t, gust.None[any](), x.XOk())
 	}
 }
@@ -602,15 +628,15 @@ func TestResult_ErrVal(t *testing.T) {
 		assert.Nil(t, x.ErrVal())
 	}
 	{
-		var x = gust.Err[int]("some error message")
+		var x = gust.TryErr[int]("some error message")
 		assert.Equal(t, "some error message", x.ErrVal())
 	}
 	{
-		var x = gust.Err[int](gust.BoxErr("boxed error"))
+		var x = gust.TryErr[int](gust.BoxErr("boxed error"))
 		assert.Equal(t, "boxed error", x.ErrVal())
 	}
 	{
-		var x = gust.Err[int](errors.New("std error"))
+		var x = gust.TryErr[int](errors.New("std error"))
 		assert.NotNil(t, x.ErrVal())
 	}
 }
@@ -623,7 +649,7 @@ func TestResult_ToX(t *testing.T) {
 		assert.Equal(t, 42, xResult.Unwrap())
 	}
 	{
-		var x = gust.Err[int]("error")
+		var x = gust.TryErr[int]("error")
 		xResult := x.ToX()
 		assert.True(t, xResult.IsErr())
 		assert.Equal(t, "error", xResult.Err().Error())
@@ -638,7 +664,7 @@ func TestResult_XMap(t *testing.T) {
 		assert.Equal(t, 4, result.Unwrap())
 	}
 	{
-		var x = gust.Err[int]("error")
+		var x = gust.TryErr[int]("error")
 		result := x.XMap(func(i int) any { return i * 2 })
 		assert.True(t, result.IsErr())
 	}
@@ -651,7 +677,7 @@ func TestResult_XMapOr(t *testing.T) {
 		assert.Equal(t, 4, result)
 	}
 	{
-		var x = gust.Err[int]("error")
+		var x = gust.TryErr[int]("error")
 		result := x.XMapOr("default", func(i int) any { return i * 2 })
 		assert.Equal(t, "default", result)
 	}
@@ -664,7 +690,7 @@ func TestResult_XMapOrElse(t *testing.T) {
 		assert.Equal(t, 4, result)
 	}
 	{
-		var x = gust.Err[int]("error")
+		var x = gust.TryErr[int]("error")
 		result := x.XMapOrElse(func(error) any { return "default" }, func(i int) any { return i * 2 })
 		assert.Equal(t, "default", result)
 	}
@@ -678,14 +704,14 @@ func TestResult_ContainsErr(t *testing.T) {
 	{
 		// Use same error instance for comparison
 		testErr := errors.New("test error")
-		var x = gust.Err[int](testErr)
+		var x = gust.TryErr[int](testErr)
 		assert.True(t, x.ContainsErr(testErr))
 		assert.False(t, x.ContainsErr(errors.New("different error")))
 	}
 	{
 		err1 := errors.New("wrapped")
 		err2 := fmt.Errorf("outer: %w", err1)
-		var x = gust.Err[int](err2)
+		var x = gust.TryErr[int](err2)
 		assert.True(t, x.ContainsErr(err1))
 	}
 }
@@ -700,7 +726,7 @@ func TestResult_Iterator(t *testing.T) {
 		assert.True(t, x.Ok().IsNone())
 	}
 	{
-		var x = gust.Err[string]("error")
+		var x = gust.TryErr[string]("error")
 		opt := x.Next()
 		assert.True(t, opt.IsNone())
 	}
@@ -727,7 +753,7 @@ func TestResult_Iterator(t *testing.T) {
 		assert.Equal(t, uint(0), x.Remaining())
 	}
 	{
-		var x = gust.Err[string]("error")
+		var x = gust.TryErr[string]("error")
 		assert.Equal(t, uint(0), x.Remaining())
 	}
 	{
@@ -750,24 +776,46 @@ func TestResult_ErrToVoidResult(t *testing.T) {
 		assert.False(t, result.IsErr())
 	}
 	{
-		var x = gust.Err[string](errors.New("error"))
+		var x = gust.TryErr[string](errors.New("error"))
 		result := gust.RetVoid(x.Err())
 		assert.True(t, result.IsErr())
 	}
 }
 
 func TestResult_Split(t *testing.T) {
+	// Test Ok case - covers safeGetT() and safeGetE() with Ok result
 	{
 		var x = gust.Ok("foo")
 		val, err := x.Split()
 		assert.NoError(t, err)
 		assert.Equal(t, "foo", val)
 	}
+
+	// Test Err case with error interface - covers safeGetT() returning zero value and safeGetE() with error
 	{
-		var x = gust.Err[string](errors.New("error"))
+		var x = gust.TryErr[string](errors.New("error"))
 		val, err := x.Split()
 		assert.Error(t, err)
-		assert.Equal(t, "", val)
+		assert.Equal(t, "", val) // Zero value for string
+		assert.Contains(t, err.Error(), "error")
+	}
+
+	// Test Err case with string error - covers safeGetE() with string error
+	{
+		var x = gust.TryErr[int]("string error")
+		val, err := x.Split()
+		assert.Error(t, err)
+		assert.Equal(t, 0, val) // Zero value for int
+		assert.Contains(t, err.Error(), "string error")
+	}
+
+	// Test Err case with ErrBox - covers safeGetE() with ErrBox
+	{
+		var x = gust.TryErr[int](gust.BoxErr("boxed error"))
+		val, err := x.Split()
+		assert.Error(t, err)
+		assert.Equal(t, 0, val) // Zero value for int
+		assert.Contains(t, err.Error(), "boxed error")
 	}
 }
 
@@ -836,7 +884,7 @@ func TestResult_Catch_NilReceiver(t *testing.T) {
 	}()
 	var nilResult *gust.Result[int]
 	defer nilResult.Catch()
-	gust.Err[int]("test error").UnwrapOrThrow()
+	gust.TryErr[int]("test error").UnwrapOrThrow()
 }
 
 func TestResult_Catch_NonPanicValue(t *testing.T) {
@@ -864,7 +912,7 @@ func TestResult_Catch_OkValue(t *testing.T) {
 	var result gust.Result[int] = gust.Ok(42)
 	func() {
 		defer result.Catch()
-		gust.Err[string]("test error").UnwrapOrThrow()
+		gust.TryErr[string]("test error").UnwrapOrThrow()
 	}()
 	// Result should be updated to Err
 	assert.True(t, result.IsErr())
@@ -886,7 +934,7 @@ func TestResult_Catch_WithStackTrace(t *testing.T) {
 		var result gust.Result[int]
 		func() {
 			defer result.Catch()
-			gust.Err[int]("test error").UnwrapOrThrow()
+			gust.TryErr[int]("test error").UnwrapOrThrow()
 		}()
 		assert.True(t, result.IsErr())
 		err := result.Err()
@@ -964,7 +1012,7 @@ func TestResult_Catch_StackTraceAccess(t *testing.T) {
 	var result gust.Result[int]
 	func() {
 		defer result.Catch()
-		gust.Err[int]("test error").UnwrapOrThrow()
+		gust.TryErr[int]("test error").UnwrapOrThrow()
 	}()
 	assert.True(t, result.IsErr())
 
@@ -978,7 +1026,7 @@ func TestResult_Catch_StackTraceAccess(t *testing.T) {
 	assert.NotContains(t, errMsg, "\n")
 
 	// Try to extract StackTraceCarrier from error chain
-	var carrier gust.StackTraceCarrier
+	var carrier errutil.StackTraceCarrier
 	if errors.As(err, &carrier) {
 		stack := carrier.StackTrace()
 		assert.True(t, len(stack) > 0, "Stack trace should not be empty")
@@ -1019,7 +1067,7 @@ func TestResult_Catch_ErrBoxValue(t *testing.T) {
 	eb := gust.BoxErr(errors.New("errbox value error"))
 	func() {
 		defer result.Catch()
-		panic(*eb)
+		panic(eb)
 	}()
 	assert.True(t, result.IsErr())
 	err := result.Err()
@@ -1063,7 +1111,7 @@ func TestResult_Catch_WithStackTraceFalse(t *testing.T) {
 	var result gust.Result[int]
 	func() {
 		defer result.Catch(false)
-		gust.Err[int]("test error").UnwrapOrThrow()
+		gust.TryErr[int]("test error").UnwrapOrThrow()
 	}()
 	assert.True(t, result.IsErr())
 	err := result.Err()
@@ -1084,7 +1132,7 @@ func TestResult_Catch_WithStackTraceTrue(t *testing.T) {
 			t.Logf("error with panic stack trace: %+v", result.Err())
 		}()
 		defer result.Catch(true)
-		gust.Err[int]("test error").UnwrapOrThrow()
+		gust.TryErr[int]("test error").UnwrapOrThrow()
 	}()
 	assert.True(t, result.IsErr())
 	err := result.Err()
@@ -1105,7 +1153,7 @@ func TestResult_Catch_WithStackTraceDefault(t *testing.T) {
 	var result gust.Result[int]
 	func() {
 		defer result.Catch()
-		gust.Err[int]("test error").UnwrapOrThrow()
+		gust.TryErr[int]("test error").UnwrapOrThrow()
 	}()
 	assert.True(t, result.IsErr())
 	err := result.Err()
@@ -1158,7 +1206,7 @@ func TestResult_Catch_FormatOptions(t *testing.T) {
 	var result gust.Result[int]
 	func() {
 		defer result.Catch()
-		gust.Err[int]("format test error").UnwrapOrThrow()
+		gust.TryErr[int]("format test error").UnwrapOrThrow()
 	}()
 	assert.True(t, result.IsErr())
 	err := result.Err()
@@ -1235,7 +1283,7 @@ func TestResult_Catch_WithStackTraceFalse_Verification(t *testing.T) {
 	var result gust.Result[int]
 	func() {
 		defer result.Catch(false)
-		gust.Err[int]("no stack error").UnwrapOrThrow()
+		gust.TryErr[int]("no stack error").UnwrapOrThrow()
 	}()
 	assert.True(t, result.IsErr())
 	err := result.Err()
@@ -1288,7 +1336,7 @@ func TestResult_XAndThen(t *testing.T) {
 	// Test XAndThen with error path
 	result3 := gust.Ok[int](42)
 	result4 := result3.XAndThen(func(i int) gust.Result[any] {
-		return gust.Err[any]("error")
+		return gust.TryErr[any]("error")
 	})
 	assert.True(t, result4.IsErr())
 }
@@ -1314,7 +1362,7 @@ func TestResult_AndThen2(t *testing.T) {
 	}
 	// Test with Err result (should return original error)
 	{
-		x := gust.Err[int]("early error")
+		x := gust.TryErr[int]("early error")
 		result := x.AndThen2(func(i int) (int, error) {
 			return i * 2, nil
 		})
@@ -1344,7 +1392,7 @@ func TestResult_XAndThen2(t *testing.T) {
 	}
 	// Test with Err result (should return original error)
 	{
-		x := gust.Err[int]("early error")
+		x := gust.TryErr[int]("early error")
 		result := x.XAndThen2(func(i int) (any, error) {
 			return i * 2, nil
 		})
@@ -1370,14 +1418,14 @@ func TestResult_Or2(t *testing.T) {
 	}
 	// Test with Err result and Ok value
 	{
-		x := gust.Err[int]("early error")
+		x := gust.TryErr[int]("early error")
 		result := x.Or2(3, nil)
 		assert.True(t, result.IsOk())
 		assert.Equal(t, 3, result.Unwrap())
 	}
 	// Test with Err result and Err value
 	{
-		x := gust.Err[int]("early error")
+		x := gust.TryErr[int]("early error")
 		result := x.Or2(3, errors.New("late error"))
 		assert.True(t, result.IsErr())
 		assert.Equal(t, "late error", result.Err().Error())
@@ -1396,7 +1444,7 @@ func TestResult_OrElse2(t *testing.T) {
 	}
 	// Test with Err result and successful operation
 	{
-		x := gust.Err[int]("early error")
+		x := gust.TryErr[int]("early error")
 		result := x.OrElse2(func(err error) (int, error) {
 			return 3, nil
 		})
@@ -1405,7 +1453,7 @@ func TestResult_OrElse2(t *testing.T) {
 	}
 	// Test with Err result and error operation
 	{
-		x := gust.Err[int]("early error")
+		x := gust.TryErr[int]("early error")
 		result := x.OrElse2(func(err error) (int, error) {
 			return 0, errors.New("late error")
 		})
@@ -1431,14 +1479,14 @@ func TestResult_Flatten(t *testing.T) {
 	}
 	// Test with Err result and nil error (should return original Err)
 	{
-		r := gust.Err[int]("original error")
+		r := gust.TryErr[int]("original error")
 		result := r.Flatten(nil)
 		assert.True(t, result.IsErr())
 		assert.Equal(t, "original error", result.Err().Error())
 	}
 	// Test with Err result and error (should return the provided error)
 	{
-		r := gust.Err[int]("original error")
+		r := gust.TryErr[int]("original error")
 		result := r.Flatten(errors.New("new error"))
 		assert.True(t, result.IsErr())
 		assert.Equal(t, "new error", result.Err().Error())
@@ -1452,12 +1500,12 @@ func TestOkVoid(t *testing.T) {
 	assert.Nil(t, result.Err())
 }
 
-// TestErrVoid tests ErrVoid function (covers result.go:102-107)
-func TestErrVoid(t *testing.T) {
+// TestTryErrVoid tests TryErrVoid function (covers result.go:104-110)
+func TestTryErrVoid(t *testing.T) {
 	// Test with error value
 	{
 		err := errors.New("test error")
-		result := gust.ErrVoid(err)
+		result := gust.TryErrVoid(err)
 		assert.True(t, result.IsErr())
 		assert.False(t, result.IsOk())
 		assert.NotNil(t, result.Err())
@@ -1465,25 +1513,24 @@ func TestErrVoid(t *testing.T) {
 	}
 	// Test with string error
 	{
-		result := gust.ErrVoid("string error")
+		result := gust.TryErrVoid("string error")
 		assert.True(t, result.IsErr())
 		assert.False(t, result.IsOk())
 		assert.NotNil(t, result.Err())
 		assert.Equal(t, "string error", result.Err().Error())
 	}
-	// Test with nil error (should still be error state, following declarative programming principles)
+	// Test with nil error (should return OkVoid, as nil represents "no error")
 	{
-		result := gust.ErrVoid(nil)
-		assert.True(t, result.IsErr())
-		assert.False(t, result.IsOk())
-		// Even if err is nil, ErrVoid(nil) still represents an error state
-		// This follows declarative programming principles consistent with Err[T](nil)
+		result := gust.TryErrVoid(nil)
+		assert.True(t, result.IsOk(), "TryErrVoid(nil) should return OkVoid")
+		assert.False(t, result.IsErr(), "TryErrVoid(nil) should not return Err")
+		// TryErrVoid(nil) returns OkVoid() because nil represents "no error"
 	}
-	// Test that ErrVoid is equivalent to Err[Void]
+	// Test that TryErrVoid is equivalent to TryErr[Void]
 	{
 		err := errors.New("comparison error")
-		result1 := gust.ErrVoid(err)
-		result2 := gust.Err[gust.Void](err)
+		result1 := gust.TryErrVoid(err)
+		result2 := gust.TryErr[gust.Void](err)
 		assert.Equal(t, result1.IsErr(), result2.IsErr())
 		assert.Equal(t, result1.IsOk(), result2.IsOk())
 		if result1.IsErr() && result2.IsErr() {
@@ -1496,7 +1543,7 @@ func TestErrVoid(t *testing.T) {
 func TestUnwrapErrOr(t *testing.T) {
 	// Test with Err result
 	{
-		r := gust.Err[gust.Void]("test error")
+		r := gust.TryErr[gust.Void]("test error")
 		def := errors.New("default error")
 		err := gust.UnwrapErrOr(r, def)
 		assert.NotNil(t, err)
@@ -1514,24 +1561,18 @@ func TestUnwrapErrOr(t *testing.T) {
 // TestResult_wrapError tests wrapError method indirectly through Expect
 func TestResult_wrapError(t *testing.T) {
 	// Test wrapError with nil value (covers result.go:373-376)
+	// TryErr(nil) now returns Ok, so Expect should not panic
 	{
-		r := gust.Err[int](nil)
-		defer func() {
-			p := recover()
-			if p != nil {
-				if err, ok := p.(error); ok {
-					assert.Contains(t, err.Error(), "gust.Err(nil)")
-				} else {
-					t.Errorf("Expected error panic, got %T: %v", p, p)
-				}
-			}
-		}()
-		r.Expect("test message")
-		t.Fatal("Expected panic")
+		r := gust.TryErr[int](nil)
+		assert.True(t, r.IsOk(), "TryErr(nil) should return Ok")
+		assert.False(t, r.IsErr(), "TryErr(nil) should not return Err")
+		// Expect should return zero value, not panic
+		value := r.Expect("test message")
+		assert.Equal(t, 0, value, "Expect should return zero value for TryErr(nil)")
 	}
 	// Test wrapError with non-error value (covers result.go:380)
 	{
-		r := gust.Err[int](42)
+		r := gust.TryErr[int](42)
 		defer func() {
 			p := recover()
 			if p != nil {
@@ -1567,7 +1608,7 @@ func TestResult_wrapError(t *testing.T) {
 func TestResult_AndThen(t *testing.T) {
 	// Test with Err result (should return r) (covers result.go:488-490)
 	{
-		r := gust.Err[int]("error")
+		r := gust.TryErr[int]("error")
 		result := r.AndThen(func(i int) gust.Result[int] {
 			return gust.Ok(i * 2)
 		})

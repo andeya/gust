@@ -195,7 +195,7 @@ func (o Option[T]) IsNone() bool {
 // Panics if the value is none with a custom panic message provided by `msg`.
 func (o Option[T]) Expect(msg string) T {
 	if o.IsNone() {
-		panic(BoxErr(msg))
+		panic(msg)
 	}
 	return o.UnwrapUnchecked()
 }
@@ -207,7 +207,7 @@ func (o Option[T]) Unwrap() T {
 		return o.UnwrapUnchecked()
 	}
 	var t T
-	panic(BoxErr(fmt.Sprintf("call Option[%T].Unwrap() on none", t)))
+	panic(fmt.Sprintf("call Option[%T].Unwrap() on none", t))
 }
 
 // UnwrapOr returns the contained value or a provided fallback value.
@@ -331,7 +331,7 @@ func (o Option[T]) OkOr(err any) Result[T] {
 	if o.IsSome() {
 		return Result[T]{t: o}
 	}
-	return Err[T](err)
+	return TryErr[T](err)
 }
 
 // XOkOr transforms the `Option[T]` into a [`Result[any]`], mapping [`Some(v)`] to
@@ -340,7 +340,7 @@ func (o Option[T]) XOkOr(err any) Result[any] {
 	if o.IsSome() {
 		return Ok[any](o.UnwrapUnchecked())
 	}
-	return Err[any](err)
+	return TryErr[any](err)
 }
 
 // OkOrElse transforms the `Option[T]` into a [`Result[T]`], mapping [`Some(v)`] to
@@ -349,7 +349,7 @@ func (o Option[T]) OkOrElse(errFn func() any) Result[T] {
 	if o.IsSome() {
 		return Result[T]{t: o}
 	}
-	return Err[T](errFn())
+	return TryErr[T](errFn())
 }
 
 // XOkOrElse transforms the `Option[T]` into a [`Result[any]`], mapping [`Some(v)`] to
@@ -358,7 +358,7 @@ func (o Option[T]) XOkOrElse(errFn func() any) Result[any] {
 	if o.IsSome() {
 		return Ok[any](o.UnwrapUnchecked())
 	}
-	return Err[any](errFn())
+	return TryErr[any](errFn())
 }
 
 // AndThen returns [`None`] if the option is [`None`], otherwise calls `f` with the
@@ -570,11 +570,11 @@ func (o *Option[T]) Remaining() uint {
 //
 //	```go
 //	var opt gust.Option[string] = gust.Some("value")
-//	var result gust.VoidResult = opt.ToResult()
+//	var result gust.VoidResult = option.ToResult()
 //	```
 func (o Option[T]) ToResult() VoidResult {
 	if o.IsSome() {
-		return Err[Void](o.UnwrapUnchecked())
+		return TryErr[Void](o.UnwrapUnchecked())
 	}
 	return Ok[Void](nil)
 }

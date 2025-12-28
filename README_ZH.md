@@ -65,14 +65,14 @@ func fetchUserData(userID int) (string, error) {
 
 ```go
 import "github.com/andeya/gust"
-import "github.com/andeya/gust/ret"
+import "github.com/andeya/gust/result"
 
 func fetchUserData(userID int) gust.Result[string] {
-    return ret.AndThen(gust.Ret(getUser(userID)), func(user *User) gust.Result[string] {
+    return result.AndThen(gust.Ret(getUser(userID)), func(user *User) gust.Result[string] {
         if user == nil || user.Email == "" {
-            return gust.Err[string]("invalid user")
+            return gust.TryErr[string]("invalid user")
         }
-        return ret.Map(gust.Ret(getProfile(user.Email)), func(profile *Profile) string {
+        return result.Map(gust.Ret(getProfile(user.Email)), func(profile *Profile) string {
             return fmt.Sprintf("%s: %s", user.Name, profile.Bio)
         })
     })
@@ -102,14 +102,13 @@ go get github.com/andeya/gust
 
 ```go
 import "github.com/andeya/gust"
-import "github.com/andeya/gust/ret"
 
 // 链式操作可能失败的操作
 result := gust.Ok(10).
     Map(func(x int) int { return x * 2 }).
     AndThen(func(x int) gust.Result[int] {
         if x > 15 {
-            return gust.Err[int]("too large")
+            return gust.TryErr[int]("too large")
         }
         return gust.Ok(x + 5)
     }).
@@ -160,11 +159,11 @@ fmt.Println(result) // 10
 完整的 Rust Iterator trait 实现，支持方法链：
 
 ```go
-import "github.com/andeya/gust/iter"
+import "github.com/andeya/gust/iterator"
 
 numbers := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 
-sum := iter.FromSlice(numbers).
+sum := iterator.FromSlice(numbers).
     Filter(func(x int) bool { return x%2 == 0 }).
     Map(func(x int) int { return x * x }).
     Take(3).
@@ -187,12 +186,12 @@ fmt.Println(sum) // 56 (4 + 16 + 36)
 
 **注意：** 对于类型转换操作（例如，从 `string` 到 `int` 的 `Map`），请使用函数式 API：
 ```go
-iter.Map(iter.FromSlice(strings), func(s string) int { return len(s) })
+iterator.Map(iterator.FromSlice(strings), func(s string) int { return len(s) })
 ```
 
 对于相同类型的操作，您可以使用方法链：
 ```go
-iter.FromSlice(numbers).Filter(func(x int) bool { return x > 0 }).Map(func(x int) int { return x * 2 })
+iterator.FromSlice(numbers).Filter(func(x int) bool { return x > 0 }).Map(func(x int) int { return x * 2 })
 ```
 
 **核心优势：**
@@ -206,20 +205,20 @@ iter.FromSlice(numbers).Filter(func(x int) bool { return x > 0 }).Map(func(x int
 从各种数据源创建迭代器：
 
 ```go
-import "github.com/andeya/gust/iter"
+import "github.com/andeya/gust/iterator"
 
 // 从切片创建
-iter1 := iter.FromSlice([]int{1, 2, 3})
+iter1 := iterator.FromSlice([]int{1, 2, 3})
 
 // 从单个元素创建
-iter2 := iter.FromElements(1, 2, 3)
+iter2 := iterator.FromElements(1, 2, 3)
 
 // 从范围创建 [start, end)
-iter3 := iter.FromRange(0, 5) // 0, 1, 2, 3, 4
+iter3 := iterator.FromRange(0, 5) // 0, 1, 2, 3, 4
 
 // 从函数创建
 count := 0
-iter4 := iter.FromFunc(func() gust.Option[int] {
+iter4 := iterator.FromFunc(func() gust.Option[int] {
     if count < 3 {
         count++
         return gust.Some(count)
@@ -228,13 +227,13 @@ iter4 := iter.FromFunc(func() gust.Option[int] {
 })
 
 // 空迭代器
-iter5 := iter.Empty[int]()
+iter5 := iterator.Empty[int]()
 
 // 单值迭代器
-iter6 := iter.Once(42)
+iter6 := iterator.Once(42)
 
 // 无限重复
-iter7 := iter.Repeat("hello") // "hello", "hello", "hello", ...
+iter7 := iterator.Repeat("hello") // "hello", "hello", "hello", ...
 ```
 
 #### Go 标准迭代器集成
@@ -243,10 +242,10 @@ gust 迭代器与 Go 1.23+ 标准迭代器无缝集成：
 
 **将 gust Iterator 转换为 Go 的 `iter.Seq[T]`：**
 ```go
-import "github.com/andeya/gust/iter"
+import "github.com/andeya/gust/iterator"
 
 numbers := []int{1, 2, 3, 4, 5}
-gustIter := iter.FromSlice(numbers).Filter(func(x int) bool { return x%2 == 0 })
+gustIter := iterator.FromSlice(numbers).Filter(func(x int) bool { return x%2 == 0 })
 
 // 在 Go 标准的 for-range 循环中使用
 for v := range gustIter.Seq() {
@@ -256,7 +255,7 @@ for v := range gustIter.Seq() {
 
 **将 Go 的 `iter.Seq[T]` 转换为 gust Iterator：**
 ```go
-import "github.com/andeya/gust/iter"
+import "github.com/andeya/gust/iterator"
 
 // 创建 Go 标准迭代器序列
 goSeq := func(yield func(int) bool) {
@@ -268,7 +267,7 @@ goSeq := func(yield func(int) bool) {
 }
 
 // 转换为 gust Iterator 并使用 gust 方法
-gustIter, deferStop := iter.FromSeq(goSeq)
+gustIter, deferStop := iterator.FromSeq(goSeq)
 defer deferStop()
 result := gustIter.Map(func(x int) int { return x * 2 }).Collect()
 fmt.Println(result) // [0 2 4 6 8]
@@ -279,10 +278,10 @@ fmt.Println(result) // [0 2 4 6 8]
 从两端迭代：
 
 ```go
-import "github.com/andeya/gust/iter"
+import "github.com/andeya/gust/iterator"
 
 numbers := []int{1, 2, 3, 4, 5}
-deIter := iter.FromSlice(numbers).MustToDoubleEnded()
+deIter := iterator.FromSlice(numbers).MustToDoubleEnded()
 
 // 从前端迭代
 if val := deIter.Next(); val.IsSome() {
@@ -301,14 +300,14 @@ if val := deIter.NextBack(); val.IsSome() {
 
 ```go
 import "github.com/andeya/gust"
-import "github.com/andeya/gust/iter"
+import "github.com/andeya/gust/iterator"
 import "strconv"
 
 // 将字符串解析为整数，自动过滤错误
 numbers := []string{"1", "2", "three", "4", "five"}
 
-results := iter.FilterMap(
-    iter.RetMap(iter.FromSlice(numbers), strconv.Atoi),
+results := iterator.FilterMap(
+    iterator.RetMap(iterator.FromSlice(numbers), strconv.Atoi),
     gust.Result[int].Ok,
 ).
     Collect()
@@ -320,11 +319,15 @@ fmt.Println("Parsed numbers:", results)
 ### 真实世界的数据管道
 
 ```go
+import "github.com/andeya/gust"
+import "github.com/andeya/gust/iterator"
+import "strconv"
+
 // 处理用户输入：解析、验证、转换、限制
 input := []string{"10", "20", "invalid", "30", "0", "40"}
 
-results := iter.FilterMap(
-    iter.RetMap(iter.FromSlice(input), strconv.Atoi),
+results := iterator.FilterMap(
+    iterator.RetMap(iterator.FromSlice(input), strconv.Atoi),
     gust.Result[int].Ok,
 ).
     Filter(func(x int) bool { return x > 0 }).
@@ -338,6 +341,9 @@ fmt.Println(results) // [20 40 60]
 ### Option 链式操作
 
 ```go
+import "github.com/andeya/gust"
+import "fmt"
+
 // 在可选值上链式操作并过滤
 result := gust.Some(5).
     Map(func(x int) int { return x * 2 }).
@@ -353,10 +359,13 @@ fmt.Println(result) // "Value: 10"
 ### 数据分区
 
 ```go
+import "github.com/andeya/gust/iterator"
+import "fmt"
+
 // 将数字分为偶数和奇数
 numbers := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 
-evens, odds := iter.FromSlice(numbers).
+evens, odds := iterator.FromSlice(numbers).
     Partition(func(x int) bool { return x%2 == 0 })
 
 fmt.Println("Evens:", evens) // [2 4 6 8 10]
@@ -368,23 +377,24 @@ fmt.Println("Odds:", odds)   // [1 3 5 7 9]
 使用完整的迭代器支持迭代位集合或字节切片中的位：
 
 ```go
-import "github.com/andeya/gust/iter"
+import "github.com/andeya/gust/iterator"
+import "fmt"
 
 // 迭代字节切片中的位
 bytes := []byte{0b10101010, 0b11001100}
 
 // 获取所有设置为 1 的位的偏移量
-setBits := iter.FromBitSetBytesOnes(bytes).
+setBits := iterator.FromBitSetBytesOnes(bytes).
     Filter(func(offset int) bool { return offset > 5 }).
     Collect()
 fmt.Println(setBits) // [6 8 9 12 13]
 
 // 统计设置为 1 的位的数量
-count := iter.FromBitSetBytesOnes(bytes).Count()
+count := iterator.FromBitSetBytesOnes(bytes).Count()
 fmt.Println(count) // 8
 
 // 设置为 1 的位的偏移量之和
-sum := iter.FromBitSetBytesOnes(bytes).
+sum := iterator.FromBitSetBytesOnes(bytes).
     Fold(0, func(acc, offset int) int { return acc + offset })
 fmt.Println(sum) // 54 (0+2+4+6+8+9+12+13)
 
@@ -404,7 +414,7 @@ func (b *MyBitSet) Get(offset int) bool {
 }
 
 bitset := &MyBitSet{bits: []byte{0b10101010}}
-ones := iter.FromBitSetOnes(bitset).Collect()
+ones := iterator.FromBitSetOnes(bitset).Collect()
 fmt.Println(ones) // [0 2 4 6]
 ```
 
@@ -414,11 +424,14 @@ gust 提供了多个工具包来扩展其功能：
 
 - **`gust/dict`** - 通用 map 工具（Filter, Map, Keys, Values 等）
 - **`gust/vec`** - 通用 slice 工具
-- **`gust/valconv`** - 类型安全的值转换
-- **`gust/digit`** - 数字转换工具
+- **`gust/conv`** - 类型安全的值转换和反射工具
+- **`gust/digit`** - 数字转换工具（进制转换等）
 - **`gust/opt`** - `Option[T]` 辅助函数（Map, AndThen, Zip, Unzip, Assert 等）
-- **`gust/ret`** - `Result[T]` 辅助函数（Map, AndThen, Assert, Flatten 等）
-- **`gust/iter`** - Rust 风格迭代器实现（参见上面的[迭代器部分](#3-iterator---go-中的-rust-风格迭代)）
+- **`gust/result`** - `Result[T]` 辅助函数（Map, AndThen, Assert, Flatten 等）
+- **`gust/iterator`** - Rust 风格迭代器实现（参见上面的[迭代器部分](#3-iterator---go-中的-rust-风格迭代)）
+- **`gust/syncutil`** - 并发工具（SyncMap, Mutex 包装器, 懒加载初始化等）
+- **`gust/errutil`** - 错误工具（堆栈跟踪, Panic 恢复等）
+- **`gust/constraints`** - 类型约束（Ordering, Numeric 等）
 
 ### 快速示例
 
@@ -447,12 +460,13 @@ some := gust.Some(5)
 doubled := opt.Map(some, func(x int) int { return x * 2 })
 ```
 
-**Ret 工具：**
+**Result 工具：**
 ```go
-import "github.com/andeya/gust/ret"
+import "github.com/andeya/gust"
+import "github.com/andeya/gust/result"
 
 result := gust.Ok(10)
-doubled := ret.Map(result, func(x int) int { return x * 2 })
+doubled := result.Map(result, func(x int) int { return x * 2 })
 ```
 
 更多详细信息，请参阅[完整文档](https://pkg.go.dev/github.com/andeya/gust)和[示例](./examples/)。
@@ -501,15 +515,54 @@ doubled := opt.Map(some, func(x int) int { return x * 2 })
 zipped := opt.Zip(gust.Some(1), gust.Some("hello"))
 ```
 
-#### Ret 工具
+#### Result 工具
 ```go
-import "github.com/andeya/gust/ret"
+import "github.com/andeya/gust"
+import "github.com/andeya/gust/result"
 
 result := gust.Ok(10)
-doubled := ret.Map(result, func(x int) int { return x * 2 })
-chained := ret.AndThen(gust.Ok(5), func(x int) gust.Result[int] {
+doubled := result.Map(result, func(x int) int { return x * 2 })
+chained := result.AndThen(gust.Ok(5), func(x int) gust.Result[int] {
     return gust.Ok(x * 2)
 })
+```
+
+#### Conv 工具
+```go
+import "github.com/andeya/gust/conv"
+
+// 类型安全转换
+value := conv.To[int]("42") // 返回 Option[int]
+
+// 反射工具
+if conv.IsNil(someValue) {
+    // 处理 nil 情况
+}
+```
+
+#### SyncUtil 工具
+```go
+import "github.com/andeya/gust/syncutil"
+
+// 线程安全的 map
+var m syncutil.SyncMap[string, int]
+m.Store("key", 42)
+value := m.Load("key") // 返回 Option[int]
+
+// 懒加载初始化
+lazy := syncutil.NewLazy(func() int {
+    return expensiveComputation()
+})
+value := lazy.Get() // 只计算一次
+```
+
+#### Digit 工具
+```go
+import "github.com/andeya/gust/digit"
+
+// 进制转换（例如 base62）
+encoded := digit.Itoa62(12345) // 转换为 base62 字符串
+decoded := digit.Atoi62(encoded) // 转换回来，返回 Result[int]
 ```
 
 ## 🔗 资源

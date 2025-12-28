@@ -6,7 +6,7 @@ import (
 
 	"github.com/andeya/gust"
 	"github.com/andeya/gust/dict"
-	"github.com/andeya/gust/iter"
+	"github.com/andeya/gust/iterator"
 	"github.com/andeya/gust/vec"
 	"github.com/stretchr/testify/assert"
 )
@@ -15,8 +15,8 @@ import (
 func TestExamples(t *testing.T) {
 	// Test Result example
 	numbers := []string{"1", "2", "three", "4"}
-	results := iter.FilterMap(
-		iter.RetMap(iter.FromSlice(numbers), strconv.Atoi),
+	results := iterator.FilterMap(
+		iterator.RetMap(iterator.FromSlice(numbers), strconv.Atoi),
 		gust.Result[int].Ok,
 	).
 		Collect()
@@ -34,7 +34,7 @@ func TestExamples(t *testing.T) {
 	assert.Equal(t, 5.0, result)
 
 	// Test Iterator example
-	sum := iter.FromSlice([]int{1, 2, 3, 4, 5, 6}).
+	sum := iterator.FromSlice([]int{1, 2, 3, 4, 5, 6}).
 		Filter(func(x int) bool { return x%2 == 0 }).
 		Map(func(x int) int { return x * x }).
 		Take(3).
@@ -45,9 +45,9 @@ func TestExamples(t *testing.T) {
 
 	// Test FlatMap
 	words := []string{"ab", "cd"}
-	chars := iter.FromSlice(words).
-		XFlatMap(func(s string) iter.Iterator[any] {
-			return iter.FromSlice([]rune(s)).XMap(func(r rune) any { return r })
+	chars := iterator.FromSlice(words).
+		XFlatMap(func(s string) iterator.Iterator[any] {
+			return iterator.FromSlice([]rune(s)).XMap(func(r rune) any { return r })
 		}).
 		Collect()
 
@@ -59,7 +59,7 @@ func TestExamples(t *testing.T) {
 
 	// Test Partition
 	numbers2 := []int{1, 2, 3, 4, 5}
-	evens, odds := iter.FromSlice(numbers2).
+	evens, odds := iterator.FromSlice(numbers2).
 		Partition(func(x int) bool {
 			return x%2 == 0
 		})

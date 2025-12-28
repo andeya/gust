@@ -63,14 +63,14 @@ func fetchUserData(userID int) (string, error) {
 ### After gust (Elegant & Safe)
 ```go
 import "github.com/andeya/gust"
-import "github.com/andeya/gust/ret"
+import "github.com/andeya/gust/result"
 
 func fetchUserData(userID int) gust.Result[string] {
-    return ret.AndThen(gust.Ret(getUser(userID)), func(user *User) gust.Result[string] {
+    return result.AndThen(gust.Ret(getUser(userID)), func(user *User) gust.Result[string] {
         if user == nil || user.Email == "" {
-            return gust.Err[string]("invalid user")
+            return gust.TryErr[string]("invalid user")
         }
-        return ret.Map(gust.Ret(getProfile(user.Email)), func(profile *Profile) string {
+        return result.Map(gust.Ret(getProfile(user.Email)), func(profile *Profile) string {
             return fmt.Sprintf("%s: %s", user.Name, profile.Bio)
         })
     })
@@ -100,14 +100,13 @@ Replace `(T, error)` with chainable `Result[T]`:
 
 ```go
 import "github.com/andeya/gust"
-import "github.com/andeya/gust/ret"
 
 // Chain operations that can fail
 result := gust.Ok(10).
     Map(func(x int) int { return x * 2 }).
     AndThen(func(x int) gust.Result[int] {
         if x > 15 {
-            return gust.Err[int]("too large")
+            return gust.TryErr[int]("too large")
         }
         return gust.Ok(x + 5)
     }).
@@ -158,11 +157,11 @@ fmt.Println(result) // 10
 Full Rust Iterator trait implementation with method chaining:
 
 ```go
-import "github.com/andeya/gust/iter"
+import "github.com/andeya/gust/iterator"
 
 numbers := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 
-sum := iter.FromSlice(numbers).
+sum := iterator.FromSlice(numbers).
     Filter(func(x int) bool { return x%2 == 0 }).
     Map(func(x int) int { return x * x }).
     Take(3).
@@ -185,12 +184,12 @@ fmt.Println(sum) // 56 (4 + 16 + 36)
 
 **Note:** For type-changing operations (e.g., `Map` from `string` to `int`), use the function-style API:
 ```go
-iter.Map(iter.FromSlice(strings), func(s string) int { return len(s) })
+iterator.Map(iterator.FromSlice(strings), func(s string) int { return len(s) })
 ```
 
 For same-type operations, you can use method chaining:
 ```go
-iter.FromSlice(numbers).Filter(func(x int) bool { return x > 0 }).Map(func(x int) int { return x * 2 })
+iterator.FromSlice(numbers).Filter(func(x int) bool { return x > 0 }).Map(func(x int) int { return x * 2 })
 ```
 
 **Key Benefits:**
@@ -204,20 +203,20 @@ iter.FromSlice(numbers).Filter(func(x int) bool { return x > 0 }).Map(func(x int
 Create iterators from various sources:
 
 ```go
-import "github.com/andeya/gust/iter"
+import "github.com/andeya/gust/iterator"
 
 // From slice
-iter1 := iter.FromSlice([]int{1, 2, 3})
+iter1 := iterator.FromSlice([]int{1, 2, 3})
 
 // From individual elements
-iter2 := iter.FromElements(1, 2, 3)
+iter2 := iterator.FromElements(1, 2, 3)
 
 // From range [start, end)
-iter3 := iter.FromRange(0, 5) // 0, 1, 2, 3, 4
+iter3 := iterator.FromRange(0, 5) // 0, 1, 2, 3, 4
 
 // From function
 count := 0
-iter4 := iter.FromFunc(func() gust.Option[int] {
+iter4 := iterator.FromFunc(func() gust.Option[int] {
     if count < 3 {
         count++
         return gust.Some(count)
@@ -226,13 +225,13 @@ iter4 := iter.FromFunc(func() gust.Option[int] {
 })
 
 // Empty iterator
-iter5 := iter.Empty[int]()
+iter5 := iterator.Empty[int]()
 
 // Single value
-iter6 := iter.Once(42)
+iter6 := iterator.Once(42)
 
 // Infinite repeat
-iter7 := iter.Repeat("hello") // "hello", "hello", "hello", ...
+iter7 := iterator.Repeat("hello") // "hello", "hello", "hello", ...
 ```
 
 #### Go Standard Iterator Integration
@@ -241,10 +240,10 @@ gust iterators seamlessly integrate with Go 1.23+ standard iterators:
 
 **Convert gust Iterator to Go's `iter.Seq[T]`:**
 ```go
-import "github.com/andeya/gust/iter"
+import "github.com/andeya/gust/iterator"
 
 numbers := []int{1, 2, 3, 4, 5}
-gustIter := iter.FromSlice(numbers).Filter(func(x int) bool { return x%2 == 0 })
+gustIter := iterator.FromSlice(numbers).Filter(func(x int) bool { return x%2 == 0 })
 
 // Use in Go's standard for-range loop
 for v := range gustIter.Seq() {
@@ -254,7 +253,7 @@ for v := range gustIter.Seq() {
 
 **Convert Go's `iter.Seq[T]` to gust Iterator:**
 ```go
-import "github.com/andeya/gust/iter"
+import "github.com/andeya/gust/iterator"
 
 // Create a Go standard iterator sequence
 goSeq := func(yield func(int) bool) {
@@ -266,7 +265,7 @@ goSeq := func(yield func(int) bool) {
 }
 
 // Convert to gust Iterator and use gust methods
-gustIter, deferStop := iter.FromSeq(goSeq)
+gustIter, deferStop := iterator.FromSeq(goSeq)
 defer deferStop()
 result := gustIter.Map(func(x int) int { return x * 2 }).Collect()
 fmt.Println(result) // [0 2 4 6 8]
@@ -277,10 +276,10 @@ fmt.Println(result) // [0 2 4 6 8]
 Iterate from both ends:
 
 ```go
-import "github.com/andeya/gust/iter"
+import "github.com/andeya/gust/iterator"
 
 numbers := []int{1, 2, 3, 4, 5}
-deIter := iter.FromSlice(numbers).MustToDoubleEnded()
+deIter := iterator.FromSlice(numbers).MustToDoubleEnded()
 
 // Iterate from front
 if val := deIter.Next(); val.IsSome() {
@@ -299,14 +298,14 @@ if val := deIter.NextBack(); val.IsSome() {
 
 ```go
 import "github.com/andeya/gust"
-import "github.com/andeya/gust/iter"
+import "github.com/andeya/gust/iterator"
 import "strconv"
 
 // Parse strings to integers, automatically filtering out errors
 numbers := []string{"1", "2", "three", "4", "five"}
 
-results := iter.FilterMap(
-    iter.RetMap(iter.FromSlice(numbers), strconv.Atoi),
+results := iterator.FilterMap(
+    iterator.RetMap(iterator.FromSlice(numbers), strconv.Atoi),
     gust.Result[int].Ok,
 ).
     Collect()
@@ -318,11 +317,15 @@ fmt.Println("Parsed numbers:", results)
 ### Real-World Data Pipeline
 
 ```go
+import "github.com/andeya/gust"
+import "github.com/andeya/gust/iterator"
+import "strconv"
+
 // Process user input: parse, validate, transform, limit
 input := []string{"10", "20", "invalid", "30", "0", "40"}
 
-results := iter.FilterMap(
-    iter.RetMap(iter.FromSlice(input), strconv.Atoi),
+results := iterator.FilterMap(
+    iterator.RetMap(iterator.FromSlice(input), strconv.Atoi),
     gust.Result[int].Ok,
 ).
     Filter(func(x int) bool { return x > 0 }).
@@ -336,6 +339,9 @@ fmt.Println(results) // [20 40 60]
 ### Option Chain Operations
 
 ```go
+import "github.com/andeya/gust"
+import "fmt"
+
 // Chain operations on optional values with filtering
 result := gust.Some(5).
     Map(func(x int) int { return x * 2 }).
@@ -351,10 +357,13 @@ fmt.Println(result) // "Value: 10"
 ### Partition Data
 
 ```go
+import "github.com/andeya/gust/iterator"
+import "fmt"
+
 // Split numbers into evens and odds
 numbers := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 
-evens, odds := iter.FromSlice(numbers).
+evens, odds := iterator.FromSlice(numbers).
     Partition(func(x int) bool { return x%2 == 0 })
 
 fmt.Println("Evens:", evens) // [2 4 6 8 10]
@@ -366,23 +375,24 @@ fmt.Println("Odds:", odds)   // [1 3 5 7 9]
 Iterate over bits in bit sets or byte slices with full iterator support:
 
 ```go
-import "github.com/andeya/gust/iter"
+import "github.com/andeya/gust/iterator"
+import "fmt"
 
 // Iterate over bits in a byte slice
 bytes := []byte{0b10101010, 0b11001100}
 
 // Get all set bit offsets
-setBits := iter.FromBitSetBytesOnes(bytes).
+setBits := iterator.FromBitSetBytesOnes(bytes).
     Filter(func(offset int) bool { return offset > 5 }).
     Collect()
 fmt.Println(setBits) // [6 8 9 12 13]
 
 // Count set bits
-count := iter.FromBitSetBytesOnes(bytes).Count()
+count := iterator.FromBitSetBytesOnes(bytes).Count()
 fmt.Println(count) // 8
 
 // Sum of offsets of set bits
-sum := iter.FromBitSetBytesOnes(bytes).
+sum := iterator.FromBitSetBytesOnes(bytes).
     Fold(0, func(acc, offset int) int { return acc + offset })
 fmt.Println(sum) // 54 (0+2+4+6+8+9+12+13)
 
@@ -402,7 +412,7 @@ func (b *MyBitSet) Get(offset int) bool {
 }
 
 bitset := &MyBitSet{bits: []byte{0b10101010}}
-ones := iter.FromBitSetOnes(bitset).Collect()
+ones := iterator.FromBitSetOnes(bitset).Collect()
 fmt.Println(ones) // [0 2 4 6]
 ```
 
@@ -412,11 +422,14 @@ gust provides several utility packages to extend its functionality:
 
 - **`gust/dict`** - Generic map utilities (Filter, Map, Keys, Values, etc.)
 - **`gust/vec`** - Generic slice utilities  
-- **`gust/valconv`** - Type-safe value conversion
-- **`gust/digit`** - Number conversion utilities
+- **`gust/conv`** - Type-safe value conversion and reflection utilities
+- **`gust/digit`** - Number conversion utilities (base conversion, etc.)
 - **`gust/opt`** - Helper functions for `Option[T]` (Map, AndThen, Zip, Unzip, Assert, etc.)
-- **`gust/ret`** - Helper functions for `Result[T]` (Map, AndThen, Assert, Flatten, etc.)
-- **`gust/iter`** - Rust-like iterator implementation (see [Iterator section](#3-iterator---rust-like-iteration-in-go) above)
+- **`gust/result`** - Helper functions for `Result[T]` (Map, AndThen, Assert, Flatten, etc.)
+- **`gust/iterator`** - Rust-like iterator implementation (see [Iterator section](#3-iterator---rust-like-iteration-in-go) above)
+- **`gust/syncutil`** - Concurrent utilities (SyncMap, Mutex wrappers, Lazy initialization, etc.)
+- **`gust/errutil`** - Error utilities (Stack traces, Panic recovery, etc.)
+- **`gust/constraints`** - Type constraints (Ordering, Numeric, etc.)
 
 ### Quick Examples
 
@@ -445,12 +458,13 @@ some := gust.Some(5)
 doubled := opt.Map(some, func(x int) int { return x * 2 })
 ```
 
-**Ret utilities:**
+**Result utilities:**
 ```go
-import "github.com/andeya/gust/ret"
+import "github.com/andeya/gust"
+import "github.com/andeya/gust/result"
 
 result := gust.Ok(10)
-doubled := ret.Map(result, func(x int) int { return x * 2 })
+doubled := result.Map(result, func(x int) int { return x * 2 })
 ```
 
 For more details, see the [full documentation](https://pkg.go.dev/github.com/andeya/gust) and [examples](./examples/).
@@ -499,15 +513,54 @@ doubled := opt.Map(some, func(x int) int { return x * 2 })
 zipped := opt.Zip(gust.Some(1), gust.Some("hello"))
 ```
 
-#### Ret Utilities
+#### Result Utilities
 ```go
-import "github.com/andeya/gust/ret"
+import "github.com/andeya/gust"
+import "github.com/andeya/gust/result"
 
 result := gust.Ok(10)
-doubled := ret.Map(result, func(x int) int { return x * 2 })
-chained := ret.AndThen(gust.Ok(5), func(x int) gust.Result[int] {
+doubled := result.Map(result, func(x int) int { return x * 2 })
+chained := result.AndThen(gust.Ok(5), func(x int) gust.Result[int] {
     return gust.Ok(x * 2)
 })
+```
+
+#### Conv Utilities
+```go
+import "github.com/andeya/gust/conv"
+
+// Type-safe conversions
+value := conv.To[int]("42") // Returns Option[int]
+
+// Reflection utilities
+if conv.IsNil(someValue) {
+    // Handle nil case
+}
+```
+
+#### SyncUtil Utilities
+```go
+import "github.com/andeya/gust/syncutil"
+
+// Thread-safe map
+var m syncutil.SyncMap[string, int]
+m.Store("key", 42)
+value := m.Load("key") // Returns Option[int]
+
+// Lazy initialization
+lazy := syncutil.NewLazy(func() int {
+    return expensiveComputation()
+})
+value := lazy.Get() // Computed only once
+```
+
+#### Digit Utilities
+```go
+import "github.com/andeya/gust/digit"
+
+// Base conversion (e.g., base62)
+encoded := digit.Itoa62(12345) // Convert to base62 string
+decoded := digit.Atoi62(encoded) // Convert back, returns Result[int]
 ```
 
 ## 🔗 Resources
