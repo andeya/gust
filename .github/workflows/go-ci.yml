@@ -25,6 +25,7 @@ jobs:
       - uses: actions/checkout@v3
       - name: Test
         env:
+          GOEXPERIMENT: aliastypeparams
           GODEBUG: gotypesalias=1
         run: make coverage-modular
       - name: Codecov
@@ -40,6 +41,7 @@ jobs:
           # Then add it as a secret named CODECOV_TOKEN in GitHub repository settings
       - name: golangci-lint
         env:
+          GOEXPERIMENT: aliastypeparams
           GODEBUG: gotypesalias=1
         uses: golangci/golangci-lint-action@v3
         with:
