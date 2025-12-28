@@ -1,4 +1,32 @@
 // Package constraints provides type constraints for generic programming.
+//
+// This package defines type constraints used throughout the gust library for
+// generic type parameters, including ordering, numeric, and comparison constraints.
+//
+// # Examples
+//
+//	// Use Ordering for comparisons
+//	ord := constraints.Compare(1, 2)
+//	if ord.IsLess() {
+//		fmt.Println("1 is less than 2")
+//	}
+//
+//	// Use constraints in generic functions
+//	func max[T constraints.Ord](a, b T) T {
+//		if constraints.Compare(a, b).IsGreater() {
+//			return a
+//		}
+//		return b
+//	}
+//
+//	// Use numeric constraints
+//	func sum[T constraints.Digit](values []T) T {
+//		var total T
+//		for _, v := range values {
+//			total += v
+//		}
+//		return total
+//	}
 package constraints
 
 // Ord represents types that can be ordered (compared).

@@ -1,4 +1,7 @@
 // Package constraints provides type constraints for generic programming.
+//
+// This package defines numeric type constraints used throughout the gust library
+// for generic type parameters, including PureInteger, Integer, and Digit constraints.
 package constraints
 
 // PureInteger represents pure integer types without type aliases.

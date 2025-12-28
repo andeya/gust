@@ -1,3 +1,7 @@
+// Package digit provides generic functions for numeric digit operations.
+//
+// This package offers utilities for converting between numeric types and strings,
+// including base-62 encoding/decoding and various numeric conversions.
 package digit
 
 import (

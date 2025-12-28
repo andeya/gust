@@ -1,4 +1,24 @@
 // Package result provides helper functions for working with Result types.
+//
+// Result represents a value that can be either Ok(T) or Err(error).
+// It provides a Rust-inspired way to handle errors in Go without using
+// the traditional (T, error) tuple pattern, enabling chainable error handling.
+//
+// # Examples
+//
+//	// Create a Result
+//	success := result.Ok(42)
+//	failure := result.TryErr[int](errors.New("error"))
+//
+//	// Chain operations
+//	value := success.
+//		Map(func(x int) int { return x * 2 }).
+//		UnwrapOr(0) // Output: 84
+//
+//	// Handle errors
+//	err := failure.
+//		MapErr(func(e error) error { return fmt.Errorf("wrapped: %w", e) }).
+//		Err() // Returns the error
 package result
 
 import (

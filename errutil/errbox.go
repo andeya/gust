@@ -1,3 +1,18 @@
+// Package errutil provides utilities for error handling and manipulation.
+//
+// This package offers error boxing, stack traces, and panic recovery utilities
+// to enhance error handling capabilities in Go applications.
+//
+// # Examples
+//
+//	// Box any error type
+//	errBox := errutil.BoxErr(errors.New("something went wrong"))
+//	fmt.Println(errBox.Error())
+//
+//	// Recover from panic with stack trace
+//	defer errutil.Recover(func(err error) {
+//		fmt.Printf("Panic recovered: %v\n", err)
+//	})
 package errutil
 
 import (

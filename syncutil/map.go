@@ -1,3 +1,23 @@
+// Package syncutil provides concurrent utilities for safe concurrent programming.
+//
+// This package offers type-safe wrappers for sync primitives including SyncMap,
+// Mutex wrappers, lazy initialization, and atomic operations.
+//
+// # Examples
+//
+//	// Thread-safe map
+//	var m syncutil.SyncMap[string, int]
+//	m.Store("key", 42)
+//	value := m.Load("key") // Returns Option[int]
+//	if value.IsSome() {
+//		fmt.Println(value.Unwrap()) // Output: 42
+//	}
+//
+//	// Lazy initialization
+//	lazy := syncutil.NewLazy(func() int {
+//		return expensiveComputation()
+//	})
+//	value := lazy.Get() // Computed only once
 package syncutil
 
 import (

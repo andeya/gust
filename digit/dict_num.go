@@ -1,4 +1,18 @@
-// Package digit is a package of generic-type functions for digit.
+// Package digit provides generic functions for numeric digit operations.
+//
+// This package offers utilities for converting between numeric types and strings,
+// including base-62 encoding/decoding and various numeric conversions.
+//
+// # Examples
+//
+//	// Convert int to base-62 string
+//	str := digit.Itoa62(12345) // Returns base-62 encoded string
+//
+//	// Convert base-62 string to int
+//	result := digit.Atoi62("dnh")
+//	if result.IsOk() {
+//		fmt.Println(result.Unwrap()) // Output: 12345
+//	}
 package digit
 
 import (

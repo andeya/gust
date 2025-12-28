@@ -314,7 +314,7 @@ func TestIterator_NextChunk(t *testing.T) {
 	assert.True(t, chunk5.IsOk())
 	assert.Equal(t, []int{}, chunk5.Unwrap())
 
-	// Test iterator.ChunkResult.UnwrapErr with Ok result (should panic) (covers chunk_result.go:69-73)
+	// Test iterator.ChunkResult.UnwrapErr with Ok result (should panic) (covers consumers.go)
 	chunk6 := iter3.NextChunk(1)
 	assert.True(t, chunk6.IsOk())
 	defer func() {
@@ -324,7 +324,7 @@ func TestIterator_NextChunk(t *testing.T) {
 	chunk6.UnwrapErr()
 }
 
-// TestChunkResult_UnwrapErr tests iterator.ChunkResult.UnwrapErr method (covers chunk_result.go:69-73)
+// TestChunkResult_UnwrapErr tests iterator.ChunkResult.UnwrapErr method (covers consumers.go)
 func TestChunkResult_UnwrapErr(t *testing.T) {
 	// Test with Err result (should return error value)
 	iter := iterator.FromSlice([]int{1, 2, 3})
@@ -346,7 +346,7 @@ func TestChunkResult_UnwrapErr(t *testing.T) {
 
 // TestChunkResult_EdgeCases tests edge cases for iterator.ChunkResult methods
 func TestChunkResult_EdgeCases(t *testing.T) {
-	// Test zero-value iterator.ChunkResult (covers safeGetT when r.t.IsSome() is false, and safeGetE when r.e == nil)
+	// Test zero-value iterator.ChunkResult (covers consumers.go)
 	var zeroChunk iterator.ChunkResult[[]int]
 	assert.False(t, zeroChunk.IsErr())
 	assert.True(t, zeroChunk.IsOk())
@@ -364,7 +364,7 @@ func TestChunkResult_EdgeCases(t *testing.T) {
 	zeroChunk.UnwrapErr()
 }
 
-// TestChunkResult_UnwrapPanic tests Unwrap() panic when IsErr() is true (covers chunk_result.go:62-63)
+// TestChunkResult_UnwrapPanic tests Unwrap() panic when IsErr() is true (covers consumers.go)
 func TestChunkResult_UnwrapPanic(t *testing.T) {
 	// Create an Err iterator.ChunkResult by requesting more elements than available
 	iter := iterator.FromSlice([]int{1, 2, 3})

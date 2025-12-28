@@ -1,4 +1,18 @@
-// Package valconv is a package that provides a generic-type value converter.
+// Package conv provides generic functions for type conversion and value transformation.
+//
+// This package offers safe and unsafe conversion utilities between compatible types,
+// including byte/string conversions, reference conversions, and reflection-based operations.
+//
+// # Examples
+//
+//	// Convert bytes to string (zero-copy)
+//	bytes := []byte{'h', 'e', 'l', 'l', 'o'}
+//	str := conv.BytesToString[string](bytes)
+//	fmt.Println(str) // Output: hello
+//
+//	// Convert string to readonly bytes
+//	readonlyBytes := conv.StringToReadonlyBytes("hello")
+//	// Note: modifying readonlyBytes will panic
 package conv
 
 import (

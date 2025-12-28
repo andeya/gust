@@ -1,6 +1,22 @@
-// Package iter provides a complete implementation of Rust's Iterator trait in Go.
+// Package iterator provides a complete implementation of Rust's Iterator trait in Go.
+//
 // This package translates the Rust Iterator trait and its methods to Go, maintaining
-// semantic equivalence while adapting to Go's type system and idioms.
+// semantic equivalence while adapting to Go's type system and idioms. It provides
+// 60+ methods for iterator manipulation, transformation, filtering, and consumption.
+//
+// # Examples
+//
+//	// Basic iteration
+//	iter := iterator.FromSlice([]int{1, 2, 3})
+//	for opt := iter.Next(); opt.IsSome(); opt = iter.Next() {
+//		fmt.Println(opt.Unwrap())
+//	}
+//
+//	// Method chaining
+//	result := iterator.FromSlice([]int{1, 2, 3, 4, 5}).
+//		Filter(func(x int) bool { return x%2 == 0 }).
+//		Map(func(x int) int { return x * x }).
+//		Collect() // []int{4, 16}
 package iterator
 
 import (

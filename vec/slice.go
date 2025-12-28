@@ -1,4 +1,26 @@
-// Package vec is a package of generic-type functions for slices.
+// Package vec provides generic functions for working with slices and arrays.
+//
+// This package offers type-safe operations on Go slices, including safe element access,
+// filtering, mapping, and various utility functions for slice manipulation.
+//
+// # Examples
+//
+//	// Safe element access
+//	slice := []int{1, 2, 3}
+//	value := vec.Get(slice, 1)
+//	if value.IsSome() {
+//		fmt.Println(value.Unwrap()) // Output: 2
+//	}
+//
+//	// Map elements
+//	doubled := vec.MapAlone(slice, func(x int) int {
+//		return x * 2
+//	}) // []int{2, 4, 6}
+//
+//	// Filter elements
+//	evens := vec.Filter(slice, func(x int) bool {
+//		return x%2 == 0
+//	}) // []int{2}
 package vec
 
 import (

@@ -1,4 +1,24 @@
-// Package dict is a package of generic-type functions for map.
+// Package dict provides generic functions for working with maps.
+//
+// This package offers type-safe operations on Go maps, including safe value retrieval,
+// key/value extraction, filtering, and transformation operations.
+//
+// # Examples
+//
+//	// Safe value retrieval
+//	m := map[string]int{"a": 1, "b": 2}
+//	value := dict.Get(m, "a")
+//	if value.IsSome() {
+//		fmt.Println(value.Unwrap()) // Output: 1
+//	}
+//
+//	// Extract keys
+//	keys := dict.Keys(m) // []string{"a", "b"}
+//
+//	// Filter map
+//	filtered := dict.Filter(m, func(k string, v int) bool {
+//		return v > 1
+//	}) // map[string]int{"b": 2}
 package dict
 
 import "github.com/andeya/gust/option"

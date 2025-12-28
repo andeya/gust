@@ -1,4 +1,24 @@
 // Package option provides helper functions for working with Option types.
+//
+// Option represents an optional value: every Option is either Some (which contains a value),
+// or None (which does not). Option types are very common in Rust code and provide a
+// type-safe alternative to nil pointers and (T, bool) tuples.
+//
+// # Examples
+//
+//	// Create an Option
+//	someValue := option.Some(42)
+//	noneValue := option.None[int]()
+//
+//	// Check and unwrap
+//	if someValue.IsSome() {
+//		fmt.Println(someValue.Unwrap()) // Output: 42
+//	}
+//
+//	// Chain operations
+//	result := someValue.
+//		Map(func(x int) int { return x * 2 }).
+//		UnwrapOr(0) // Output: 84
 package option
 
 import (
