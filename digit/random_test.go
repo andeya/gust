@@ -83,45 +83,52 @@ func TestRandomStringWithTime(t *testing.T) {
 		errMsg  string
 	}{
 		{
-			name:    "valid base62 with timestamp",
+			name:    "valid base62 with timestamp at epoch",
 			random:  r1,
 			length:  10,
-			unixTs:  1609459200, // 2021-01-01 00:00:00 UTC
+			unixTs:  timestampEpoch, // 2026-01-01 00:00:00 UTC
 			wantErr: false,
 		},
 		{
-			name:    "valid base36 with timestamp",
+			name:    "valid base62 with timestamp after epoch",
+			random:  r1,
+			length:  10,
+			unixTs:  timestampEpoch + 1000, // 2026-01-01 00:16:40 UTC
+			wantErr: false,
+		},
+		{
+			name:    "valid base36 with timestamp at epoch",
 			random:  r2,
 			length:  10,
-			unixTs:  1609459200,
+			unixTs:  timestampEpoch,
 			wantErr: false,
 		},
 		{
 			name:    "minimum valid length",
 			random:  r1,
 			length:  7, // timestampSecondLength + 1
-			unixTs:  0,
+			unixTs:  timestampEpoch,
 			wantErr: false,
 		},
 		{
-			name:    "maximum timestamp",
+			name:    "base62 maximum timestamp",
 			random:  r1,
 			length:  10,
-			unixTs:  timestampSecondMax,
+			unixTs:  timestampEpoch + timestampSecondMaxBase62,
 			wantErr: false,
 		},
 		{
-			name:    "zero timestamp",
-			random:  r1,
+			name:    "base36 maximum timestamp",
+			random:  r2,
 			length:  10,
-			unixTs:  0,
+			unixTs:  timestampEpoch + timestampSecondMaxBase36,
 			wantErr: false,
 		},
 		{
 			name:    "length too short",
 			random:  r1,
 			length:  6, // equal to timestampSecondLength
-			unixTs:  1609459200,
+			unixTs:  timestampEpoch,
 			wantErr: true,
 			errMsg:  "length must be greater than 6",
 		},
@@ -129,25 +136,41 @@ func TestRandomStringWithTime(t *testing.T) {
 			name:    "length less than timestamp length",
 			random:  r1,
 			length:  5,
-			unixTs:  1609459200,
+			unixTs:  timestampEpoch,
 			wantErr: true,
 			errMsg:  "length must be greater than 6",
 		},
 		{
-			name:    "negative timestamp",
+			name:    "timestamp before epoch",
 			random:  r1,
 			length:  10,
-			unixTs:  -1,
+			unixTs:  timestampEpoch - 1,
 			wantErr: true,
-			errMsg:  "unixTs is out of range",
+			errMsg:  "unixTs must be >= timestampEpoch",
 		},
 		{
-			name:    "timestamp too large",
+			name:    "timestamp too large for base62",
 			random:  r1,
 			length:  10,
-			unixTs:  timestampSecondMax + 1,
+			unixTs:  timestampEpoch + timestampSecondMaxBase62 + 1,
 			wantErr: true,
-			errMsg:  "unixTs is out of range",
+			errMsg:  "timestamp offset is out of range",
+		},
+		{
+			name:    "timestamp too large for base36",
+			random:  r2,
+			length:  10,
+			unixTs:  timestampEpoch + timestampSecondMaxBase36 + 1,
+			wantErr: true,
+			errMsg:  "timestamp offset is out of range",
+		},
+		{
+			name:    "base36 timestamp exceeds base36 maximum",
+			random:  r2,
+			length:  10,
+			unixTs:  timestampEpoch + timestampSecondMaxBase62, // This exceeds base36 maximum
+			wantErr: true,
+			errMsg:  "timestamp offset is out of range",
 		},
 	}
 
@@ -179,9 +202,9 @@ func TestParseTime(t *testing.T) {
 	r2 := NewRandom(true)
 
 	// Test valid parsing
-	t.Run("valid base62 string", func(t *testing.T) {
-		// Generate a string with known timestamp
-		unixTs := int64(1609459200) // 2021-01-01 00:00:00 UTC
+	t.Run("valid base62 string at epoch", func(t *testing.T) {
+		// Generate a string with timestamp at epoch
+		unixTs := int64(timestampEpoch)
 		result := r1.RandomStringWithTime(10, unixTs)
 		assert.False(t, result.IsErr())
 
@@ -191,8 +214,19 @@ func TestParseTime(t *testing.T) {
 		assert.Equal(t, unixTs, parsedResult.Unwrap())
 	})
 
-	t.Run("valid base36 string", func(t *testing.T) {
-		unixTs := int64(1609459200)
+	t.Run("valid base62 string after epoch", func(t *testing.T) {
+		unixTs := int64(timestampEpoch + 1000000)
+		result := r1.RandomStringWithTime(10, unixTs)
+		assert.False(t, result.IsErr())
+
+		str := result.Unwrap()
+		parsedResult := r1.ParseTime(str)
+		assert.False(t, parsedResult.IsErr())
+		assert.Equal(t, unixTs, parsedResult.Unwrap())
+	})
+
+	t.Run("valid base36 string at epoch", func(t *testing.T) {
+		unixTs := int64(timestampEpoch)
 		result := r2.RandomStringWithTime(10, unixTs)
 		assert.False(t, result.IsErr())
 
@@ -202,24 +236,26 @@ func TestParseTime(t *testing.T) {
 		assert.Equal(t, unixTs, parsedResult.Unwrap())
 	})
 
-	t.Run("zero timestamp", func(t *testing.T) {
-		result := r1.RandomStringWithTime(10, 0)
+	t.Run("base62 maximum timestamp", func(t *testing.T) {
+		maxTs := int64(timestampEpoch + timestampSecondMaxBase62)
+		result := r1.RandomStringWithTime(10, maxTs)
 		assert.False(t, result.IsErr())
 
 		str := result.Unwrap()
 		parsedResult := r1.ParseTime(str)
 		assert.False(t, parsedResult.IsErr())
-		assert.Equal(t, int64(0), parsedResult.Unwrap())
+		assert.Equal(t, maxTs, parsedResult.Unwrap())
 	})
 
-	t.Run("maximum timestamp", func(t *testing.T) {
-		result := r1.RandomStringWithTime(10, timestampSecondMax)
+	t.Run("base36 maximum timestamp", func(t *testing.T) {
+		maxTs := int64(timestampEpoch + timestampSecondMaxBase36)
+		result := r2.RandomStringWithTime(10, maxTs)
 		assert.False(t, result.IsErr())
 
 		str := result.Unwrap()
-		parsedResult := r1.ParseTime(str)
+		parsedResult := r2.ParseTime(str)
 		assert.False(t, parsedResult.IsErr())
-		assert.Equal(t, int64(timestampSecondMax), parsedResult.Unwrap())
+		assert.Equal(t, maxTs, parsedResult.Unwrap())
 	})
 
 	// Test error cases
@@ -244,14 +280,13 @@ func TestParseTime(t *testing.T) {
 	// Test round-trip with various timestamps
 	t.Run("round-trip various timestamps", func(t *testing.T) {
 		timestamps := []int64{
-			0,
-			1,
-			100,
-			1000,
-			1000000,
-			1609459200, // 2021-01-01
-			2147483647, // Max int32
-			timestampSecondMax,
+			timestampEpoch,                            // epoch time
+			timestampEpoch + 1,                        // 1 second after epoch
+			timestampEpoch + 100,                      // 100 seconds after epoch
+			timestampEpoch + 1000,                     // 1000 seconds after epoch
+			timestampEpoch + 1000000,                  // ~11.6 days after epoch
+			timestampEpoch + 2147483647,               // Max int32 offset
+			timestampEpoch + timestampSecondMaxBase62, // Maximum for base62
 		}
 
 		for _, ts := range timestamps {
@@ -265,10 +300,34 @@ func TestParseTime(t *testing.T) {
 		}
 	})
 
+	// Test round-trip with base36
+	t.Run("round-trip base36 timestamps", func(t *testing.T) {
+		timestamps := []int64{
+			timestampEpoch,                            // epoch time
+			timestampEpoch + 1,                        // 1 second after epoch
+			timestampEpoch + 100,                      // 100 seconds after epoch
+			timestampEpoch + 1000,                     // 1000 seconds after epoch
+			timestampEpoch + 1000000,                  // ~11.6 days after epoch
+			timestampEpoch + 2147483647,               // Max int32 offset
+			timestampEpoch + timestampSecondMaxBase36, // Maximum for base36
+		}
+
+		for _, ts := range timestamps {
+			result := r2.RandomStringWithTime(20, ts)
+			assert.False(t, result.IsErr(), "failed to generate string for timestamp %d", ts)
+
+			str := result.Unwrap()
+			parsedResult := r2.ParseTime(str)
+			assert.False(t, parsedResult.IsErr(), "failed to parse timestamp from string %s", str)
+			assert.Equal(t, ts, parsedResult.Unwrap(), "timestamp mismatch for %d", ts)
+		}
+	})
+
 	// Test with current timestamp
 	t.Run("current timestamp", func(t *testing.T) {
 		now := time.Now().Unix()
-		if now <= timestampSecondMax {
+		maxTs := int64(timestampEpoch + timestampSecondMaxBase62)
+		if now >= int64(timestampEpoch) && now <= maxTs {
 			result := r1.RandomStringWithTime(20, now)
 			assert.False(t, result.IsErr())
 
@@ -276,6 +335,33 @@ func TestParseTime(t *testing.T) {
 			parsedResult := r1.ParseTime(str)
 			assert.False(t, parsedResult.IsErr())
 			assert.Equal(t, now, parsedResult.Unwrap())
+		} else if now < int64(timestampEpoch) {
+			// Current time is before epoch, should fail
+			result := r1.RandomStringWithTime(20, now)
+			assert.True(t, result.IsErr(), "should reject timestamp before epoch")
+		}
+	})
+
+	// Test base36 with current timestamp
+	t.Run("base36 current timestamp", func(t *testing.T) {
+		now := time.Now().Unix()
+		maxTs := int64(timestampEpoch + timestampSecondMaxBase36)
+		if now >= int64(timestampEpoch) && now <= maxTs {
+			result := r2.RandomStringWithTime(20, now)
+			assert.False(t, result.IsErr())
+
+			str := result.Unwrap()
+			parsedResult := r2.ParseTime(str)
+			assert.False(t, parsedResult.IsErr())
+			assert.Equal(t, now, parsedResult.Unwrap())
+		} else if now < int64(timestampEpoch) {
+			// Current time is before epoch, should fail
+			result := r2.RandomStringWithTime(20, now)
+			assert.True(t, result.IsErr(), "should reject timestamp before epoch")
+		} else {
+			// Current time exceeds base36 maximum, should fail
+			result := r2.RandomStringWithTime(20, now)
+			assert.True(t, result.IsErr(), "base36 should reject timestamp exceeding maximum")
 		}
 	})
 }
@@ -283,9 +369,28 @@ func TestParseTime(t *testing.T) {
 func TestRandomStringWithCurrentTime(t *testing.T) {
 	r1 := NewRandom(false)
 
-	// Test valid length
+	now := time.Now().Unix()
+	maxTs := int64(timestampEpoch + timestampSecondMaxBase62)
+
+	// If current time is before epoch or exceeds maximum, the function should return error
+	if now < int64(timestampEpoch) {
+		// Current time is before epoch (2026-01-01), should fail
+		result := r1.RandomStringWithCurrentTime(10)
+		assert.True(t, result.IsErr(), "should reject current time before epoch")
+		assert.Contains(t, result.Err().Error(), "timestampEpoch")
+		return
+	}
+
+	if now > maxTs {
+		// Current time exceeds maximum, should fail
+		result := r1.RandomStringWithCurrentTime(10)
+		assert.True(t, result.IsErr(), "should reject current time exceeding maximum")
+		return
+	}
+
+	// Test valid length (current time is within valid range)
 	result := r1.RandomStringWithCurrentTime(10)
-	assert.False(t, result.IsErr())
+	assert.False(t, result.IsErr(), "should succeed when current time is valid")
 	str := result.Unwrap()
 	assert.Equal(t, 10, len(str))
 
@@ -295,7 +400,6 @@ func TestRandomStringWithCurrentTime(t *testing.T) {
 	parsedTs := parsedResult.Unwrap()
 
 	// Verify timestamp is recent (within last minute)
-	now := time.Now().Unix()
 	assert.True(t, parsedTs >= now-60 && parsedTs <= now+1, "timestamp should be recent")
 
 	// Test invalid length
@@ -348,7 +452,8 @@ func TestRandomStringWithTime_EdgeCases(t *testing.T) {
 
 	// Test boundary length
 	t.Run("boundary length 7", func(t *testing.T) {
-		result := r1.RandomStringWithTime(7, 1000)
+		ts := int64(timestampEpoch + 1000)
+		result := r1.RandomStringWithTime(7, ts)
 		assert.False(t, result.IsErr())
 		str := result.Unwrap()
 		assert.Equal(t, 7, len(str))
@@ -356,19 +461,20 @@ func TestRandomStringWithTime_EdgeCases(t *testing.T) {
 		// Should have 1 random char + 6 timestamp chars
 		parsedResult := r1.ParseTime(str)
 		assert.False(t, parsedResult.IsErr())
-		assert.Equal(t, int64(1000), parsedResult.Unwrap())
+		assert.Equal(t, ts, parsedResult.Unwrap())
 	})
 
 	// Test very long string
 	t.Run("very long string", func(t *testing.T) {
-		result := r1.RandomStringWithTime(1000, 1609459200)
+		ts := int64(timestampEpoch + 1000000)
+		result := r1.RandomStringWithTime(1000, ts)
 		assert.False(t, result.IsErr())
 		str := result.Unwrap()
 		assert.Equal(t, 1000, len(str))
 
 		parsedResult := r1.ParseTime(str)
 		assert.False(t, parsedResult.IsErr())
-		assert.Equal(t, int64(1609459200), parsedResult.Unwrap())
+		assert.Equal(t, ts, parsedResult.Unwrap())
 	})
 }
 
@@ -392,33 +498,76 @@ func TestRandomStringWithTime_FormatIntIntegration(t *testing.T) {
 	r1 := NewRandom(false)
 	r2 := NewRandom(true)
 
-	// Test that FormatInt is used correctly
-	testTimestamps := []int64{0, 1, 36, 62, 100, 1000, 10000}
+	// Test that FormatInt is used correctly with offset values
+	testOffsets := []int64{0, 1, 36, 62, 100, 1000, 10000}
+	testTimestamps := make([]int64, len(testOffsets))
+	for i, offset := range testOffsets {
+		testTimestamps[i] = timestampEpoch + offset
+	}
 
-	for _, ts := range testTimestamps {
+	for i, ts := range testTimestamps {
+		offset := testOffsets[i]
 		// base62
 		result1 := r1.RandomStringWithTime(10, ts)
-		assert.False(t, result1.IsErr())
+		assert.False(t, result1.IsErr(), "failed to generate base62 string for timestamp %d", ts)
 		str1 := result1.Unwrap()
 
-		// Extract timestamp suffix
+		// Extract timestamp suffix (should contain offset, not absolute timestamp)
 		tsSuffix := str1[len(str1)-6:]
 
-		// Parse it back
-		parsed1 := ParseInt(tsSuffix, caseInsensitiveBase, 64)
-		assert.False(t, parsed1.IsErr())
-		assert.Equal(t, ts, parsed1.Unwrap())
+		// Parse it back as offset
+		parsedOffset1 := ParseInt(tsSuffix, caseInsensitiveBase, 64)
+		assert.False(t, parsedOffset1.IsErr(), "failed to parse offset from suffix %s", tsSuffix)
+		assert.Equal(t, offset, parsedOffset1.Unwrap(), "offset mismatch for timestamp %d", ts)
 
 		// base36
 		result2 := r2.RandomStringWithTime(10, ts)
-		assert.False(t, result2.IsErr())
+		assert.False(t, result2.IsErr(), "failed to generate base36 string for timestamp %d", ts)
 		str2 := result2.Unwrap()
 
 		tsSuffix2 := str2[len(str2)-6:]
-		parsed2 := ParseInt(tsSuffix2, caseSensitiveBase, 64)
-		assert.False(t, parsed2.IsErr())
-		assert.Equal(t, ts, parsed2.Unwrap())
+		parsedOffset2 := ParseInt(tsSuffix2, caseSensitiveBase, 64)
+		assert.False(t, parsedOffset2.IsErr(), "failed to parse offset from suffix %s", tsSuffix2)
+		assert.Equal(t, offset, parsedOffset2.Unwrap(), "offset mismatch for timestamp %d", ts)
 	}
+}
+
+func TestTimestampEpoch(t *testing.T) {
+	r1 := NewRandom(false)
+	r2 := NewRandom(true)
+
+	// Test that epoch time works correctly
+	t.Run("epoch time base62", func(t *testing.T) {
+		epochTs := int64(timestampEpoch)
+		result := r1.RandomStringWithTime(10, epochTs)
+		assert.False(t, result.IsErr())
+		str := result.Unwrap()
+
+		// Parse back should return epoch time
+		parsedResult := r1.ParseTime(str)
+		assert.False(t, parsedResult.IsErr())
+		assert.Equal(t, epochTs, parsedResult.Unwrap())
+
+		// Extract suffix should be "000000" (offset 0)
+		suffix := str[len(str)-6:]
+		assert.Equal(t, "000000", suffix)
+	})
+
+	t.Run("epoch time base36", func(t *testing.T) {
+		epochTs := int64(timestampEpoch)
+		result := r2.RandomStringWithTime(10, epochTs)
+		assert.False(t, result.IsErr())
+		str := result.Unwrap()
+
+		// Parse back should return epoch time
+		parsedResult := r2.ParseTime(str)
+		assert.False(t, parsedResult.IsErr())
+		assert.Equal(t, epochTs, parsedResult.Unwrap())
+
+		// Extract suffix should be "000000" (offset 0)
+		suffix := str[len(str)-6:]
+		assert.Equal(t, "000000", suffix)
+	})
 }
 
 func TestRandom_SubstituteInitialization(t *testing.T) {
