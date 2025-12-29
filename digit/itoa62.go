@@ -63,7 +63,8 @@ func AppendUint(dst []byte, i uint64, base int) []byte {
 }
 
 const (
-	digits = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	// Digits is the default digits for base62 encoding/decoding.
+	Digits = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 )
 
 const (
@@ -84,7 +85,7 @@ const (
 // small returns the string for an i with 0 <= i < nSmalls.
 func small(i int) string {
 	if i < 10 {
-		return digits[i : i+1]
+		return Digits[i : i+1]
 	}
 	return smallsString[i*2 : i*2+2]
 }
@@ -95,7 +96,7 @@ func small(i int) string {
 // returned as the first result value; otherwise the string is returned
 // as the second result value.
 func formatBits(dst []byte, u uint64, base int, neg, append_ bool) (d []byte, s string) {
-	if base < 2 || base > len(digits) {
+	if base < 2 || base > len(Digits) {
 		panic("digit(formatBits): illegal FormatUint/FormatInt/AppendUint/AppendInt base")
 	}
 	// 2 <= base && base <= len(digits)
@@ -172,12 +173,12 @@ func formatBits(dst []byte, u uint64, base int, neg, append_ bool) (d []byte, s 
 		m := uint(base) - 1 // == 1<<shift - 1
 		for u >= b {
 			i--
-			a[i] = digits[uint(u)&m]
+			a[i] = Digits[uint(u)&m]
 			u >>= shift
 		}
 		// u < base
 		i--
-		a[i] = digits[uint(u)]
+		a[i] = Digits[uint(u)]
 	} else {
 		// general case
 		b := uint64(base)
@@ -187,12 +188,12 @@ func formatBits(dst []byte, u uint64, base int, neg, append_ bool) (d []byte, s 
 			// since 64bit division and modulo operations
 			// are calculated by runtime functions on 32bit machines.
 			q := u / b
-			a[i] = digits[uint(u-q*b)]
+			a[i] = Digits[uint(u-q*b)]
 			u = q
 		}
 		// u < base
 		i--
-		a[i] = digits[uint(u)]
+		a[i] = Digits[uint(u)]
 	}
 
 	// add sign, if any
