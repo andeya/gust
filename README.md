@@ -529,7 +529,8 @@ gust provides several utility packages to extend its functionality:
 | **`gust/vec`** | Generic slice utilities (MapAlone, Get, Copy, Dict, etc.) |
 | **`gust/conv`** | Type-safe value conversion and reflection utilities |
 | **`gust/digit`** | Number conversion utilities (base conversion, FormatByDict, ParseByDict) |
-| **`gust/opt`** | Helper functions for `Option[T]` (Map, AndThen, Zip, Unzip, Assert) |
+| **`gust/random`** | Secure random string generation with optional timestamp encoding |
+| **`gust/option`** | Helper functions for `Option[T]` (Map, AndThen, Zip, Unzip, Assert) |
 | **`gust/result`** | Helper functions for `Result[T]` (Map, AndThen, Assert, Flatten) |
 | **`gust/iterator`** | Rust-like iterator implementation (see [Iterator section](#3-iterator---rust-like-iteration-in-go)) |
 | **`gust/syncutil`** | Concurrent utilities (SyncMap, Mutex wrappers, Lazy initialization) |
@@ -553,6 +554,19 @@ import "github.com/andeya/gust/vec"
 
 numbers := []int{1, 2, 3, 4, 5}
 doubled := vec.MapAlone(numbers, func(x int) int { return x * 2 })
+```
+
+**Random utilities:**
+```go
+import "github.com/andeya/gust/random"
+
+// Generate random strings
+gen := random.NewGenerator(false) // case-insensitive (base62)
+str := gen.RandomString(16).Unwrap() // e.g., "a3B9kL2mN8pQ4rS"
+
+// Generate with embedded timestamp
+strWithTime := gen.StringWithNow(20).Unwrap()
+timestamp := gen.ParseTimestamp(strWithTime).Unwrap() // Extract timestamp
 ```
 
 **SyncUtil utilities:**

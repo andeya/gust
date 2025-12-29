@@ -529,7 +529,8 @@ gust 提供了多个工具包来扩展其功能：
 | **`gust/vec`** | 通用 slice 工具（MapAlone, Get, Copy, Dict 等） |
 | **`gust/conv`** | 类型安全的值转换和反射工具 |
 | **`gust/digit`** | 数字转换工具（进制转换, FormatByDict, ParseByDict） |
-| **`gust/opt`** | `Option[T]` 辅助函数（Map, AndThen, Zip, Unzip, Assert） |
+| **`gust/random`** | 安全的随机字符串生成，支持可选的时间戳编码 |
+| **`gust/option`** | `Option[T]` 辅助函数（Map, AndThen, Zip, Unzip, Assert） |
 | **`gust/result`** | `Result[T]` 辅助函数（Map, AndThen, Assert, Flatten） |
 | **`gust/iterator`** | Rust 风格迭代器实现（参见上面的[迭代器部分](#3-iterator---go-中的-rust-风格迭代)） |
 | **`gust/syncutil`** | 并发工具（SyncMap, Mutex 包装器, 懒加载初始化） |
@@ -553,6 +554,19 @@ import "github.com/andeya/gust/vec"
 
 numbers := []int{1, 2, 3, 4, 5}
 doubled := vec.MapAlone(numbers, func(x int) int { return x * 2 })
+```
+
+**Random 工具：**
+```go
+import "github.com/andeya/gust/random"
+
+// 生成随机字符串
+gen := random.NewGenerator(false) // 大小写不敏感 (base62)
+str := gen.RandomString(16).Unwrap() // 例如: "a3B9kL2mN8pQ4rS"
+
+// 生成带嵌入时间戳的字符串
+strWithTime := gen.StringWithNow(20).Unwrap()
+timestamp := gen.ParseTimestamp(strWithTime).Unwrap() // 提取时间戳
 ```
 
 **SyncUtil 工具：**
