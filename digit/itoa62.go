@@ -4,9 +4,37 @@ import "math/bits"
 
 // FormatUint returns the string representation of i in the given base,
 // for 2 <= base <= 62.
+//
 // NOTE:
 //
 //	Compatible with standard package strconv.
+//
+// Comparison with math/big.Int.Text(62) for base62 encoding:
+//
+//	Feature              FormatUint(62)           big.Int.Text(62)
+//	Value Range          Limited to uint64        Unlimited
+//	Byte Array           Must convert to uint64   Direct (SetBytes)
+//	                     (may overflow)
+//	Performance          Fast path for small      General algorithm
+//	                     integers
+//	Interface            Compatible with strconv  Independent
+//	Append               Supported (zero-copy)    Not supported
+//
+// IMPORTANT: Size Limitations
+//   - FormatUint(62) only supports uint64 range (0 to 18,446,744,073,709,551,615)
+//   - For byte arrays larger than 8 bytes, must convert to uint64 first, but may overflow
+//   - big.Int.Text(62) has no size limit and can handle arbitrarily large byte arrays
+//
+// Use FormatUint when:
+//   - Working with small to medium integers (<= uint64)
+//   - Need strconv compatibility
+//   - Need Append operations (zero-copy)
+//   - Performance optimization for small integers is important
+//
+// Use big.Int.Text(62) when:
+//   - Working with byte arrays (especially large ones)
+//   - Need to handle arbitrarily large integers
+//   - Don't need strconv compatibility
 func FormatUint(i uint64, base int) string {
 	if fastSmalls && i < nSmalls && base == 10 {
 		return small(int(i))

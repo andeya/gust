@@ -530,6 +530,7 @@ gust provides several utility packages to extend its functionality:
 | **`gust/conv`** | Type-safe value conversion and reflection utilities |
 | **`gust/digit`** | Number conversion utilities (base conversion, FormatByDict, ParseByDict) |
 | **`gust/random`** | Secure random string generation with optional timestamp encoding |
+| **`gust/bitset`** | Thread-safe bit set implementation with bitwise operations and iterator integration |
 | **`gust/option`** | Helper functions for `Option[T]` (Map, AndThen, Zip, Unzip, Assert) |
 | **`gust/result`** | Helper functions for `Result[T]` (Map, AndThen, Assert, Flatten) |
 | **`gust/iterator`** | Rust-like iterator implementation (see [Iterator section](#3-iterator---rust-like-iteration-in-go)) |
@@ -567,6 +568,29 @@ str := gen.RandomString(16).Unwrap() // e.g., "a3B9kL2mN8pQ4rS"
 // Generate with embedded timestamp
 strWithTime := gen.StringWithNow(20).Unwrap()
 timestamp := gen.ParseTimestamp(strWithTime).Unwrap() // Extract timestamp
+```
+
+**BitSet utilities:**
+```go
+import "github.com/andeya/gust/bitset"
+import "github.com/andeya/gust/iterator"
+
+// Basic operations (see ExampleBitSet_basic)
+bs := bitset.New()
+bs.Set(0, true).Unwrap()
+bs.Set(5, true).Unwrap()
+
+// Use with iterators (see ExampleBitSet_iterator)
+setBits := iterator.FromBitSetOnes(bs).Collect() // [0 5]
+
+// Bitwise operations (see ExampleBitSet_bitwiseOperations)
+bs1 := bitset.NewFromString("c0", bitset.EncodingHex).Unwrap()
+bs2 := bitset.NewFromString("30", bitset.EncodingHex).Unwrap()
+or := bs1.Or(bs2)
+
+// Encoding/decoding (see ExampleBitSet_encoding)
+encoded := bs.String() // Base64URL encoding (default)
+decoded := bitset.NewFromBase64URL(encoded).Unwrap() // Round-trip
 ```
 
 **SyncUtil utilities:**

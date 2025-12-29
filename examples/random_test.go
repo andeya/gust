@@ -150,4 +150,3 @@ func ExampleGenerator_differentBases() {
 	//   Base62 length: 16, ends with: 000000
 	//   Base36 length: 16, ends with: 000000
 }
-

@@ -530,6 +530,7 @@ gust 提供了多个工具包来扩展其功能：
 | **`gust/conv`** | 类型安全的值转换和反射工具 |
 | **`gust/digit`** | 数字转换工具（进制转换, FormatByDict, ParseByDict） |
 | **`gust/random`** | 安全的随机字符串生成，支持可选的时间戳编码 |
+| **`gust/bitset`** | 线程安全的位集合实现，支持位运算和迭代器集成 |
 | **`gust/option`** | `Option[T]` 辅助函数（Map, AndThen, Zip, Unzip, Assert） |
 | **`gust/result`** | `Result[T]` 辅助函数（Map, AndThen, Assert, Flatten） |
 | **`gust/iterator`** | Rust 风格迭代器实现（参见上面的[迭代器部分](#3-iterator---go-中的-rust-风格迭代)） |
@@ -567,6 +568,29 @@ str := gen.RandomString(16).Unwrap() // 例如: "a3B9kL2mN8pQ4rS"
 // 生成带嵌入时间戳的字符串
 strWithTime := gen.StringWithNow(20).Unwrap()
 timestamp := gen.ParseTimestamp(strWithTime).Unwrap() // 提取时间戳
+```
+
+**BitSet 工具：**
+```go
+import "github.com/andeya/gust/bitset"
+import "github.com/andeya/gust/iterator"
+
+// 基本操作（参见 ExampleBitSet_basic）
+bs := bitset.New()
+bs.Set(0, true).Unwrap()
+bs.Set(5, true).Unwrap()
+
+// 与迭代器一起使用（参见 ExampleBitSet_iterator）
+setBits := iterator.FromBitSetOnes(bs).Collect() // [0 5]
+
+// 位运算（参见 ExampleBitSet_bitwiseOperations）
+bs1 := bitset.NewFromString("c0", bitset.EncodingHex).Unwrap()
+bs2 := bitset.NewFromString("30", bitset.EncodingHex).Unwrap()
+or := bs1.Or(bs2)
+
+// 编码/解码（参见 ExampleBitSet_encoding）
+encoded := bs.String() // Base64URL 编码（默认）
+decoded := bitset.NewFromBase64URL(encoded).Unwrap() // 往返转换
 ```
 
 **SyncUtil 工具：**
