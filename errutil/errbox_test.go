@@ -26,9 +26,9 @@ func TestBoxErr(t *testing.T) {
 	eb3 := errutil.BoxErr(eb2)
 	assert.Equal(t, eb2, eb3)
 
-	// Test with ErrBox value type (not pointer) (covers errbox.go:39-40)
+	// Test with ErrBox value type (covers errbox.go:39-40)
 	ebValue := errutil.BoxErr("test")
-	var ebValueType errutil.ErrBox = *ebValue
+	var ebValueType errutil.ErrBox = ebValue
 	eb4 := errutil.BoxErr(ebValueType)
 	assert.NotNil(t, eb4)
 	assert.Equal(t, "test", eb4.Value())
@@ -40,7 +40,7 @@ func TestBoxErr(t *testing.T) {
 
 	// Test with nil
 	eb7 := errutil.BoxErr(nil)
-	assert.Nil(t, eb7)
+	assert.True(t, eb7.IsEmpty())
 }
 
 func TestErrBox_Value(t *testing.T) {
@@ -48,14 +48,14 @@ func TestErrBox_Value(t *testing.T) {
 	eb := errutil.BoxErr("test")
 	assert.Equal(t, "test", eb.Value())
 
-	// Test with nil ErrBox
-	var nilEb *errutil.ErrBox
+	// Test with empty ErrBox
+	var nilEb errutil.ErrBox
 	assert.Nil(t, nilEb.Value())
 }
 
-// TestErrBox_Is_NilReceiver tests Is method with nil receiver
-func TestErrBox_Is_NilReceiver(t *testing.T) {
-	var nilEb *errutil.ErrBox
+// TestErrBox_Is_EmptyReceiver tests Is method with empty receiver
+func TestErrBox_Is_EmptyReceiver(t *testing.T) {
+	var nilEb errutil.ErrBox
 	target := errors.New("test")
 	assert.False(t, nilEb.Is(target))
 }
@@ -75,15 +75,12 @@ func TestErrBox_ToError(t *testing.T) {
 
 	// Test with nil value
 	eb3 := errutil.BoxErr(nil)
-	if eb3 == nil {
-		assert.Nil(t, eb3)
-	} else {
-		err3 := eb3.ToError()
-		assert.Nil(t, err3)
-	}
+	assert.True(t, eb3.IsEmpty())
+	err3 := eb3.ToError()
+	assert.Nil(t, err3)
 
-	// Test with nil ErrBox pointer
-	var nilEb *errutil.ErrBox
+	// Test with empty ErrBox
+	var nilEb errutil.ErrBox
 	err4 := nilEb.ToError()
 	assert.Nil(t, err4)
 
@@ -109,14 +106,11 @@ func TestErrBox_Unwrap(t *testing.T) {
 
 	// Test with nil value
 	eb3 := errutil.BoxErr(nil)
-	if eb3 == nil {
-		assert.Nil(t, eb3)
-	} else {
-		assert.Nil(t, eb3.Unwrap())
-	}
+	assert.True(t, eb3.IsEmpty())
+	assert.Nil(t, eb3.Unwrap())
 
-	// Test with nil ErrBox
-	var nilEb *errutil.ErrBox
+	// Test with empty ErrBox
+	var nilEb errutil.ErrBox
 	assert.Nil(t, nilEb.Unwrap())
 
 	// Test with non-error value
@@ -171,8 +165,8 @@ func TestErrBox_Is(t *testing.T) {
 	err2 := errors.New("different error")
 	assert.False(t, eb1.Is(err2))
 
-	// Test with nil ErrBox and nil target
-	var nilEb *errutil.ErrBox
+	// Test with empty ErrBox and nil target
+	var nilEb errutil.ErrBox
 	assert.True(t, nilEb.Is(nil))
 
 	// Test with non-nil ErrBox and nil target
@@ -204,7 +198,7 @@ func TestErrBox_As(t *testing.T) {
 	})
 
 	// Test with nil ErrBox
-	var nilEb *errutil.ErrBox
+	var nilEb errutil.ErrBox
 	var nilTarget error
 	assert.False(t, nilEb.As(&nilTarget))
 
@@ -226,14 +220,11 @@ func TestErrBox_String(t *testing.T) {
 
 	// Test with nil value
 	eb3 := errutil.BoxErr(nil)
-	if eb3 == nil {
-		assert.Nil(t, eb3)
-	} else {
-		assert.Equal(t, "<nil>", eb3.String())
-	}
+	assert.True(t, eb3.IsEmpty())
+	assert.Equal(t, "<nil>", eb3.String())
 
-	// Test with nil ErrBox
-	var nilEb *errutil.ErrBox
+	// Test with empty ErrBox
+	var nilEb errutil.ErrBox
 	assert.Equal(t, "<nil>", nilEb.String())
 
 	// Test with int
@@ -248,17 +239,15 @@ func TestErrBox_GoString(t *testing.T) {
 	assert.Contains(t, eb1.GoString(), "test")
 
 	// Test with nil ErrBox
-	var nilEb *errutil.ErrBox
-	assert.Equal(t, "(*errutil.ErrBox)(nil)", nilEb.GoString())
+	var nilEb errutil.ErrBox
+	assert.Contains(t, nilEb.GoString(), "ErrBox")
+	assert.Contains(t, nilEb.GoString(), "nil")
 
 	// Test with nil value
 	eb2 := errutil.BoxErr(nil)
-	if eb2 == nil {
-		assert.Nil(t, eb2)
-	} else {
-		assert.Contains(t, eb2.GoString(), "ErrBox")
-		assert.Contains(t, eb2.GoString(), "nil")
-	}
+	assert.True(t, eb2.IsEmpty())
+	assert.Contains(t, eb2.GoString(), "ErrBox")
+	assert.Contains(t, eb2.GoString(), "nil")
 
 	// Test with int
 	eb3 := errutil.BoxErr(42)
@@ -604,7 +593,7 @@ func TestNewPanicError(t *testing.T) {
 	// Test with ErrBox (value)
 	{
 		eb := errutil.BoxErr(errors.New("errbox value error"))
-		pe := errutil.NewPanicError(*eb, stack)
+		pe := errutil.NewPanicError(eb, stack)
 		assert.NotNil(t, pe)
 		assert.NotNil(t, pe.Unwrap())
 		assert.Equal(t, stack, pe.StackTrace())

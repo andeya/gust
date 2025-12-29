@@ -36,45 +36,46 @@ type (
 )
 
 var (
-	_ fmt.Stringer   = (*ErrBox)(nil)
-	_ fmt.GoStringer = (*ErrBox)(nil)
-	_ error          = (*innerErrBox)(nil)
+	_ fmt.Stringer   = ErrBox{}
+	_ fmt.GoStringer = ErrBox{}
+	_ error          = innerErrBox{}
 	// errorInterfaceType is cached to avoid repeated reflection calls
 	errorInterfaceType = reflect.TypeOf((*error)(nil)).Elem()
 )
 
 // BoxErr wraps any error type into ErrBox.
+// Returns zero value ErrBox{} if val is nil.
 //
 //go:inline
-func BoxErr(val any) *ErrBox {
+func BoxErr(val any) ErrBox {
 	switch val := val.(type) {
 	case nil:
-		return nil
+		return ErrBox{}
 	case ErrBox:
-		return &val
-	case *ErrBox:
 		return val
+	case *ErrBox:
+		if val == nil {
+			return ErrBox{}
+		}
+		return *val
 	case innerErrBox:
-		return &ErrBox{val: val.val}
+		return ErrBox{val: val.val}
 	default:
-		return &ErrBox{val: val}
+		return ErrBox{val: val}
 	}
 }
 
-// IsEmpty returns true if ErrBox is empty (nil receiver or nil val).
+// IsEmpty returns true if ErrBox is empty (nil val).
 //
 //go:inline
-func (e *ErrBox) IsEmpty() bool {
-	return e == nil || e.val == nil
+func (e ErrBox) IsEmpty() bool {
+	return e.val == nil
 }
 
 // Value returns the inner value.
 //
 //go:inline
-func (e *ErrBox) Value() any {
-	if e == nil {
-		return nil
-	}
+func (e ErrBox) Value() any {
 	return e.val
 }
 
@@ -82,10 +83,7 @@ func (e *ErrBox) Value() any {
 // This implements the fmt.Stringer interface.
 //
 //go:inline
-func (e *ErrBox) String() string {
-	if e == nil {
-		return "<nil>"
-	}
+func (e ErrBox) String() string {
 	return errorString(e.val)
 }
 
@@ -108,17 +106,14 @@ func errorString(val any) string {
 
 // GoString returns the Go-syntax representation.
 // This implements the fmt.GoStringer interface.
-func (e *ErrBox) GoString() string {
-	if e == nil {
-		return "(*errutil.ErrBox)(nil)"
-	}
-	return fmt.Sprintf("&errutil.ErrBox{val: %#v}", e.val)
+func (e ErrBox) GoString() string {
+	return fmt.Sprintf("errutil.ErrBox{val: %#v}", e.val)
 }
 
 // ToError converts ErrBox to error interface.
-// Returns nil if the receiver is nil or val is nil.
+// Returns nil if val is nil.
 // Returns the wrapped error directly if it's already an error, otherwise
-// returns a pointer to innerErrBox which implements the error interface.
+// returns an innerErrBox value which implements the error interface.
 //
 // Example:
 //
@@ -128,8 +123,8 @@ func (e *ErrBox) GoString() string {
 //	```
 //
 //go:inline
-func (e *ErrBox) ToError() error {
-	if e == nil || e.val == nil {
+func (e ErrBox) ToError() error {
+	if e.val == nil {
 		return nil
 	}
 	// If the wrapped value is already an error, return it directly
@@ -137,14 +132,14 @@ func (e *ErrBox) ToError() error {
 		return err
 	}
 	// Otherwise create and return an innerErrBox wrapper
-	return &innerErrBox{val: e.val}
+	return innerErrBox{val: e.val}
 }
 
 // Unwrap returns the inner error.
 //
 //go:inline
-func (e *ErrBox) Unwrap() error {
-	if e == nil || e.val == nil {
+func (e ErrBox) Unwrap() error {
+	if e.val == nil {
 		return nil
 	}
 	return unwrapError(e.val)
@@ -173,8 +168,8 @@ func unwrapError(val any) error {
 // Is reports whether any error in err's chain matches target.
 //
 //go:inline
-func (e *ErrBox) Is(target error) bool {
-	if e == nil || e.val == nil {
+func (e ErrBox) Is(target error) bool {
+	if e.val == nil {
 		return target == nil
 	}
 	return isError(e.val, target)
@@ -199,8 +194,8 @@ func isError(val any, target error) bool {
 // target to that error value and returns true. Otherwise, it returns false.
 //
 //go:inline
-func (e *ErrBox) As(target any) bool {
-	if e == nil || e.val == nil {
+func (e ErrBox) As(target any) bool {
+	if e.val == nil {
 		return false
 	}
 	return asError(e.val, target)

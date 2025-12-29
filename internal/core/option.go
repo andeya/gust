@@ -588,7 +588,7 @@ func (o Option[T]) ToResult() VoidResult {
 	return Ok[void.Void](nil)
 }
 
-// UnwrapOrThrow returns the contained T or panic returns error (*errutil.ErrBox).
+// UnwrapOrThrow returns the contained T or panic returns error interface.
 // NOTE:
 //
 //	If there is an error, that panic should be caught with `Result.Catch()`

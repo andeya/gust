@@ -376,10 +376,10 @@ func TestChunkResult_UnwrapPanic(t *testing.T) {
 	defer func() {
 		p := recover()
 		assert.NotNil(t, p)
-		// Verify panic is *ErrBox
-		eb, ok := p.(*errutil.ErrBox)
+		// Verify panic is ErrBox (value type)
+		eb, ok := p.(errutil.ErrBox)
 		assert.True(t, ok)
-		assert.NotNil(t, eb)
+		assert.False(t, eb.IsEmpty())
 	}()
 	errChunk.Unwrap()
 }

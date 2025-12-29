@@ -102,7 +102,7 @@ func TryErr[T any](err any) Result[T] {
 	if eb.IsEmpty() {
 		return Ok[T](defaultValue[T]())
 	}
-	return Result[T]{t: None[T](), e: *eb}
+	return Result[T]{t: None[T](), e: eb}
 }
 
 // TryErrVoid wraps a failure result as VoidResult.
@@ -151,7 +151,7 @@ func (r Result[T]) safeGetT() T {
 //
 //go:inline
 func (r Result[T]) safeGetE() error {
-	return (&r.e).ToError()
+	return r.e.ToError()
 }
 
 // IsValid returns true if the object is initialized.
@@ -211,7 +211,7 @@ func (r Result[T]) IsOkAnd(f func(T) bool) bool {
 //go:inline
 func (r Result[T]) IsErrAnd(f func(error) bool) bool {
 	if r.IsErr() {
-		return f((&r.e).ToError())
+		return f(r.e.ToError())
 	}
 	return false
 }
@@ -278,7 +278,7 @@ func UnwrapErrOr(r VoidResult, def error) error {
 //go:inline
 func (r Result[T]) ErrVal() any {
 	if r.IsErr() {
-		return (&r.e).Value()
+		return r.e.Value()
 	}
 	return nil
 }
@@ -395,7 +395,7 @@ func (r Result[T]) Expect(msg string) T {
 // Unwrap returns the contained Ok value.
 // Because this function may panic, its use is generally discouraged.
 // Instead, prefer to use pattern matching and handle the error case explicitly, or call UnwrapOr or UnwrapOrElse.
-// NOTE: This panics *errutil.ErrBox (not error) to be consistent with Result.UnwrapOrThrow() and allow Result.Catch() to properly handle it.
+// NOTE: This panics with error interface (from r.e.ToError()) to be consistent with Result.UnwrapOrThrow() and allow Result.Catch() to properly handle it.
 func (r Result[T]) Unwrap() T {
 	if r.IsErr() {
 		panic(r.e.ToError())
@@ -580,7 +580,7 @@ func (r Result[T]) ContainsErr(err any) bool {
 		return false
 	}
 	if r.IsErr() {
-		return errors.Is((&r.e).ToError(), errutil.BoxErr(err).ToError())
+		return errors.Is(r.e.ToError(), errutil.BoxErr(err).ToError())
 	}
 	return false
 }
@@ -638,10 +638,10 @@ func (r *Result[T]) UnmarshalJSON(b []byte) error {
 	if err != nil {
 		r.t = None[T]()
 		eb := errutil.BoxErr(err)
-		if eb == nil {
+		if eb.IsEmpty() {
 			r.e = errutil.ErrBox{}
 		} else {
-			r.e = *eb
+			r.e = eb
 		}
 	} else {
 		r.t = Some(t)
@@ -683,7 +683,7 @@ func (r *Result[T]) SizeHint() (uint, Option[uint]) {
 	return r.t.SizeHint()
 }
 
-// UnwrapOrThrow returns the contained T or panic returns error (*errutil.ErrBox).
+// UnwrapOrThrow returns the contained T or panic returns error interface.
 // NOTE:
 //
 //	If there is an error, that panic should be caught with `Result.Catch()`
@@ -696,7 +696,7 @@ func (r Result[T]) UnwrapOrThrow() T {
 
 // Catch catches any panic and converts it to a Result error.
 // It catches:
-//   - *errutil.ErrBox (gust's own error type)
+//   - errutil.ErrBox (gust's own error type, value type)
 //   - error (regular Go errors, wrapped in ErrBox)
 //   - any other type (wrapped in ErrBox)
 //
@@ -749,39 +749,39 @@ func (r *Result[T]) Catch(withStackTrace ...bool) {
 		// Use newPanicError which properly handles ErrBox types
 		// Wrap panicError in ErrBox
 		eb := errutil.BoxErr(errutil.NewPanicError(p, errutil.PanicStackTrace()))
-		if eb == nil {
+		if eb.IsEmpty() {
 			r.e = errutil.ErrBox{}
 		} else {
-			r.e = *eb
+			r.e = eb
 		}
 	} else {
 		// Without stack trace - directly wrap in ErrBox
 		switch p := p.(type) {
-		case *errutil.ErrBox:
-			// Gust's own ErrBox type (pointer)
-			if p != nil {
-				r.e = *p
-			} else {
-				r.e = errutil.ErrBox{}
-			}
 		case errutil.ErrBox:
 			// Gust's own ErrBox type (value)
 			r.e = p
 		case error:
 			// Regular error panic - wrap in ErrBox
 			eb := errutil.BoxErr(p)
-			if eb == nil {
+			if eb.IsEmpty() {
 				r.e = errutil.ErrBox{}
 			} else {
-				r.e = *eb
+				r.e = eb
+			}
+		case *errutil.ErrBox:
+			// Gust's own ErrBox type (pointer) - for backward compatibility
+			if p != nil {
+				r.e = *p
+			} else {
+				r.e = errutil.ErrBox{}
 			}
 		default:
 			// Other types - wrap in ErrBox
 			eb := errutil.BoxErr(p)
-			if eb == nil {
+			if eb.IsEmpty() {
 				r.e = errutil.ErrBox{}
 			} else {
-				r.e = *eb
+				r.e = eb
 			}
 		}
 	}
