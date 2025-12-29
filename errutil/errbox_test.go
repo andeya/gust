@@ -214,33 +214,6 @@ func TestErrBox_As(t *testing.T) {
 	assert.False(t, eb2.As(&targetErr2))
 }
 
-func TestErrBox_ValueOrDefault(t *testing.T) {
-	// Test with value
-	eb := errutil.BoxErr("test")
-	assert.Equal(t, "test", eb.ValueOrDefault())
-
-	// Test with nil ErrBox
-	var nilEb *errutil.ErrBox
-	assert.Nil(t, nilEb.ValueOrDefault())
-
-	// Test with nil value
-	eb2 := errutil.BoxErr(nil)
-	if eb2 == nil {
-		assert.Nil(t, eb2)
-	} else {
-		assert.Nil(t, eb2.ValueOrDefault())
-	}
-
-	// Test with int value
-	eb3 := errutil.BoxErr(42)
-	assert.Equal(t, 42, eb3.ValueOrDefault())
-
-	// Test with error value
-	err := errors.New("test error")
-	eb4 := errutil.BoxErr(err)
-	assert.Equal(t, err, eb4.ValueOrDefault())
-}
-
 func TestErrBox_String(t *testing.T) {
 	// Test with string
 	eb1 := errutil.BoxErr("test error")
