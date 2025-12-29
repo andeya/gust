@@ -63,7 +63,7 @@ func main() {
         })
 
     if res.IsOk() {
-        fmt.Println("Success:", res.Unwrap()) // Success: 25
+        fmt.Println("Success:", res.Unwrap()) // Success: 25 (⚠️ Unwrap may panic if not checked)
     }
 }
 ```
@@ -149,14 +149,19 @@ res := result.Ok(10).
         return result.Ok(0) // Fallback
     })
 
-fmt.Println(res.Unwrap()) // 25
+fmt.Println(res.UnwrapOr(0)) // 25 (safe, returns 0 if error)
+// Or check first (Unwrap may panic if not checked):
+if res.IsOk() {
+    fmt.Println(res.Unwrap()) // 25 (panics if error, only use after IsOk() check)
+}
 ```
 
 **Key Methods:**
 - `Map` - Transform value if Ok
 - `AndThen` - Chain operations returning Result
 - `OrElse` - Handle errors with fallback
-- `Unwrap` / `UnwrapOr` - Extract values safely
+- `UnwrapOr` - Extract values safely (with default, **never panics**)
+- `Unwrap` - Extract value (⚠️ **panics if error** - use only after `IsOk()` check, prefer `UnwrapOr` for safety)
 
 ### 2. Option<T> - No More Nil Panics
 
@@ -183,7 +188,8 @@ fmt.Println(res) // 10
 - `Map` - Transform value if Some
 - `AndThen` - Chain operations returning Option
 - `Filter` - Conditionally filter values
-- `Unwrap` / `UnwrapOr` - Extract values safely
+- `UnwrapOr` - Extract values safely (with default, **never panics**)
+- `Unwrap` - Extract value (⚠️ **panics if None** - use only after `IsSome()` check, prefer `UnwrapOr` for safety)
 
 ### 3. Iterator - Rust-like Iteration
 

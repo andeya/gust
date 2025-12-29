@@ -63,7 +63,7 @@ func main() {
         })
 
     if res.IsOk() {
-        fmt.Println("Success:", res.Unwrap()) // Success: 25
+        fmt.Println("Success:", res.Unwrap()) // Success: 25 (⚠️ Unwrap 未检查时可能 panic)
     }
 }
 ```
@@ -149,14 +149,19 @@ res := result.Ok(10).
         return result.Ok(0) // 回退值
     })
 
-fmt.Println(res.Unwrap()) // 25
+fmt.Println(res.UnwrapOr(0)) // 25 (安全，如果错误则返回 0)
+// 或者先检查（Unwrap 未检查时可能 panic）：
+if res.IsOk() {
+    fmt.Println(res.Unwrap()) // 25 (如果错误会 panic，仅在 IsOk() 检查后使用)
+}
 ```
 
 **关键方法：**
 - `Map` - 如果 Ok 则转换值
 - `AndThen` - 链式调用返回 Result 的操作
 - `OrElse` - 使用回退值处理错误
-- `Unwrap` / `UnwrapOr` - 安全提取值
+- `UnwrapOr` - 安全提取值（带默认值，**永不 panic**）
+- `Unwrap` - 提取值（⚠️ **如果错误会 panic** - 仅在 `IsOk()` 检查后使用，建议优先使用 `UnwrapOr` 以确保安全）
 
 ### 2. Option<T> - 不再有 Nil Panic
 
@@ -183,7 +188,8 @@ fmt.Println(res) // 10
 - `Map` - 如果 Some 则转换值
 - `AndThen` - 链式调用返回 Option 的操作
 - `Filter` - 条件过滤值
-- `Unwrap` / `UnwrapOr` - 安全提取值
+- `UnwrapOr` - 安全提取值（带默认值，**永不 panic**）
+- `Unwrap` - 提取值（⚠️ **如果为 None 会 panic** - 仅在 `IsSome()` 检查后使用，建议优先使用 `UnwrapOr` 以确保安全）
 
 ### 3. Iterator - Rust 风格迭代
 
