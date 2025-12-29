@@ -9,10 +9,13 @@ import (
 )
 
 const (
+	// Host64bit indicates whether the current host is a 64-bit architecture
 	Host64bit = strconv.IntSize == 64
+	// Host32bit indicates whether the current host is a 32-bit architecture
 	Host32bit = ^uint(0)>>32 == 0
 )
 
+// Abs returns the absolute value of a number
 func Abs[T constraints.Digit](d T) T {
 	var zero T
 	if d < zero {
@@ -21,6 +24,7 @@ func Abs[T constraints.Digit](d T) T {
 	return d
 }
 
+// Max returns the maximum value for integer type T
 func Max[T constraints.Integer]() T {
 	var t T
 	switch any(t).(type) {
@@ -58,6 +62,8 @@ func Max[T constraints.Integer]() T {
 	}
 }
 
+// SaturatingAdd performs saturating addition
+// If the result overflows, it returns the maximum value of type T
 func SaturatingAdd[T constraints.Integer](a, b T) T {
 	if a < Max[T]()-b {
 		return a + b
@@ -65,6 +71,8 @@ func SaturatingAdd[T constraints.Integer](a, b T) T {
 	return Max[T]()
 }
 
+// SaturatingSub performs saturating subtraction
+// If the result underflows (a < b), it returns 0
 func SaturatingSub[T constraints.Digit](a, b T) T {
 	if a > b {
 		return a - b
@@ -72,6 +80,8 @@ func SaturatingSub[T constraints.Digit](a, b T) T {
 	return 0
 }
 
+// CheckedAdd performs checked addition
+// Returns None if the result overflows, otherwise returns Some(result)
 func CheckedAdd[T constraints.Integer](a, b T) option.Option[T] {
 	if a <= Max[T]()-b {
 		return option.Some(a + b)
@@ -79,6 +89,8 @@ func CheckedAdd[T constraints.Integer](a, b T) option.Option[T] {
 	return option.None[T]()
 }
 
+// CheckedMul performs checked multiplication
+// Returns None if the result overflows, otherwise returns Some(result)
 func CheckedMul[T constraints.Integer](a, b T) option.Option[T] {
 	if a <= Max[T]()/b {
 		return option.Some(a * b)
