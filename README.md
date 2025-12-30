@@ -128,7 +128,7 @@ func fetchUserData(userID int) result.Result[string] {
 ```
 
 **Benefits:**
-- ✅ **70% less code** - Errors flow naturally
+- ✅ **Eliminates repetitive error checks** - Errors flow naturally
 - ✅ **Linear flow** - Easy to read top-to-bottom
 - ✅ **Automatic propagation** - Errors stop the chain automatically
 - ✅ **Composable** - Each step is independent and testable
