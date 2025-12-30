@@ -155,26 +155,7 @@ func ToCamelCase(str string) string {
 				next := str[i+1]
 				if next >= 'a' && next <= 'z' {
 					shouldCapitalize = true
-					// Preserve underscore if it's part of multiple underscores
-					// But reduce 3+ underscores to 2
-					// For _tcp___rpc, we want _Tcp__Rpc (reduce 3 to 2)
-					// For _tc_p__rp_c__, we want _TcP_RpC__ (reduce 2 to 1 between words)
-					if i > leadingUnderscores && str[i-1] == '_' {
-						// Check how many consecutive underscores we have (including current)
-						underscoreCount := 1
-						for i+underscoreCount <= lastIdx && str[i+underscoreCount] == '_' {
-							underscoreCount++
-						}
-						// If 3+, reduce to 2; if 2, reduce to 1 (between words)
-						if underscoreCount >= 3 {
-							buf = append(buf, '_', '_')
-							i += underscoreCount - 1 // Skip the rest, next char will be processed
-						} else if underscoreCount == 2 {
-							buf = append(buf, '_')
-							i += 1 // Skip the next underscore, next char will be processed
-						}
-						// Don't continue here - let the loop process the next letter with shouldCapitalize=true
-					}
+					// Single underscore before lowercase letter - just capitalize the next letter
 					continue
 				} else if next >= '0' && next <= '9' {
 					// Remove underscore before digit
@@ -622,10 +603,8 @@ func NormalizeWhitespace(str string) string {
 				if prevChar != '\t' {
 					// First tab in sequence, will add when we see non-whitespace
 					inWhitespace = true
-					// Mark that we're in a tab sequence (not space)
-					prevChar = '\t'
 				}
-				// Skip additional tabs in sequence (don't update prevChar)
+				// Skip additional tabs in sequence (prevChar will be updated at end of loop)
 			}
 
 		case '\n':

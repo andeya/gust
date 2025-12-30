@@ -80,7 +80,7 @@ func ExampleOption_configManagement() {
 	}
 
 	config := loadConfig()
-	port := config.Port.UnwrapOr(8080) // Default to 8080 if not set
+	port := config.Port.UnwrapOr(8080)   // Default to 8080 if not set
 	apiKey := config.APIKey.UnwrapOr("") // Default to empty string
 
 	fmt.Printf("Port: %d, APIKey set: %v\n", port, config.APIKey.IsSome())

@@ -147,6 +147,108 @@ func TestToCamelCase(t *testing.T) {
 		{"multiple underscores", "a__b__c", "A__B__C"},
 		{"leading underscores", "___abc", "___Abc"},
 		{"trailing underscores", "abc___", "Abc___"},
+		// Additional test cases for 100% coverage
+		{"underscore before uppercase", "user_Name", "User_Name"},
+		{"underscore at end", "abc_", "Abc_"},
+		{"underscore before non-letter", "abc_@def", "Abc_@def"},
+		{"underscore before uppercase letter", "abc_Adef", "Abc_Adef"},
+		{"single underscore after leading", "_a", "_A"},
+		{"underscore before digit", "abc_123def", "Abc123def"},
+		{"uppercase letter", "ABC", "ABC"},
+		{"uppercase with underscore", "ABC_DEF", "ABC_DEF"},
+		{"digit only", "123", "123"},
+		{"underscore between digits", "123_456", "123456"},
+		{"mixed case with underscore", "aBc_DeF", "ABc_DeF"},
+		{"underscore before uppercase after leading", "_a_B", "_A_B"},
+		{"complex pattern", "a_b_C__d", "AB_C_D"},
+		{"underscore sequence with uppercase", "a__B", "A__B"},
+		{"trailing underscore after letter", "abc_", "Abc_"},
+		{"multiple underscores with uppercase", "a___B", "A__B"},
+		{"underscore before uppercase in middle", "test_Value", "Test_Value"},
+		{"single char uppercase", "A", "A"},
+		{"uppercase after underscore", "_A", "_A"},
+		{"letter after multiple underscores", "a___b", "A__B"},
+		{"pattern with uppercase", "x_Y__Z", "X_Y_Z"},
+		// Test uppercase letter after underscore (next >= 'A' && next <= 'Z')
+		{"underscore before uppercase", "test_Value", "Test_Value"},
+		{"underscore before uppercase after leading", "_a_B", "_A_B"},
+		// Test last character is underscore (i == lastIdx)
+		{"underscore at very end", "abc_", "Abc_"},
+		// Test uppercase letter in hasLetterAfter check
+		{"multiple underscores before uppercase", "a__B", "A__B"},
+		{"underscore sequence with uppercase after", "test___Value", "Test__VAlue"},
+		// Test uppercase prevChar in hasSingleUnderscoreBefore check
+		{"uppercase letter before double underscore", "A__B", "A__B"},
+		{"uppercase pattern", "X_Y__Z", "X_Y_Z"},
+		// Test uppercase letter in main loop (b >= 'A' && b <= 'Z')
+		{"uppercase without capitalize", "ABC", "ABC"},
+		{"uppercase after underscore", "_ABC", "_ABC"},
+		{"mixed case", "aBc", "ABc"},
+		// Test edge cases
+		{"single underscore at end", "a_", "A_"},
+		{"underscore before non-letter char", "a_@b", "A_@b"},
+		{"underscore before digit at end", "a_1", "A1"},
+		{"multiple underscores at end", "a___", "A___"},
+		{"underscore before uppercase at start", "_A", "_A"},
+		{"complex uppercase pattern", "A_B__C", "A_B_C"},
+		// Test i == leadingUnderscores case
+		{"double underscore right after leading", "__a", "__A"},
+		// Test non-letter prevChar case
+		{"double underscore after digit", "1__a", "1__A"},
+		// Test i-2 < leadingUnderscores case
+		{"double underscore after single leading", "_a__b", "_A__B"},
+		// Test i-3 < leadingUnderscores case
+		{"double underscore after double leading", "__a__b", "__A__B"},
+		// Test non-letter prevPrevPrev case
+		{"double underscore after digit and underscore", "1_a__b", "1A__B"},
+		// Test i == lastIdx case (last character is underscore)
+		{"underscore at very end", "abc_", "Abc_"},
+		// Test next >= 'A' && next <= 'Z' case (uppercase letter after underscore)
+		{"underscore before uppercase", "test_Value", "Test_Value"},
+		// Test underscoreCount == 1 in else branch (line 264)
+		{"single underscore in else branch", "a_b_c", "ABC"},
+		// Test underscoreCount == 1 case in else branch
+		{"single underscore between words", "a_b", "AB"},
+		// Test hasLetterAfter with uppercase
+		{"double underscore before uppercase", "a__B", "A__B"},
+		// Test underscoreCount < 2 case
+		{"single underscore trailing", "a_", "A_"},
+		// Test hasLetterAfter false with non-letter
+		{"double underscore before non-letter", "a__@", "A__@"},
+		// Test underscoreCount >= 3 with hasLetterAfter
+		{"triple underscore before letter", "a___b", "A__B"},
+		// Test underscoreCount == 2 with hasLetterAfter but no single underscore before
+		{"double underscore after letter", "a__b", "A__B"},
+		// Test i-2 == leadingUnderscores edge case
+		{"double underscore after single leading underscore", "_a__b", "_A__B"},
+		// Test next >= 'A' && next <= 'Z' case (line 156 else branch - uppercase after underscore)
+		{"underscore before uppercase", "test_Value", "Test_Value"},
+		// Test i == leadingUnderscores case (line 162 else branch)
+		{"underscore right after leading with lowercase", "_a_b", "_AB"},
+		// Test i-2 < leadingUnderscores case (line 224 else branch)
+		{"double underscore with i-2 < leadingUnderscores", "_a__b", "_A__B"},
+		// Test i-3 < leadingUnderscores case (line 245 else branch)
+		{"double underscore with i-3 < leadingUnderscores", "__a__b", "__A__B"},
+		// Test non-letter prevChar case (line 240 else branch)
+		{"double underscore after non-letter", "1__a", "1__A"},
+		// Test non-letter prevPrevPrev case (line 247 else branch)
+		{"double underscore after digit underscore letter", "1_a__b", "1A__B"},
+		// Test underscoreCount == 1 in else branch (line 264)
+		{"single underscore in else branch", "a_b", "AB"},
+		// Test i == leadingUnderscores in line 162 (underscore right after leading)
+		{"underscore right after leading", "_a", "_A"},
+		// Test i-2 == leadingUnderscores edge case (line 224)
+		{"double underscore at boundary", "_a__b", "_A__B"},
+		// Test i-3 == leadingUnderscores edge case (line 245)
+		{"double underscore at boundary 2", "__a__b", "__A__B"},
+		// Test prevChar is digit case (line 240)
+		{"double underscore after digit letter", "1a__b", "1A__B"},
+		// Test prevPrevPrev is digit case (line 247)
+		{"double underscore after digit underscore letter pattern", "1_a__b", "1A__B"},
+		// Test next is uppercase letter (not lowercase) after underscore
+		{"underscore before uppercase letter", "test_Value", "Test_Value"},
+		// Test underscoreCount == 1 in else branch (line 264) - single underscore
+		{"single underscore in else branch", "a_b", "AB"},
 	}
 
 	for _, tt := range tests {
@@ -182,6 +284,32 @@ func TestToPascalCase(t *testing.T) {
 		{"url_path", "url_path", "URLPath"},
 		{"with numbers", "user_id_123", "UserID123"},
 		{"mixed case", "xml_http_request", "XMLHttpRequest"},
+		// Additional test cases for 100% coverage
+		{"initialism at start", "api_key", "APIKey"},
+		{"initialism at end", "key_api", "KeyAPI"},
+		{"initialism without next part", "xml_http", "XMLHTTP"},
+		{"initialism with next initialism", "xml_http_json", "XMLHTTPJSON"},
+		{"single char part", "a_b_c", "ABC"},
+		{"empty parts in split", "a__b", "AB"},
+		{"multiple empty parts", "a___b", "AB"},
+		{"initialism followed by non-initialism", "tcp_request", "TCPRequest"},
+		{"non-initialism followed by initialism", "request_tcp", "RequestTCP"},
+		{"all initialisms", "tcp_rpc", "TCPRPC"},
+		{"single char", "a", "A"},
+		{"single initialism", "api", "API"},
+		{"initialism at start with non-initialism", "api_request", "APIRequest"},
+		// Test idx+1 >= len(parts) case (last part) - line 344 else branch
+		{"initialism at end after initialism", "request_api", "RequestAPI"},
+		{"initialism at end", "api_json", "APIJSON"}, // last part, idx+1 == len(parts)
+		// Test commonInitialisms[nextPart] == true case - line 346 else branch
+		{"initialism followed by initialism", "api_json", "APIJSON"},
+		{"three initialisms", "api_json_xml", "APIJSONXML"}, // nextPart is also initialism
+		{"initialism in middle with initialism after", "request_api_json", "RequestAPIJSON"},
+		// Test single char part (len(part) == 1) - line 361 else branch
+		{"single char parts", "a_b_c", "ABC"},
+		{"single char with initialism", "a_id_b", "AIDB"},
+		{"single char only", "a", "A"},
+		{"single char with underscore", "a_b", "AB"},
 	}
 
 	for _, tt := range tests {
@@ -372,6 +500,162 @@ func TestDecodeUnicodeEscapes(t *testing.T) {
 			radix:    16,
 			expected: `\\u0041`, // Should not decode escaped backslash
 		},
+		{
+			name:     "even number of backslashes",
+			input:    `\\\\u0041`,
+			radix:    16,
+			expected: `\\\\u0041`, // Even number means escaped, not a real escape sequence
+		},
+		{
+			name:     "escape at start",
+			input:    `\u0041`,
+			radix:    16,
+			expected: `A`, // pos == 0 case
+		},
+		{
+			name:     "long code point with invalid parse",
+			input:    `\uGGGG1234`,
+			radix:    16,
+			expected: `\uGGGG1234`, // Invalid parse, keep original
+		},
+		{
+			name:     "short code point",
+			input:    `\u41`,
+			radix:    16,
+			expected: `A`, // Should pad to 4 chars
+		},
+		{
+			name:     "code point with rest",
+			input:    `\u0041BC`,
+			radix:    16,
+			expected: `ABC`, // Normal 4-char code point
+		},
+		{
+			name:     "high surrogate without low",
+			input:    `\uD83D`,
+			radix:    16,
+			expected: "\ufffd", // High surrogate without low surrogate, decoded as replacement char
+		},
+		{
+			name:     "high surrogate with invalid low",
+			input:    `\uD83D\u0041`,
+			radix:    16,
+			expected: "\ufffdA", // High surrogate with non-low surrogate, decoded as replacement char
+		},
+		{
+			name:     "high surrogate with low but invalid parse",
+			input:    `\uD83D\uGGGG`,
+			radix:    16,
+			expected: "\ufffd\\uGGGG", // Invalid parse of low surrogate, high decoded as replacement char
+		},
+		{
+			name:     "high surrogate with low but out of bounds",
+			input:    `\uD83D\uDE00`,
+			radix:    16,
+			expected: `😀`, // Valid surrogate pair
+		},
+		{
+			name:     "code point with rest after parse",
+			input:    `\u12345678`,
+			radix:    16,
+			expected: "\u1234" + "5678", // Long code point, parse first 4, keep rest
+		},
+		{
+			name:     "invalid code point parse",
+			input:    `\uGGGG`,
+			radix:    16,
+			expected: `\uGGGG`, // Invalid parse, keep original
+		},
+		{
+			name:     "non-hex radix with special case",
+			input:    `\u41BC`,
+			radix:    10,
+			expected: `\u41BC`, // Non-hex radix, don't apply special case
+		},
+		{
+			name:     "code point with different first chars",
+			input:    `\u51BC`,
+			radix:    16,
+			expected: "冼", // Different first chars, normal parse as 4-char code point
+		},
+		{
+			name:     "empty code point at end",
+			input:    `test\u`,
+			radix:    16,
+			expected: `test\u`, // Empty code point
+		},
+		{
+			name:     "escape at start pos 0",
+			input:    `\u0041`,
+			radix:    16,
+			expected: `A`, // pos == 0 case
+		},
+		{
+			name:     "high surrogate with low but out of bounds",
+			input:    `\uD83D\uDE00`,
+			radix:    16,
+			expected: `😀`, // Valid surrogate pair
+		},
+		{
+			name:     "high surrogate with low but segmentEnd out of bounds",
+			input:    `\uD83D\uDE`,
+			radix:    16,
+			expected: "\ufffd\u00DE", // segmentEnd+len(escapeSeq)+4 > len(str), high surrogate becomes replacement char
+		},
+		{
+			name:     "high surrogate with low but invalid parse",
+			input:    `\uD83D\uGGGG`,
+			radix:    16,
+			expected: "\ufffd\\uGGGG", // err2 != nil case
+		},
+		{
+			name:     "high surrogate with low but not in range",
+			input:    `\uD83D\u0041`,
+			radix:    16,
+			expected: "\ufffdA", // nextCodePoint not in 0xDC00-0xDFFF
+		},
+		{
+			name:     "code point with rest",
+			input:    `\u12345678`,
+			radix:    16,
+			expected: "\u1234" + "5678", // len(rest) > 0
+		},
+		{
+			name:     "code point without rest",
+			input:    `\u0041`,
+			radix:    16,
+			expected: `A`, // len(rest) == 0
+		},
+		{
+			name:     "long code point with invalid parse",
+			input:    `\uGGGG1234`,
+			radix:    16,
+			expected: `\uGGGG1234`, // err != nil for long code point
+		},
+		{
+			name:     "high surrogate with nextIdx < 0",
+			input:    `\uD83D`,
+			radix:    16,
+			expected: "\ufffd", // nextIdx < 0, so no low surrogate check
+		},
+		{
+			name:     "high surrogate with segmentEnd out of bounds",
+			input:    `\uD83D\uDE`,
+			radix:    16,
+			expected: "\ufffd\u00DE", // segmentEnd+len(escapeSeq)+4 > len(str)
+		},
+		{
+			name:     "high surrogate with invalid low parse",
+			input:    `\uD83D\uGGGG`,
+			radix:    16,
+			expected: "\ufffd\\uGGGG", // err2 != nil
+		},
+		{
+			name:     "high surrogate with low not in range",
+			input:    `\uD83D\u0041`,
+			radix:    16,
+			expected: "\ufffdA", // nextCodePoint not in 0xDC00-0xDFFF
+		},
 	}
 
 	for _, tt := range tests {
@@ -487,6 +771,190 @@ func TestNormalizeWhitespace(t *testing.T) {
 			name:     "complex whitespace block",
 			input:    "start   \t  \n  \t  \n  \t  end",
 			expected: "start\nend",
+		},
+		// Additional test cases for 100% coverage
+		{
+			name:     "tab after newline",
+			input:    "text\n\tindented",
+			expected: "text\n\tindented",
+		},
+		{
+			name:     "tab after newline with space before",
+			input:    "text \n\tindented",
+			expected: "text\n\tindented",
+		},
+		{
+			name:     "multiple tabs after newline",
+			input:    "text\n\t\tindented",
+			expected: "text\n\tindented", // Multiple tabs normalized to single tab
+		},
+		{
+			name:     "newline with unicode whitespace after",
+			input:    "text\n\u00A0more",
+			expected: "text\nmore", // Unicode whitespace after newline is normalized
+		},
+		{
+			name:     "newline with unicode whitespace before",
+			input:    "text\u00A0\nmore",
+			expected: "text\nmore",
+		},
+		{
+			name:     "invalid UTF-8 character",
+			input:    "text\xFF\xFEmore",
+			expected: "text\xFF\xFEmore",
+		},
+		{
+			name:     "invalid UTF-8 with whitespace",
+			input:    "text \xFE\xFF more",
+			expected: "text \xFE\xFF more",
+		},
+		{
+			name:     "tab not after newline",
+			input:    "text\t\tmore",
+			expected: "text\tmore",
+		},
+		{
+			name:     "tab with newline count",
+			input:    "text\n\n\tindented",
+			expected: "text\n\n\tindented",
+		},
+		{
+			name:     "space with newline count",
+			input:    "text\n\n more",
+			expected: "text\n\nmore", // Space after newline is normalized
+		},
+		{
+			name:     "unicode whitespace with newline",
+			input:    "text\n\u00A0\u00A0more",
+			expected: "text\nmore", // Unicode whitespace after newline is normalized
+		},
+		{
+			name:     "unicode whitespace without newline",
+			input:    "text\u00A0\u00A0more",
+			expected: "text more",
+		},
+		{
+			name:     "carriage return only",
+			input:    "text\rmore",
+			expected: "text\nmore",
+		},
+		{
+			name:     "carriage return with space before",
+			input:    "text \rmore",
+			expected: "text\nmore",
+		},
+		{
+			name:     "carriage return with tab before",
+			input:    "text\t\rmore",
+			expected: "text\nmore",
+		},
+		{
+			name:     "multiple carriage returns",
+			input:    "text\r\r\rmore",
+			expected: "text\n\nmore",
+		},
+		{
+			name:     "carriage return newline",
+			input:    "text\r\nmore",
+			expected: "text\nmore",
+		},
+		{
+			name:     "tab before newline with content",
+			input:    "text\t\nmore",
+			expected: "text\nmore",
+		},
+		{
+			name:     "space before newline with content",
+			input:    "text \nmore",
+			expected: "text\nmore",
+		},
+		{
+			name:     "newline with tab after (indentation)",
+			input:    "text\n\t\tmore",
+			expected: "text\n\tmore", // Multiple tabs normalized to single tab
+		},
+		{
+			name:     "newline with space then tab",
+			input:    "text\n \tmore",
+			expected: "text\nmore",
+		},
+		{
+			name:     "leading tab",
+			input:    "\ttext",
+			expected: "text",
+		},
+		{
+			name:     "trailing tab after newline",
+			input:    "text\n\t",
+			expected: "text\n\t",
+		},
+		{
+			name:     "trailing tab without newline",
+			input:    "text\t",
+			expected: "text",
+		},
+		{
+			name:     "tab after newline in middle",
+			input:    "start\n\tmiddle\n\tend",
+			expected: "start\n\tmiddle\n\tend",
+		},
+		{
+			name:     "unicode whitespace character",
+			input:    "text\u2000\u2001more",
+			expected: "text more",
+		},
+		{
+			name:     "unicode whitespace with newline count",
+			input:    "text\n\u2000more",
+			expected: "text\nmore", // Unicode whitespace after newline is normalized
+		},
+		// Test firstNonSpaceAfter == '\t' case (line 697)
+		{
+			name:     "newline with tab after (indentation pattern)",
+			input:    "text\n\tmore",
+			expected: "text\n\tmore", // firstNonSpaceAfter == '\t', startsWithTab == true
+		},
+		// Test firstNonSpaceAfter != '\t' case (line 697)
+		{
+			name:     "newline with space then tab",
+			input:    "text\n \tmore",
+			expected: "text\nmore", // firstNonSpaceAfter != '\t', startsWithTab == false
+		},
+		// Test firstNonSpaceAfter == 0 case (line 697)
+		{
+			name:     "newline with only spaces after",
+			input:    "text\n  more",
+			expected: "text\nmore", // firstNonSpaceAfter == 0, startsWithTab == false
+		},
+		// Test firstCharAfter == '\t' case (line 706)
+		{
+			name:     "newline directly followed by tab",
+			input:    "text\n\tmore",
+			expected: "text\n\tmore", // firstCharAfter == '\t', startsWithTab == true
+		},
+		// Test firstCharAfter != '\t' case (line 706)
+		{
+			name:     "newline with space before tab",
+			input:    "text\n \tmore",
+			expected: "text\nmore", // firstCharAfter == ' ', startsWithTab == false
+		},
+		// Test i+1 >= len(input) case (line 703 else branch)
+		{
+			name:     "newline at end",
+			input:    "text\n",
+			expected: "text\n", // i+1 >= len(input), firstCharAfter == 0
+		},
+		// Test firstNonSpaceAfter from Unicode whitespace (line 676)
+		{
+			name:     "newline with unicode whitespace then char",
+			input:    "text\n\u00A0more",
+			expected: "text\nmore", // Unicode whitespace, firstNonSpaceAfter set to 'm'
+		},
+		// Test firstNonSpaceAfter from regular character (line 683)
+		{
+			name:     "newline with regular char",
+			input:    "text\nmore",
+			expected: "text\nmore", // Regular character, firstNonSpaceAfter set to 'm'
 		},
 	}
 
@@ -612,6 +1080,98 @@ func TestQuoteJSONString(t *testing.T) {
 			escapeHTML:  false,
 			expected:    `"hello\u0008world"`,
 			description: "backspace should be escaped",
+		},
+		// Additional test cases for 100% coverage
+		{
+			name:        "writeStart equals i",
+			input:       "\x00",
+			escapeHTML:  false,
+			expected:    `"\u0000"`,
+			description: "writeStart equals i case",
+		},
+		{
+			name:        "line separator",
+			input:       "\u2028",
+			escapeHTML:  false,
+			expected:    `"\u2028"`,
+			description: "line separator should be escaped",
+		},
+		{
+			name:        "paragraph separator",
+			input:       "\u2029",
+			escapeHTML:  false,
+			expected:    `"\u2029"`,
+			description: "paragraph separator should be escaped",
+		},
+		{
+			name:        "line separator with prefix",
+			input:       "text\u2028more",
+			escapeHTML:  false,
+			expected:    `"text\u2028more"`,
+			description: "line separator with prefix",
+		},
+		{
+			name:        "paragraph separator with prefix",
+			input:       "text\u2029more",
+			escapeHTML:  false,
+			expected:    `"text\u2029more"`,
+			description: "paragraph separator with prefix",
+		},
+		{
+			name:        "safe characters with escapeHTML true",
+			input:       "safe<>",
+			escapeHTML:  true,
+			expected:    `"safe\u003c\u003e"`,
+			description: "safe characters with escapeHTML true",
+		},
+		{
+			name:        "safe characters with escapeHTML false",
+			input:       "safe<>",
+			escapeHTML:  false,
+			expected:    `"safe<>"`,
+			description: "safe characters with escapeHTML false",
+		},
+		{
+			name:        "writeStart equals len at end",
+			input:       "test",
+			escapeHTML:  false,
+			expected:    `"test"`,
+			description: "writeStart equals len at end",
+		},
+		{
+			name:        "multi-byte character",
+			input:       "中文",
+			escapeHTML:  false,
+			expected:    `"中文"`,
+			description: "multi-byte character",
+		},
+		{
+			name:        "mixed ASCII and multi-byte",
+			input:       "hello中文world",
+			escapeHTML:  false,
+			expected:    `"hello中文world"`,
+			description: "mixed ASCII and multi-byte",
+		},
+		{
+			name:        "invalid UTF-8 at start",
+			input:       "\xFF\xFEtest",
+			escapeHTML:  false,
+			expected:    `"\ufffd\ufffdtest"`,
+			description: "invalid UTF-8 at start",
+		},
+		{
+			name:        "invalid UTF-8 in middle",
+			input:       "test\xFF\xFEmore",
+			escapeHTML:  false,
+			expected:    `"test\ufffd\ufffdmore"`,
+			description: "invalid UTF-8 in middle",
+		},
+		{
+			name:        "invalid UTF-8 with prefix write",
+			input:       "prefix\xFF\xFE",
+			escapeHTML:  false,
+			expected:    `"prefix\ufffd\ufffd"`,
+			description: "invalid UTF-8 with prefix write",
 		},
 	}
 
