@@ -147,6 +147,8 @@ func TestToCamelCase(t *testing.T) {
 		{"multiple underscores", "a__b__c", "A__B__C"},
 		{"leading underscores", "___abc", "___Abc"},
 		{"trailing underscores", "abc___", "Abc___"},
+		{"multiple trailing underscores", "abc_____", "Abc_____"},          // Test trailingCount loop (line 256-258)
+		{"trailing underscores before non-letter", "abc_@___", "Abc_@___"}, // Test trailingCount loop with non-letter, multiple underscores (line 256-258)
 		// Additional test cases for 100% coverage
 		{"underscore before uppercase", "user_Name", "User_Name"},
 		{"underscore at end", "abc_", "Abc_"},
@@ -445,6 +447,12 @@ func TestDecodeUnicodeEscapes(t *testing.T) {
 			input:    `AB\u0043`,
 			radix:    16,
 			expected: `ABC`,
+		},
+		{
+			name:     "escape sequence with text after",
+			input:    `\u0041BC\u0044EF`, // Test nextIdx >= 0 case (line 449-451)
+			radix:    16,
+			expected: `ABCDEF`,
 		},
 		{
 			name:     "invalid code point",
@@ -773,6 +781,76 @@ func TestNormalizeWhitespace(t *testing.T) {
 			expected: "start\nend",
 		},
 		// Additional test cases for 100% coverage
+		{
+			name:     "space before newline",
+			input:    "text \nmore", // Test line 610-612: newlineCount == 0, hadSpaceBeforeNL, loop removes space
+			expected: "text\nmore",
+		},
+		{
+			name:     "tab before newline",
+			input:    "text\t\nmore", // Test line 610-612: newlineCount == 0, hadSpaceBeforeNL, loop removes tab
+			expected: "text\nmore",
+		},
+		{
+			name:     "multiple spaces before newline",
+			input:    "text   \nmore", // Test line 610-612: newlineCount == 0, loop removes multiple spaces
+			expected: "text\nmore",
+		},
+		{
+			name:     "newline between whitespace no another newline",
+			input:    "hello \n world", // Test line 690-693: newline between whitespace but no another newline or tab
+			expected: "hello world",
+		},
+		{
+			name:     "carriage return",
+			input:    "line1\rline2", // Test line 718-721: \r case (not \r\n)
+			expected: "line1\nline2",
+		},
+		{
+			name:     "carriage return with space before",
+			input:    "text \r\nmore", // Test line 718-721: \r\n with space before, loop removes space
+			expected: "text\nmore",
+		},
+		{
+			name:     "carriage return with tab before",
+			input:    "text\t\r\nmore", // Test line 718-721: \r\n with tab before, loop removes tab
+			expected: "text\nmore",
+		},
+		{
+			name:     "invalid UTF-8",
+			input:    "hello\xFFworld", // Test line 743-745: invalid UTF-8
+			expected: "hello\xFFworld",
+		},
+		{
+			name:     "invalid UTF-8 with tab before",
+			input:    "hello\t\xFFworld", // Test line 743-745: invalid UTF-8 with tab before (prevChar == '\t')
+			expected: "hello\t\xFFworld",
+		},
+		{
+			name:     "invalid UTF-8 with space before",
+			input:    "hello \xFFworld", // Test line 743-745: invalid UTF-8 with space before (prevChar == ' ')
+			expected: "hello \xFFworld",
+		},
+		{
+			name:     "multi-byte character",
+			input:    "hello\u4E2Dworld", // Test line 792-794: multi-byte character (Chinese)
+			expected: "hello\u4E2Dworld",
+		},
+		{
+			name:     "trailing tab",
+			input:    "hello\t", // Test line 814-816: trailing tab (not after newline)
+			expected: "hello",
+		},
+		{
+			name:     "trailing tab not after newline",
+			input:    "hello\tworld\t", // Test line 824: trailing tab not after newline
+			expected: "hello\tworld",
+		},
+		{
+			name:     "trailing tab after newline",
+			input:    "hello\n\t", // Test line 814-816: trailing tab after newline (should be preserved)
+			expected: "hello\n\t",
+		},
 		{
 			name:     "tab after newline",
 			input:    "text\n\tindented",

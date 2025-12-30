@@ -200,16 +200,12 @@ func ToCamelCase(str string) string {
 						// So if there's a single underscore before (like "_p"), reduce 2 to 1
 						// If there's no underscore before (like "a"), preserve 2
 						hasSingleUnderscoreBefore := false
-						if i > leadingUnderscores && str[i-1] == '_' {
-							// Previous char is underscore, check if there's a letter before that
-							if i-2 >= leadingUnderscores {
-								prevPrev := str[i-2]
-								if (prevPrev >= 'a' && prevPrev <= 'z') || (prevPrev >= 'A' && prevPrev <= 'Z') {
-									// Pattern: letter_singleUnderscore_doubleUnderscore (like "_p__rp")
-									hasSingleUnderscoreBefore = true
-								}
-							}
-						} else if i > leadingUnderscores {
+						// Note: The branch "if i > leadingUnderscores && str[i-1] == '_'" (line 203) is dead code because:
+						// - When underscoreCount == 2, i points to the first underscore
+						// - If str[i-1] == '_', then there are at least 3 consecutive underscores
+						// - Therefore, underscoreCount would be 3 or more, not 2
+						// - So this branch will never execute when underscoreCount == 2
+						if i > leadingUnderscores {
 							// Previous char is not underscore, check if it's a letter followed by single underscore
 							// For "_tc_p__rp_c__", when processing "__rp", prevChar is "p" (letter)
 							// But we need to check if there was a single underscore before "p"
@@ -242,13 +238,13 @@ func ToCamelCase(str string) string {
 							buf = append(buf, '_', '_')
 							i += underscoreCount - 1
 						}
-					} else {
-						// Preserve all underscores (trailing or before non-letter)
-						for j := 0; j < underscoreCount; j++ {
-							buf = append(buf, '_')
-						}
-						i += underscoreCount - 1
 					}
+					// Note: The else branch (line 254) is dead code because:
+					// - When next == '_', underscoreCount is at least 2
+					// - If hasLetterAfter == false, it's handled at line 188
+					// - If underscoreCount >= 3, it's handled at line 194
+					// - If underscoreCount == 2 && hasLetterAfter == true, it's handled at line 197
+					// - Therefore, underscoreCount == 1 && hasLetterAfter == true is impossible
 					// After multiple underscores, next letter should be capitalized
 					shouldCapitalize = true
 					continue
@@ -504,11 +500,8 @@ func DecodeUnicodeEscapes(str string, radix int) string {
 					// Normal 4-char code point
 					toParse = codePointStr
 				}
-			} else if len(codePointStr) > 4 {
-				// Long code point - only parse first 4
-				toParse = codePointStr[:4]
-				rest = codePointStr[4:]
 			}
+			// Note: len(codePointStr) > 4 case is already handled above at line 474
 			if codePoint, err := strconv.ParseInt(toParse, radix, 32); err == nil {
 				// Check if it's a high surrogate (for Unicode beyond BMP)
 				if codePoint >= 0xD800 && codePoint <= 0xDBFF {
