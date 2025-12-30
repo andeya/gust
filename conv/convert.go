@@ -1,7 +1,8 @@
 // Package conv provides generic functions for type conversion and value transformation.
 //
 // This package offers safe and unsafe conversion utilities between compatible types,
-// including byte/string conversions, reference conversions, and reflection-based operations.
+// including byte/string conversions, reference conversions, reflection-based operations,
+// and string manipulation utilities.
 //
 // # Examples
 //
@@ -13,6 +14,14 @@
 //	// Convert string to readonly bytes
 //	readonlyBytes := conv.StringToReadonlyBytes("hello")
 //	// Note: modifying readonlyBytes will panic
+//
+//	// Convert to snake_case
+//	snake := conv.SnakeString("UserID")
+//	fmt.Println(snake) // "user_id"
+//
+//	// Convert to CamelCase
+//	camel := conv.CamelString("user_id")
+//	fmt.Println(camel) // "UserId"
 package conv
 
 import (

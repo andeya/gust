@@ -26,7 +26,7 @@ func ExampleResult() {
 // ExampleResult_AndThen demonstrates chaining Result operations elegantly.
 func ExampleResult_AndThen() {
 	// Chain multiple operations that can fail
-	result := result.Ok(10).
+	res := result.Ok(10).
 		Map(func(x int) int { return x * 2 }).
 		AndThen(func(x int) result.Result[int] {
 			if x > 15 {
@@ -39,7 +39,7 @@ func ExampleResult_AndThen() {
 			return result.Ok(0)
 		})
 
-	fmt.Println("Final value:", result.Unwrap())
+	fmt.Println("Final value:", res.Unwrap())
 	// Output: Error handled: too large
 	// Final value: 0
 }
@@ -47,14 +47,14 @@ func ExampleResult_AndThen() {
 // ExampleAndThen demonstrates elegant error handling patterns.
 func ExampleAndThen() {
 	// Handle multiple operations with automatic error propagation
-	result := result.AndThen(
+	res := result.AndThen(
 		result.Ret(strconv.Atoi("42")),
 		func(n int) result.Result[string] {
 			return result.Ok(fmt.Sprintf("Number: %d", n))
 		},
 	)
 
-	fmt.Println(result.Unwrap())
+	fmt.Println(res.Unwrap())
 	// Output: Number: 42
 }
 
@@ -69,17 +69,17 @@ func ExampleResult_beforeAfter() {
 	multiplied := result.Ok(42).
 		Map(func(x int) int { return x * 2 })
 
-	result := result.AndThen(multiplied, func(x int) result.Result[string] {
+	res := result.AndThen(multiplied, func(x int) result.Result[string] {
 		if x > 100 {
 			return result.TryErr[string]("value too large")
 		}
 		return result.Ok(fmt.Sprintf("Result: %d", x))
 	})
 
-	if result.IsOk() {
-		fmt.Println(result.Unwrap())
+	if res.IsOk() {
+		fmt.Println(res.Unwrap())
 	} else {
-		fmt.Println("Error:", result.UnwrapErr())
+		fmt.Println("Error:", res.UnwrapErr())
 	}
 	// Output: Result: 84
 }
@@ -145,11 +145,11 @@ func ExampleResult_fetchUserData() {
 		})
 	}
 
-	result := fetchUserData(1)
-	if result.IsOk() {
-		fmt.Println(result.Unwrap())
+	res := fetchUserData(1)
+	if res.IsOk() {
+		fmt.Println(res.Unwrap())
 	} else {
-		fmt.Println("Error:", result.UnwrapErr())
+		fmt.Println("Error:", res.UnwrapErr())
 	}
 	// Output: Alice: Software developer
 }

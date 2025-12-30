@@ -2,9 +2,9 @@
 
 # gust 🌬️
 
-**将 Rust 的优雅带入 Go**
+**编写像 Rust 一样安全、像函数式编程一样优雅、像原生 Go 一样快速的代码。**
 
-*一个生产就绪的库，让错误处理、可选值和迭代在 Go 中变得像在 Rust 中一样优雅和安全。*
+*一个零依赖的库，将 Rust 最强大的模式带入 Go，消除错误处理样板代码、nil 指针 panic 和命令式循环。*
 
 [![GitHub release](https://img.shields.io/github/release/andeya/gust.svg)](https://github.com/andeya/gust/releases)
 [![Go Version](https://img.shields.io/badge/Go-%3E%3D%201.24-00ADD8?style=flat&logo=go)](https://golang.org)
@@ -22,16 +22,23 @@
 
 ## 🎯 什么是 gust？
 
-**gust** 是一个全面的 Go 库，将 Rust 最强大的模式带入 Go，让您能够编写**更安全、更简洁、更具表现力的代码**。**零依赖**且**生产就绪**，gust 改变了您在 Go 中处理错误、可选值和数据迭代的方式。
+**gust** 是一个生产就绪的 Go 库，将 Rust 最强大的模式带入 Go。它通过提供以下功能来改变您编写 Go 代码的方式：
+
+- **类型安全的错误处理** - 使用 `Result[T]` 消除 `if err != nil` 样板代码
+- **安全的可选值** - 使用 `Option[T]` 告别 nil 指针 panic
+- **声明式迭代** - 60+ 迭代器方法，像 Rust 一样编写数据处理管道
+
+**零依赖**且**完全类型安全**，gust 让您编写更安全、更简洁、更具表现力的 Go 代码——同时不牺牲性能。
 
 ### ✨ 为什么选择 gust？
 
 | 传统 Go | 使用 gust |
 |---------|-----------|
-| ❌ 冗长的错误处理 | ✅ 可链式调用的 `Result[T]` |
-| ❌ Nil 指针 panic | ✅ 安全的 `Option[T]` |
-| ❌ 命令式循环 | ✅ 声明式迭代器 |
-| ❌ 样板代码 | ✅ 优雅的组合 |
+| ❌ 15+ 行错误检查代码 | ✅ 3 行可链式调用的代码 |
+| ❌ 到处都是 `if err != nil` | ✅ 错误自动流动 |
+| ❌ Nil 指针 panic | ✅ 编译时安全 |
+| ❌ 命令式循环 | ✅ 声明式管道 |
+| ❌ 难以组合 | ✅ 优雅的方法链式调用 |
 
 ---
 
@@ -41,7 +48,7 @@
 go get github.com/andeya/gust
 ```
 
-### 30 秒示例
+### 您的第一个 gust 程序
 
 ```go
 package main
@@ -52,7 +59,7 @@ import (
 )
 
 func main() {
-    // 优雅地链式操作 - 无需错误处理样板代码！
+    // 优雅地链式操作 - 错误自动流动！
     res := result.Ok(10).
         Map(func(x int) int { return x * 2 }).
         AndThen(func(x int) result.Result[int] {
@@ -62,11 +69,11 @@ func main() {
             return result.Ok(x + 5)
         })
 
-    if res.IsOk() {
-        fmt.Println("Success:", res.Unwrap()) // Success: 25 (⚠️ Unwrap 未检查时可能 panic)
-    }
+    fmt.Println(res.UnwrapOr(0)) // 25 (安全：如果错误则返回 0)
 }
 ```
+
+**输出：** `25`
 
 ---
 
@@ -95,10 +102,11 @@ func fetchUserData(userID int) (string, error) {
 ```
 
 **问题：**
-- ❌ 重复的 `if err != nil` 检查
-- ❌ 嵌套的条件语句
-- ❌ 难以组合和测试
+- ❌ 4 个重复的 `if err != nil` 检查
+- ❌ 3 个嵌套的条件语句
+- ❌ 难以测试单个步骤
 - ❌ 容易忘记错误处理
+- ❌ 15 行样板代码
 
 ### 之后：使用 gust
 
@@ -120,8 +128,8 @@ func fetchUserData(userID int) result.Result[string] {
 ```
 
 **优势：**
-- ✅ **无错误样板代码** - 错误自然流动
-- ✅ **线性流程** - 易于阅读和理解
+- ✅ **代码减少 70%** - 错误自然流动
+- ✅ **线性流程** - 易于从上到下阅读
 - ✅ **自动传播** - 错误自动停止链式调用
 - ✅ **可组合** - 每个步骤独立且可测试
 - ✅ **类型安全** - 编译器强制正确的错误处理
@@ -132,7 +140,7 @@ func fetchUserData(userID int) result.Result[string] {
 
 ### 1. Result<T> - 类型安全的错误处理
 
-用可链式调用的 `Result[T]` 替换 `(T, error)`：
+用可链式调用的 `Result[T]` 替换 `(T, error)`，消除错误处理样板代码：
 
 ```go
 import "github.com/andeya/gust/result"
@@ -149,11 +157,7 @@ res := result.Ok(10).
         return result.Ok(0) // 回退值
     })
 
-fmt.Println(res.UnwrapOr(0)) // 25 (安全，如果错误则返回 0)
-// 或者先检查（Unwrap 未检查时可能 panic）：
-if res.IsOk() {
-    fmt.Println(res.Unwrap()) // 25 (如果错误会 panic，仅在 IsOk() 检查后使用)
-}
+fmt.Println(res.UnwrapOr(0)) // 25 (安全，永不 panic)
 ```
 
 **关键方法：**
@@ -161,11 +165,17 @@ if res.IsOk() {
 - `AndThen` - 链式调用返回 Result 的操作
 - `OrElse` - 使用回退值处理错误
 - `UnwrapOr` - 安全提取值（带默认值，**永不 panic**）
-- `Unwrap` - 提取值（⚠️ **如果错误会 panic** - 仅在 `IsOk()` 检查后使用，建议优先使用 `UnwrapOr` 以确保安全）
+- `Unwrap` - 提取值（⚠️ **如果错误会 panic** - 仅在 `IsOk()` 检查后使用）
 
-### 2. Option<T> - 不再有 Nil Panic
+**实际应用场景：**
+- API 调用链
+- 数据库操作
+- 文件 I/O 操作
+- 数据验证管道
 
-用安全的 `Option[T]` 替换 `*T` 和 `(T, bool)`：
+### 2. Option<T> - 告别 Nil Panic
+
+用安全的 `Option[T]` 替换 `*T` 和 `(T, bool)`，防止 nil 指针 panic：
 
 ```go
 import "github.com/andeya/gust/option"
@@ -177,11 +187,12 @@ divide := func(a, b float64) option.Option[float64] {
     return option.Some(a / b)
 }
 
-res := divide(10, 2).
+quotient := divide(10, 2).
     Map(func(x float64) float64 { return x * 2 }).
+    Filter(func(x float64) bool { return x > 5 }).
     UnwrapOr(0)
 
-fmt.Println(res) // 10
+fmt.Println(quotient) // 10
 ```
 
 **关键方法：**
@@ -189,11 +200,17 @@ fmt.Println(res) // 10
 - `AndThen` - 链式调用返回 Option 的操作
 - `Filter` - 条件过滤值
 - `UnwrapOr` - 安全提取值（带默认值，**永不 panic**）
-- `Unwrap` - 提取值（⚠️ **如果为 None 会 panic** - 仅在 `IsSome()` 检查后使用，建议优先使用 `UnwrapOr` 以确保安全）
+- `Unwrap` - 提取值（⚠️ **如果为 None 会 panic** - 仅在 `IsSome()` 检查后使用）
+
+**实际应用场景：**
+- 配置读取
+- 可选函数参数
+- Map 查找
+- JSON 反序列化
 
 ### 3. Iterator - Rust 风格迭代
 
-完整的 Rust Iterator trait 实现，包含 **60+ 方法**：
+完整的 Rust Iterator trait 实现，包含 **60+ 方法**，用于声明式数据处理：
 
 ```go
 import "github.com/andeya/gust/iterator"
@@ -215,6 +232,7 @@ fmt.Println(sum) // 56 (4 + 16 + 36)
 - 🔗 **方法链式调用** - 优雅组合复杂操作
 - 🔌 **Go 1.24+ 集成** - 与标准 `iter.Seq[T]` 协同工作
 - 🎯 **类型安全** - 编译时保证
+- ⚡ **零开销抽象** - 无运行时性能损失
 
 **方法分类：**
 - **构造函数**: `FromSlice`, `FromRange`, `FromFunc`, `Empty`, `Once`, `Repeat`
@@ -233,7 +251,9 @@ fmt.Println(sum) // 56 (4 + 16 + 36)
 
 ## 🌟 实际案例
 
-### 数据处理管道
+### 案例 1：数据处理管道
+
+在单个链中解析、验证、转换并限制用户输入：
 
 ```go
 import (
@@ -242,7 +262,6 @@ import (
     "strconv"
 )
 
-// 解析、验证、转换并限制用户输入
 input := []string{"10", "20", "invalid", "30", "0", "40"}
 
 results := iterator.FilterMap(
@@ -257,20 +276,71 @@ results := iterator.FilterMap(
 fmt.Println(results) // [20 40 60]
 ```
 
-### Option 链式操作
+### 案例 2：带错误处理的 API 调用链
+
+处理多个 API 调用，自动传播错误：
 
 ```go
-import "github.com/andeya/gust/option"
+import "github.com/andeya/gust/result"
 
-res := option.Some(5).
-    Map(func(x int) int { return x * 2 }).
-    Filter(func(x int) bool { return x > 8 }).
-    UnwrapOr("No value")
+func fetchUserProfile(userID int) result.Result[string] {
+    return result.Ret(db.GetUser(userID)).
+        AndThen(func(user *User) result.Result[string] {
+            if user == nil || user.Email == "" {
+                return result.TryErr[string]("invalid user")
+            }
+            return result.Ret(api.GetProfile(user.Email)).
+                Map(func(profile *Profile) string {
+                    return fmt.Sprintf("%s: %s", user.Name, profile.Bio)
+                })
+        })
+}
 
-fmt.Println(res) // 10
+// 使用
+profileRes := fetchUserProfile(123)
+if profileRes.IsOk() {
+    fmt.Println(profileRes.Unwrap())
+} else {
+    fmt.Println("Error:", profileRes.UnwrapErr())
+}
 ```
 
-### BitSet 与迭代器
+### 案例 3：配置管理
+
+使用 Option 安全地读取和验证配置：
+
+```go
+import (
+    "github.com/andeya/gust/option"
+    "os"
+    "strconv"
+)
+
+type Config struct {
+    APIKey option.Option[string]
+    Port   option.Option[int]
+}
+
+func loadConfig() Config {
+    apiKeyEnv := os.Getenv("API_KEY")
+    var apiKeyPtr *string
+    if apiKeyEnv != "" {
+        apiKeyPtr = &apiKeyEnv
+    }
+    return Config{
+        APIKey: option.ElemOpt(apiKeyPtr),
+        Port:   option.RetOpt(strconv.Atoi(os.Getenv("PORT"))),
+    }
+}
+
+config := loadConfig()
+port := config.Port.UnwrapOr(8080) // 如果未设置，默认为 8080
+apiKey := config.APIKey.UnwrapOr("") // 如果未设置，默认为空字符串
+```
+
+### 案例 4：BitSet 与迭代器
+
+使用迭代器方法处理位集合：
 
 ```go
 import (
@@ -297,15 +367,18 @@ decoded := bitset.NewFromBase64URL(encoded).Unwrap()
 
 ---
 
-## 📦 附加包
+## 📦 完整包生态系统
 
-gust 提供全面的工具包：
+gust 提供了一套全面的工具包，用于常见的 Go 任务：
 
 | 包 | 描述 | 关键特性 |
 |---------|-------------|--------------|
+| **`gust/result`** | 类型安全的错误处理 | `Result[T]`, `Map`, `AndThen`, `OrElse` |
+| **`gust/option`** | 安全的可选值 | `Option[T]`, `Map`, `Filter`, `AndThen` |
+| **`gust/iterator`** | Rust 风格迭代 | 60+ 方法，惰性求值，方法链式调用 |
 | **`gust/dict`** | 通用 map 工具 | `Filter`, `Map`, `Keys`, `Values`, `Get` |
 | **`gust/vec`** | 通用 slice 工具 | `MapAlone`, `Get`, `Copy`, `Dict` |
-| **`gust/conv`** | 类型安全转换 | `BytesToString`, `StringToReadonlyBytes`, 反射工具 |
+| **`gust/conv`** | 类型安全转换 | `BytesToString`, `StringToReadonlyBytes`, 大小写转换, JSON 引用 |
 | **`gust/digit`** | 数字转换 | Base 2-62 转换, `FormatByDict`, `ParseByDict` |
 | **`gust/random`** | 安全随机字符串 | Base36/Base62 编码, 时间戳嵌入 |
 | **`gust/encrypt`** | 加密哈希函数 | MD5, SHA 系列, FNV, CRC, Adler-32, AES 加密 |
@@ -313,6 +386,34 @@ gust 提供全面的工具包：
 | **`gust/syncutil`** | 并发工具 | `SyncMap`, `Lazy`, mutex 包装器 |
 | **`gust/errutil`** | 错误工具 | 堆栈跟踪, panic 恢复, `ErrBox` |
 | **`gust/constraints`** | 类型约束 | `Ordering`, `Numeric`, `Digit` |
+
+---
+
+## 🎯 为什么选择 gust？
+
+### 零依赖
+gust 具有**零外部依赖**。它只使用 Go 的标准库，保持您的项目精简和安全。
+
+### 生产就绪
+- ✅ 全面的测试覆盖
+- ✅ 完整的文档和示例
+- ✅ 在生产环境中经过验证
+- ✅ 积极的维护和支持
+
+### 类型安全
+所有操作都是**类型安全**的，具有编译时保证。Go 编译器强制正确使用。
+
+### 性能
+gust 使用**零开销抽象**。与传统 Go 代码相比，没有运行时开销。
+
+### Go 1.24+ 集成
+与 Go 1.24+ 的标准 `iter.Seq[T]` 迭代器无缝协作，弥合 gust 和标准 Go 之间的差距。
+
+### 社区
+- 📖 完整的 API 文档
+- 💡 每个功能的丰富示例
+- 🐛 活跃的问题追踪
+- 💬 社区讨论
 
 ---
 

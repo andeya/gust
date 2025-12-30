@@ -31,8 +31,8 @@ func TestExamples(t *testing.T) {
 		}
 		return option.Some(a / b)
 	}
-	result := divide(10, 2).UnwrapOr(0)
-	assert.Equal(t, 5.0, result)
+	quotient := divide(10, 2).UnwrapOr(0)
+	assert.Equal(t, 5.0, quotient)
 
 	// Test Iterator example
 	sum := iterator.FromSlice([]int{1, 2, 3, 4, 5, 6}).

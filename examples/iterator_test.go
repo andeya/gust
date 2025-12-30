@@ -69,12 +69,12 @@ func ExampleEnumerate() {
 			XMap(func(s string) any { return len(s) }),
 	)
 	// Enumerate returns Iterator[pair.Pair[uint, any]], so we need to use Map with proper type
-	result := iterator.Map(enumerated, func(p pair.Pair[uint, any]) string {
+	enumeratedStrs := iterator.Map(enumerated, func(p pair.Pair[uint, any]) string {
 		return fmt.Sprintf("%d: %d", p.A, p.B)
 	}).
 		Collect()
 
-	fmt.Println(result)
+	fmt.Println(enumeratedStrs)
 	// Output: [0: 5 1: 5 2: 4 3: 8]
 }
 
@@ -99,17 +99,17 @@ func ExampleFlatMap() {
 
 // ExampleFindMap demonstrates finding and mapping in one operation.
 func ExampleFindMap() {
-	numbers := []string{"lol", "NaN", "2", "5"}
+	input := []string{"lol", "NaN", "2", "5"}
 
-	result := iterator.FromSlice(numbers).
+	numbers := iterator.FromSlice(input).
 		XFilterMap(func(s string) option.Option[any] {
 			return option.RetAnyOpt[int](strconv.Atoi(s))
 		}).
 		Take(1).
 		Collect()
 
-	if len(result) > 0 {
-		fmt.Println("First number:", result[0].(int))
+	if len(numbers) > 0 {
+		fmt.Println("First number:", numbers[0].(int))
 	} else {
 		fmt.Println("First number: 0")
 	}
@@ -137,7 +137,7 @@ func ExampleIterator_Chain() {
 	numbers := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 
 	// Chain multiple operations: filter, map, take, fold
-	result := iterator.FromSlice(numbers).
+	sum := iterator.FromSlice(numbers).
 		Filter(func(x int) bool { return x%2 == 0 }).
 		Map(func(x int) int { return x * x }).
 		Take(3).
@@ -145,7 +145,7 @@ func ExampleIterator_Chain() {
 			return acc + x
 		})
 
-	fmt.Println("Result:", result)
+	fmt.Println("Result:", sum)
 	// Output: Result: 56
 }
 
@@ -177,12 +177,12 @@ func ExampleFromSeq() {
 	// Convert to gust Iterator and use gust methods
 	gustIter, deferStop := iterator.FromSeq(goSeq)
 	defer deferStop()
-	result := gustIter.
+	squares := gustIter.
 		Filter(func(x int) bool { return x > 1 }).
 		Map(func(x int) int { return x * x }).
 		Collect()
 
-	fmt.Println("Squares of numbers > 1:", result)
+	fmt.Println("Squares of numbers > 1:", squares)
 	// Output: Squares of numbers > 1: [4 9 16]
 }
 

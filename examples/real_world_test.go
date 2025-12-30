@@ -62,11 +62,11 @@ func Example_errorHandling() {
 		return result.Ok(resList)
 	}
 
-	result := processData([]string{"1", "2", "3"})
-	if result.IsOk() {
-		fmt.Println("Success:", result.Unwrap())
+	res := processData([]string{"1", "2", "3"})
+	if res.IsOk() {
+		fmt.Println("Success:", res.Unwrap())
 	} else {
-		fmt.Println("Error:", result.UnwrapErr())
+		fmt.Println("Error:", res.UnwrapErr())
 	}
 	// Output: Success: [1 2 3]
 }

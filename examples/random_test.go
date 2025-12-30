@@ -72,13 +72,13 @@ func ExampleGenerator_ParseTimestamp() {
 	str := gen.StringWithTimestamp(16, testTime).Unwrap()
 
 	// Parse the timestamp
-	result := gen.ParseTimestamp(str)
-	if result.IsErr() {
-		fmt.Println("Error:", result.Err())
+	timestampRes := gen.ParseTimestamp(str)
+	if timestampRes.IsErr() {
+		fmt.Println("Error:", timestampRes.Err())
 		return
 	}
 
-	timestamp := result.Unwrap()
+	timestamp := timestampRes.Unwrap()
 	fmt.Println("Parsed timestamp matches:", timestamp == testTime)
 	fmt.Println("Time:", time.Unix(timestamp, 0).UTC().Format(time.RFC3339))
 	// Output:
@@ -99,15 +99,15 @@ func ExampleGenerator_StringWithTimestamp_errorHandling() {
 	gen := random.NewGenerator(false)
 
 	// Try to generate a string with invalid length (too short)
-	result := gen.StringWithTimestamp(5, time.Now().Unix())
-	if result.IsErr() {
-		fmt.Println("Error:", result.Err())
+	strRes := gen.StringWithTimestamp(5, time.Now().Unix())
+	if strRes.IsErr() {
+		fmt.Println("Error:", strRes.Err())
 	}
 
 	// Try to generate with timestamp before epoch
-	result = gen.StringWithTimestamp(16, 1000000000) // Before 2026-01-01
-	if result.IsErr() {
-		fmt.Println("Error:", result.Err())
+	oldStrRes := gen.StringWithTimestamp(16, 1000000000) // Before 2026-01-01
+	if oldStrRes.IsErr() {
+		fmt.Println("Error:", oldStrRes.Err())
 	}
 
 	// Output:
