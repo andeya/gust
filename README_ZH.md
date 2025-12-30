@@ -308,6 +308,7 @@ gust 提供全面的工具包：
 | **`gust/conv`** | 类型安全转换 | `BytesToString`, `StringToReadonlyBytes`, 反射工具 |
 | **`gust/digit`** | 数字转换 | Base 2-62 转换, `FormatByDict`, `ParseByDict` |
 | **`gust/random`** | 安全随机字符串 | Base36/Base62 编码, 时间戳嵌入 |
+| **`gust/encrypt`** | 加密哈希函数 | MD5, SHA 系列, FNV, CRC, Adler-32, AES 加密 |
 | **`gust/bitset`** | 线程安全位集合 | 位运算, 迭代器集成, 多种编码 |
 | **`gust/syncutil`** | 并发工具 | `SyncMap`, `Lazy`, mutex 包装器 |
 | **`gust/errutil`** | 错误工具 | 堆栈跟踪, panic 恢复, `ErrBox` |

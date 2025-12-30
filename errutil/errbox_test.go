@@ -26,21 +26,45 @@ func TestBoxErr(t *testing.T) {
 	eb3 := errutil.BoxErr(eb2)
 	assert.Equal(t, eb2, eb3)
 
-	// Test with ErrBox value type (covers errbox.go:39-40)
+	// Test with ErrBox value type (covers errbox.go:54-55)
 	ebValue := errutil.BoxErr("test")
 	var ebValueType errutil.ErrBox = ebValue
 	eb4 := errutil.BoxErr(ebValueType)
 	assert.NotNil(t, eb4)
 	assert.Equal(t, "test", eb4.Value())
 
-	// Test with int
-	eb6 := errutil.BoxErr(42)
+	// Test with *ErrBox pointer (non-nil) - covers errbox.go:56-60
+	eb5 := errutil.BoxErr("test")
+	eb5Ptr := &eb5
+	eb6 := errutil.BoxErr(eb5Ptr)
 	assert.NotNil(t, eb6)
-	assert.Equal(t, 42, eb6.Value())
+	assert.Equal(t, "test", eb6.Value())
+	assert.Equal(t, eb5, eb6)
+
+	// Test with *ErrBox pointer (nil) - covers errbox.go:56-59
+	var nilEbPtr *errutil.ErrBox
+	eb7 := errutil.BoxErr(nilEbPtr)
+	assert.True(t, eb7.IsEmpty())
+
+	// Test with innerErrBox - covers errbox.go:61-62
+	// innerErrBox is created when ToError() is called on non-error value
+	eb8 := errutil.BoxErr("test string")
+	innerErr := eb8.ToError() // This creates an innerErrBox
+	assert.NotNil(t, innerErr)
+	// Now test BoxErr with innerErrBox
+	eb9 := errutil.BoxErr(innerErr)
+	assert.NotNil(t, eb9)
+	// The value should be unwrapped from innerErrBox
+	assert.Equal(t, "test string", eb9.Value())
+
+	// Test with int
+	eb10 := errutil.BoxErr(42)
+	assert.NotNil(t, eb10)
+	assert.Equal(t, 42, eb10.Value())
 
 	// Test with nil
-	eb7 := errutil.BoxErr(nil)
-	assert.True(t, eb7.IsEmpty())
+	eb11 := errutil.BoxErr(nil)
+	assert.True(t, eb11.IsEmpty())
 }
 
 func TestErrBox_Value(t *testing.T) {
@@ -760,4 +784,81 @@ func TestPanicError_Unwrap_Chain(t *testing.T) {
 	// Error chain should be preserved
 	assert.True(t, errors.Is(pe, baseErr))
 	assert.True(t, errors.Is(pe, wrappedErr))
+}
+
+// TestInnerErrBox_Unwrap_Direct tests innerErrBox.Unwrap() directly - covers errbox.go:250-255
+func TestInnerErrBox_Unwrap_Direct(t *testing.T) {
+	// Create innerErrBox through ToError() with non-error value
+	eb := errutil.BoxErr("test string")
+	innerErr := eb.ToError()
+	assert.NotNil(t, innerErr)
+
+	// innerErrBox.Unwrap() should return nil for non-error values
+	// We need to cast to access Unwrap method
+	unwrapped := innerErr.(interface{ Unwrap() error }).Unwrap()
+	assert.Nil(t, unwrapped)
+
+	// Test with int value (non-error)
+	eb2 := errutil.BoxErr(42)
+	innerErr2 := eb2.ToError()
+	unwrapped2 := innerErr2.(interface{ Unwrap() error }).Unwrap()
+	assert.Nil(t, unwrapped2)
+
+	// Test with error value - when val is already an error, ToError() returns it directly
+	// So we can't get innerErrBox with error value through ToError()
+	// But we can test unwrapError function through ErrBox.Unwrap()
+	err := errors.New("test error")
+	eb3 := errutil.BoxErr(err)
+	unwrapped3 := eb3.Unwrap()
+	assert.Equal(t, err, unwrapped3)
+}
+
+// TestInnerErrBox_Is_Direct tests innerErrBox.Is() directly - covers errbox.go:257-262
+func TestInnerErrBox_Is_Direct(t *testing.T) {
+	// Create innerErrBox through ToError() with non-error value
+	eb := errutil.BoxErr("test string")
+	innerErr := eb.ToError()
+	assert.NotNil(t, innerErr)
+
+	// innerErrBox.Is() should work
+	target := errors.New("target")
+	isResult := innerErr.(interface{ Is(error) bool }).Is(target)
+	// For non-error values, Is should return false
+	assert.False(t, isResult)
+
+	// Test with nil target
+	isNil := innerErr.(interface{ Is(error) bool }).Is(nil)
+	assert.False(t, isNil)
+
+	// Test with error value - test through ErrBox.Is() which uses isError
+	err := errors.New("test error")
+	eb2 := errutil.BoxErr(err)
+	assert.True(t, eb2.Is(err))
+	assert.False(t, eb2.Is(errors.New("different")))
+}
+
+// TestInnerErrBox_As_Direct tests innerErrBox.As() directly - covers errbox.go:264-270
+func TestInnerErrBox_As_Direct(t *testing.T) {
+	// Create innerErrBox through ToError() with non-error value
+	eb := errutil.BoxErr("test string")
+	innerErr := eb.ToError()
+	assert.NotNil(t, innerErr)
+
+	// innerErrBox.As() should work
+	var target error
+	asResult := innerErr.(interface{ As(any) bool }).As(&target)
+	// For non-error values, As should return false
+	assert.False(t, asResult)
+
+	// Test with nil target (should panic)
+	assert.Panics(t, func() {
+		innerErr.(interface{ As(any) bool }).As(nil)
+	})
+
+	// Test with error value - test through ErrBox.As() which uses asError
+	err := errors.New("test error")
+	eb2 := errutil.BoxErr(err)
+	var targetErr error
+	assert.True(t, eb2.As(&targetErr))
+	assert.Equal(t, err, targetErr)
 }

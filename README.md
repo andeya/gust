@@ -308,6 +308,7 @@ gust provides comprehensive utility packages:
 | **`gust/conv`** | Type-safe conversions | `BytesToString`, `StringToReadonlyBytes`, reflection utils |
 | **`gust/digit`** | Number conversions | Base 2-62 conversion, `FormatByDict`, `ParseByDict` |
 | **`gust/random`** | Secure random strings | Base36/Base62 encoding, timestamp embedding |
+| **`gust/encrypt`** | Cryptographic functions | MD5, SHA series, FNV, CRC, Adler-32, AES encryption |
 | **`gust/bitset`** | Thread-safe bit sets | Bitwise ops, iterator integration, multiple encodings |
 | **`gust/syncutil`** | Concurrent utilities | `SyncMap`, `Lazy`, mutex wrappers |
 | **`gust/errutil`** | Error utilities | Stack traces, panic recovery, `ErrBox` |
