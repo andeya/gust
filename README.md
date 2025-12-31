@@ -563,6 +563,8 @@ gust provides a comprehensive set of utility packages for common Go tasks:
 | **`gust/errutil`** | Error utilities | Stack traces, panic recovery, `ErrBox` |
 | **`gust/constraints`** | Type constraints | `Ordering`, `Numeric`, `Digit` |
 | **`gust/fileutil`** | File operations | Path manipulation, file I/O, directory operations, tar.gz archiving |
+| **`gust/coarsetime`** | Fast coarse-grained time | Wall clock & monotonic time, configurable precision, 30x faster than `time.Now()` |
+| **`gust/shutdown`** | Graceful shutdown & reboot | Signal handling, cleanup hooks, graceful process restart (Unix) |
 
 ---
 

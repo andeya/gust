@@ -563,6 +563,8 @@ gust 为常见的 Go 任务提供了一套全面的工具包：
 | **`gust/errutil`** | 错误工具 | 堆栈跟踪, panic 恢复, `ErrBox` |
 | **`gust/constraints`** | 类型约束 | `Ordering`, `Numeric`, `Digit` |
 | **`gust/fileutil`** | 文件操作 | 路径操作, 文件 I/O, 目录操作, tar.gz 归档 |
+| **`gust/coarsetime`** | 快速粗粒度时间 | 实时时间 & 单调时间, 可配置精度, 比 `time.Now()` 快 30 倍 |
+| **`gust/shutdown`** | 优雅关闭与重启 | 信号处理, 清理钩子, 优雅进程重启 (Unix) |
 
 ---
 
