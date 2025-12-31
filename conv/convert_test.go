@@ -1,6 +1,7 @@
 package conv
 
 import (
+	"encoding/binary"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,6 +11,23 @@ func TestBytesToString(t *testing.T) {
 	var b = []byte("abc")
 	s := BytesToString[string](b)
 	assert.Equal(t, string(b), s)
+}
+
+func TestSystemEndian(t *testing.T) {
+	// SystemEndian should be initialized
+	assert.NotNil(t, SystemEndian())
+
+	// Test it works with binary functions
+	var data [4]byte
+	SystemEndian().PutUint32(data[:], 0x01020304)
+
+	value := SystemEndian().Uint32(data[:])
+	assert.Equal(t, uint32(0x01020304), value)
+
+	// Verify it's either LittleEndian or BigEndian
+	isLittleEndian := SystemEndian() == binary.LittleEndian
+	isBigEndian := SystemEndian() == binary.BigEndian
+	assert.True(t, isLittleEndian || isBigEndian, "SystemEndian should be either LittleEndian or BigEndian")
 }
 
 func TestStringToReadonlyBytes(t *testing.T) {

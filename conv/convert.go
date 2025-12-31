@@ -25,6 +25,7 @@
 package conv
 
 import (
+	"encoding/binary"
 	"unsafe"
 
 	"github.com/andeya/gust/result"
@@ -34,6 +35,24 @@ import (
 func BytesToString[STRING ~string](b []byte) STRING {
 	return *(*STRING)(unsafe.Pointer(&b))
 }
+
+// SystemEndian returns the byte order of the current system.
+//
+//go:inline
+func SystemEndian() binary.ByteOrder {
+	return systemEndian
+}
+
+var systemEndian = func() binary.ByteOrder {
+	var i int32 = 0x01020304
+	u := unsafe.Pointer(&i)
+	pb := (*byte)(u)
+	b := *pb
+	if b == 0x04 {
+		return binary.LittleEndian
+	}
+	return binary.BigEndian
+}()
 
 type ReadonlyBytes = []byte
 

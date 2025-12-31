@@ -368,3 +368,66 @@ func TestIsCompositionMethod(t *testing.T) {
 	// Note: Lines 255, 303, 311 are difficult to test as they require
 	// specific runtime conditions that are rare in practice.
 }
+
+func TestEnsurePointerInitialized(t *testing.T) {
+	// Test with simple nil pointer
+	var x *int
+	v1 := reflect.ValueOf(&x).Elem()
+	assert.True(t, x == nil)
+	res1 := EnsurePointerInitialized(v1)
+	assert.True(t, res1.IsOk())
+	assert.False(t, x == nil)
+	assert.Equal(t, 0, *x)
+
+	// Test with nested pointer
+	var y **int
+	v2 := reflect.ValueOf(&y).Elem()
+	assert.True(t, y == nil)
+	res2 := EnsurePointerInitialized(v2)
+	assert.True(t, res2.IsOk())
+	assert.False(t, y == nil)
+	assert.False(t, *y == nil)
+	assert.Equal(t, 0, **y)
+
+	// Test with pointer to struct
+	type S struct {
+		X int
+	}
+	var s *S
+	v3 := reflect.ValueOf(&s).Elem()
+	assert.True(t, s == nil)
+	res3 := EnsurePointerInitialized(v3)
+	assert.True(t, res3.IsOk())
+	assert.False(t, s == nil)
+	assert.Equal(t, 0, s.X)
+
+	// Test with already initialized pointer
+	z := new(int)
+	*z = 42
+	v4 := reflect.ValueOf(&z).Elem()
+	res4 := EnsurePointerInitialized(v4)
+	assert.True(t, res4.IsOk())
+	assert.Equal(t, 42, *z)
+
+	// Test with non-pointer (should succeed immediately)
+	val := reflect.ValueOf(42)
+	res5 := EnsurePointerInitialized(val)
+	assert.True(t, res5.IsOk())
+
+	// Test with interface containing nil pointer
+	var iface interface{} = (*int)(nil)
+	v5 := reflect.ValueOf(&iface).Elem()
+	res6 := EnsurePointerInitialized(v5)
+	assert.True(t, res6.IsOk())
+	// After initialization, iface should contain a non-nil pointer
+	ifaceVal := reflect.ValueOf(iface)
+	if ifaceVal.Kind() == reflect.Ptr && !ifaceVal.IsNil() {
+		assert.Equal(t, 0, ifaceVal.Elem().Interface().(int))
+	}
+
+	// Test with unsettable pointer (should fail)
+	var unsettablePtr *int
+	unsettableVal := reflect.ValueOf(unsettablePtr) // This is not settable
+	res7 := EnsurePointerInitialized(unsettableVal)
+	assert.True(t, res7.IsErr(), "unsettable pointer should return error")
+}
