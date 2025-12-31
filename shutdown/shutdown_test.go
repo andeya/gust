@@ -3,6 +3,7 @@ package shutdown
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -225,8 +226,8 @@ func TestLogger(t *testing.T) {
 	}
 	s.SetLogger(mockLogger)
 
-	s.logf("test info")
-	s.logErrorf("test error")
+	s.logf(context.Background(), "test info")
+	s.logErrorf(context.Background(), "test error")
 
 	assert.Len(t, mockLogger.infos, 1)
 	assert.Len(t, mockLogger.errors, 1)
@@ -239,8 +240,8 @@ func TestLogger_Nil(t *testing.T) {
 	s.SetLogger(nil)
 
 	// Should not panic
-	s.logf("test")
-	s.logErrorf("test")
+	s.logf(context.Background(), "test")
+	s.logErrorf(context.Background(), "test")
 }
 
 // mockLogger is a mock implementation of Logger for testing
@@ -250,13 +251,13 @@ type mockLogger struct {
 	errors []string
 }
 
-func (m *mockLogger) Infof(format string, args ...interface{}) {
+func (m *mockLogger) Infof(ctx context.Context, format string, args ...interface{}) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.infos = append(m.infos, format)
 }
 
-func (m *mockLogger) Errorf(format string, args ...interface{}) {
+func (m *mockLogger) Errorf(ctx context.Context, format string, args ...interface{}) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.errors = append(m.errors, format)
@@ -323,4 +324,262 @@ func TestGetHooks_ThreadSafe(t *testing.T) {
 		}()
 	}
 	wg.Wait()
+}
+
+// TestShutdownInternal tests shutdownInternal method
+func TestShutdownInternal(t *testing.T) {
+	s := New()
+	s.SetTimeout(50 * time.Millisecond)
+
+	var called bool
+	s.SetHooks(
+		func() result.VoidResult {
+			called = true
+			return result.OkVoid()
+		},
+		func() result.VoidResult {
+			return result.OkVoid()
+		},
+	)
+
+	// Test with nil context (shutdownInternal creates timeout context)
+	//nolint // We intentionally pass nil to test the nil context path
+	s.shutdownInternal(nil)
+	assert.True(t, called)
+
+	// Test with provided context
+	called = false
+	ctx := context.Background()
+	s.shutdownInternal(ctx)
+	assert.True(t, called)
+}
+
+// TestShutdownInternal_Timeout tests shutdownInternal timeout path
+func TestShutdownInternal_Timeout(t *testing.T) {
+	s := New()
+	s.SetTimeout(10 * time.Millisecond)
+
+	s.SetHooks(
+		func() result.VoidResult {
+			time.Sleep(50 * time.Millisecond) // Longer than timeout
+			return result.OkVoid()
+		},
+		func() result.VoidResult {
+			return result.OkVoid()
+		},
+	)
+
+	// Test with short timeout context
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	defer cancel()
+
+	// shutdownInternal should handle timeout gracefully
+	s.shutdownInternal(ctx)
+}
+
+// TestShutdownInternal_ContextTimeout tests shutdownInternal with context timeout
+func TestShutdownInternal_ContextTimeout(t *testing.T) {
+	s := New()
+	s.SetTimeout(50 * time.Millisecond)
+
+	s.SetHooks(
+		func() result.VoidResult {
+			time.Sleep(100 * time.Millisecond) // Longer than timeout
+			return result.OkVoid()
+		},
+		func() result.VoidResult {
+			return result.OkVoid()
+		},
+	)
+
+	// Test the timeout path in Shutdown logic
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	defer cancel()
+
+	// Test executeShutdown with timeout (simulates Shutdown's timeout path)
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		s.executeShutdown(ctx)
+	}()
+
+	select {
+	case <-ctx.Done():
+		// Timeout occurred (this tests the timeout path in Shutdown)
+		<-done
+	case <-done:
+		// Completed before timeout
+	}
+}
+
+// TestShutdown_WithNilContext tests Shutdown with nil context
+func TestShutdown_WithNilContext(t *testing.T) {
+	s := New()
+	s.SetTimeout(50 * time.Millisecond)
+
+	var called bool
+	s.SetHooks(
+		func() result.VoidResult {
+			called = true
+			return result.OkVoid()
+		},
+		func() result.VoidResult {
+			return result.OkVoid()
+		},
+	)
+
+	// Test executeShutdown with nil context (Shutdown creates timeout context)
+	// We test the logic path that Shutdown would take
+	ctx, cancel := context.WithTimeout(context.Background(), s.Timeout())
+	defer cancel()
+
+	res := s.executeShutdown(ctx)
+	assert.True(t, res.IsOk())
+	assert.True(t, called)
+}
+
+// TestShutdown_ContextTimeoutLogic tests Shutdown with context timeout
+func TestShutdown_ContextTimeoutLogic(t *testing.T) {
+	s := New()
+	s.SetTimeout(50 * time.Millisecond)
+
+	s.SetHooks(
+		func() result.VoidResult {
+			time.Sleep(100 * time.Millisecond) // Longer than timeout
+			return result.OkVoid()
+		},
+		func() result.VoidResult {
+			return result.OkVoid()
+		},
+	)
+
+	// Test with short timeout context
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	defer cancel()
+
+	// The Shutdown method would timeout, but executeShutdown still completes
+	res := s.executeShutdown(ctx)
+	assert.True(t, res.IsOk())
+}
+
+// TestShutdown_ContextErrorHandling tests context error handling in Shutdown
+func TestShutdown_ContextErrorHandling(t *testing.T) {
+	s := New()
+	s.SetTimeout(50 * time.Millisecond)
+
+	s.SetHooks(
+		func() result.VoidResult {
+			return result.OkVoid()
+		},
+		func() result.VoidResult {
+			return result.OkVoid()
+		},
+	)
+
+	// Test with cancelled context
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // Cancel immediately
+
+	// Test executeShutdown with cancelled context
+	res := s.executeShutdown(ctx)
+	assert.True(t, res.IsOk(), "executeShutdown should complete even with cancelled context")
+}
+
+// TestShutdown_MethodLogic tests the Shutdown method logic (without os.Exit)
+func TestShutdown_MethodLogic(t *testing.T) {
+	s := New()
+	s.SetTimeout(50 * time.Millisecond)
+
+	var firstSweepCalled, beforeExitingCalled bool
+	s.SetHooks(
+		func() result.VoidResult {
+			firstSweepCalled = true
+			return result.OkVoid()
+		},
+		func() result.VoidResult {
+			beforeExitingCalled = true
+			return result.OkVoid()
+		},
+	)
+
+	// Test with context
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	// We can't test os.Exit, but we can test the logic by checking executeShutdown
+	// The Shutdown method calls executeShutdown in a goroutine
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		s.executeShutdown(ctx)
+	}()
+
+	select {
+	case <-done:
+		assert.True(t, firstSweepCalled)
+		assert.True(t, beforeExitingCalled)
+	case <-time.After(200 * time.Millisecond):
+		t.Fatal("shutdown did not complete")
+	}
+}
+
+// TestShutdown_MethodWithMockExit tests Shutdown method (with mocked exit)
+func TestShutdown_MethodWithMockExit(t *testing.T) {
+	s := New()
+	s.SetTimeout(50 * time.Millisecond)
+
+	var called bool
+	s.SetHooks(
+		func() result.VoidResult {
+			called = true
+			return result.OkVoid()
+		},
+		func() result.VoidResult {
+			return result.OkVoid()
+		},
+	)
+
+	// Shutdown calls shutdownInternal and then exit
+	// Since exit is mocked in reboot_test.go, we need to set it here too
+	originalExit := globalDeps.exit
+	globalDeps.exit = func(code int) {}
+	defer func() {
+		globalDeps.exit = originalExit
+	}()
+
+	ctx := context.Background()
+	s.Shutdown(ctx)
+	assert.True(t, called)
+}
+
+// TestStop_AllPaths tests all paths in Stop method
+func TestStop_AllPaths(t *testing.T) {
+	s := New()
+
+	// Test 1: Stop when already stopped (fast path)
+	atomic.StoreInt32(&s.stopped, 1)
+	s.Stop()
+	assert.True(t, atomic.LoadInt32(&s.stopped) == 1)
+
+	// Test 2: Stop when not listening (fast path)
+	atomic.StoreInt32(&s.stopped, 0)
+	atomic.StoreInt32(&s.listening, 0)
+	s.Stop()
+	assert.False(t, s.IsListening())
+
+	// Test 3: Stop when listening (slow path)
+	atomic.StoreInt32(&s.listening, 1)
+	atomic.StoreInt32(&s.stopped, 0)
+	s.stopCh = make(chan struct{})
+	s.Stop()
+	assert.False(t, s.IsListening())
+	assert.True(t, atomic.LoadInt32(&s.stopped) == 1)
+
+	// Test 4: Stop when listening but already stopped (double-check)
+	atomic.StoreInt32(&s.listening, 1)
+	atomic.StoreInt32(&s.stopped, 1)
+	s.stopCh = make(chan struct{})
+	s.Stop()
+	// Should remain stopped
+	assert.True(t, atomic.LoadInt32(&s.stopped) == 1)
 }

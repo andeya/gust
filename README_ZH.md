@@ -759,8 +759,19 @@ fileutil.TarGz("src/", "archive.tar.gz", false, nil, ".git")
 ```go
 import "github.com/andeya/gust/coarsetime"
 
-now := coarsetime.Now()  // 100ms 精度（默认）
+// 使用默认实例（100ms 精度）
+now := coarsetime.Now()
 elapsed := coarsetime.Since(start)  // 单调时间
+
+// 创建默认精度实例（100ms）
+ct := coarsetime.New()  // 使用默认 100ms 精度
+defer ct.Stop()
+now := ct.Now()
+
+// 创建自定义精度实例
+ct2 := coarsetime.New(10 * time.Millisecond)  // 10ms 精度
+defer ct2.Stop()
+now2 := ct2.Now()
 ```
 
 **核心特性：** 实时时间 & 单调时间、可配置精度、快 30 倍

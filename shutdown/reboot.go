@@ -20,16 +20,10 @@ type Env struct {
 	Value string
 }
 
-// Reboot gracefully reboots the application by starting a new process
-// and then shutting down the current one.
-//
-// NOTE: Reboot is not supported on Windows. On Windows, this method
-// will log a warning and exit.
-func (s *Shutdown) Reboot(ctx context.Context) {
-	defer os.Exit(0)
-
-	s.logf("rebooting process...")
-
+// rebootInternal contains the internal reboot logic without os.Exit.
+// This allows testing the logic without terminating the test process.
+// Returns true if reboot was graceful, false otherwise.
+func (s *Shutdown) rebootInternal(ctx context.Context) bool {
 	// Use provided context or create one with timeout
 	rebootCtx := ctx
 	if rebootCtx == nil {
@@ -37,6 +31,8 @@ func (s *Shutdown) Reboot(ctx context.Context) {
 		rebootCtx, cancel = context.WithTimeout(context.Background(), s.Timeout())
 		defer cancel()
 	}
+
+	s.logf(rebootCtx, "rebooting process...")
 
 	ppid := os.Getppid()
 	graceful := true
@@ -52,7 +48,7 @@ func (s *Shutdown) Reboot(ctx context.Context) {
 	select {
 	case <-rebootCtx.Done():
 		if err := rebootCtx.Err(); err != nil {
-			s.logErrorf("reboot timeout: %v", err)
+			s.logErrorf(rebootCtx, "reboot timeout: %v", err)
 		}
 		graceful = false
 	case <-done:
@@ -61,17 +57,31 @@ func (s *Shutdown) Reboot(ctx context.Context) {
 
 	// Kill parent process if needed
 	if ppid != 1 {
-		if err := syscall.Kill(ppid, syscall.SIGTERM); err != nil {
-			s.logErrorf("failed to kill parent process: %v", err)
+		if err := s.killProcess(ppid, syscall.SIGTERM); err != nil {
+			s.logErrorf(rebootCtx, "failed to kill parent process: %v", err)
 			graceful = false
 		}
 	}
 
 	if graceful {
-		s.logf("process rebooted gracefully")
+		s.logf(rebootCtx, "process rebooted gracefully")
 	} else {
-		s.logf("process rebooted, but not gracefully")
-		os.Exit(-1)
+		s.logf(rebootCtx, "process rebooted, but not gracefully")
+	}
+	return graceful
+}
+
+// Reboot gracefully reboots the application by starting a new process
+// and then shutting down the current one.
+//
+// NOTE: Reboot is not supported on Windows. On Windows, this method
+// will log a warning and exit.
+func (s *Shutdown) Reboot(ctx context.Context) {
+	graceful := s.rebootInternal(ctx)
+	if graceful {
+		globalDeps.exit(0)
+	} else {
+		globalDeps.exit(-1)
 	}
 }
 
@@ -79,32 +89,32 @@ func (s *Shutdown) Reboot(ctx context.Context) {
 func (s *Shutdown) executeReboot(ctx context.Context) (r bool) {
 	defer func() {
 		if p := recover(); p != nil {
-			s.logErrorf("panic during reboot: %v", p)
+			s.logErrorf(ctx, "panic during reboot: %v", p)
 			r = false
 		}
 	}()
 
 	// Execute first sweep
-	s.logf("executing first sweep...")
+	s.logf(ctx, "executing first sweep...")
 	firstSweepRes := s.getFirstSweep()()
 	if firstSweepRes.IsErr() {
-		s.logErrorf("first sweep failed: %v", firstSweepRes.Err())
+		s.logErrorf(ctx, "first sweep failed: %v", firstSweepRes.Err())
 		return false
 	}
 
 	// Start new process
-	s.logf("starting new process...")
+	s.logf(ctx, "starting new process...")
 	startRes := s.startProcess()
 	if startRes.IsErr() {
-		s.logErrorf("failed to start new process: %v", startRes.Err())
+		s.logErrorf(ctx, "failed to start new process: %v", startRes.Err())
 		return false
 	}
 
 	// Execute before exiting
-	s.logf("executing before exiting...")
+	s.logf(ctx, "executing before exiting...")
 	beforeExitingRes := s.getBeforeExiting()()
 	if beforeExitingRes.IsErr() {
-		s.logErrorf("before exiting failed: %v", beforeExitingRes.Err())
+		s.logErrorf(ctx, "before exiting failed: %v", beforeExitingRes.Err())
 		return false
 	}
 
@@ -124,20 +134,7 @@ func (s *Shutdown) startProcess() (r result.Result[int]) {
 	// Get inherited files
 	files := s.getInheritedFiles()
 
-	// Get process starter (use custom if set, otherwise use default)
-	starter := s.getProcessStarter()
-	if starter == nil {
-		// Default implementation: use os.StartProcess
-		process := result.Ret(os.StartProcess(argv0, os.Args, &os.ProcAttr{
-			Dir:   s.getOriginalWD(),
-			Env:   envs,
-			Files: files,
-		})).Unwrap()
-		return result.Ok(process.Pid)
-	}
-
-	// Use custom process starter (e.g., for testing via SetProcessStarter)
-	pid, err := starter.StartProcess(argv0, os.Args, &os.ProcAttr{
+	pid, err := globalDeps.startProcess(argv0, os.Args, &os.ProcAttr{
 		Dir:   s.getOriginalWD(),
 		Env:   envs,
 		Files: files,
@@ -146,13 +143,6 @@ func (s *Shutdown) startProcess() (r result.Result[int]) {
 		return result.TryErr[int](err)
 	}
 	return result.Ok(pid)
-}
-
-// getProcessStarter returns the process starter (thread-safe).
-func (s *Shutdown) getProcessStarter() ProcessStarter {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.processStarter
 }
 
 // buildEnvironment builds the environment variables for the new process.
@@ -260,4 +250,9 @@ var originalWD = func() string {
 // getOriginalWD returns the original working directory.
 func (s *Shutdown) getOriginalWD() string {
 	return originalWD
+}
+
+// killProcess kills a process using the configured killer.
+func (s *Shutdown) killProcess(pid int, sig syscall.Signal) error {
+	return globalDeps.killProcess(pid, sig)
 }

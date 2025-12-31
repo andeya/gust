@@ -13,7 +13,10 @@ import (
 // NOTE: Reboot is not supported on Windows.
 // This method logs a warning and calls Shutdown instead.
 func (s *Shutdown) Reboot(ctx context.Context) {
-	s.logf("Windows system doesn't support reboot! Calling Shutdown() instead.")
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	s.logf(ctx, "Windows system doesn't support reboot! Calling Shutdown() instead.")
 	s.Shutdown(ctx)
 }
 

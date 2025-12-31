@@ -34,6 +34,7 @@ import (
 	"os"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"time"
 
 	"github.com/andeya/gust/result"
@@ -42,56 +43,64 @@ import (
 // MinShutdownTimeout is the default minimum timeout for graceful shutdown.
 const MinShutdownTimeout = 15 * time.Second
 
-// ProcessStarter is an interface for starting new processes.
-// This allows for dependency injection and testing without actually spawning processes.
-type ProcessStarter interface {
-	// StartProcess starts a new process with the given arguments and environment.
-	// Returns the process ID on success.
-	StartProcess(argv0 string, argv []string, attr *os.ProcAttr) (int, error)
+// processStarterFunc is a function type for starting new processes.
+type processStarterFunc func(argv0 string, argv []string, attr *os.ProcAttr) (int, error)
+
+// processKillerFunc is a function type for killing processes.
+type processKillerFunc func(pid int, sig syscall.Signal) error
+
+// osExitFunc is a function type for exiting the process.
+type osExitFunc func(code int)
+
+// globalDeps is the global dependency object used by all Shutdown instances.
+// In tests, this can be replaced with a mock implementation.
+var globalDeps = struct {
+	startProcess processStarterFunc
+	killProcess  processKillerFunc
+	exit         osExitFunc
+}{
+	startProcess: func(argv0 string, argv []string, attr *os.ProcAttr) (int, error) {
+		process, err := os.StartProcess(argv0, argv, attr)
+		if err != nil {
+			return 0, err
+		}
+		return process.Pid, nil
+	},
+	killProcess: syscall.Kill,
+	exit:        os.Exit,
 }
 
 // Shutdown manages graceful shutdown and reboot of the application.
 type Shutdown struct {
-	timeout        time.Duration
-	firstSweep     func() result.VoidResult
-	beforeExiting  func() result.VoidResult
-	logger         Logger
-	processStarter ProcessStarter // Optional: for dependency injection in tests
-	mu             sync.Mutex
-	signalCh       chan os.Signal
-	stopCh         chan struct{}
-	listening      int32 // Use atomic for fast path check
-	stopped        int32 // Use atomic for fast path check
+	timeout       time.Duration
+	firstSweep    func() result.VoidResult
+	beforeExiting func() result.VoidResult
+	logger        Logger
+	mu            sync.Mutex
+	signalCh      chan os.Signal
+	stopCh        chan struct{}
+	listening     int32 // Use atomic for fast path check
+	stopped       int32 // Use atomic for fast path check
 }
 
 // Logger is an interface for logging shutdown events.
 // If nil, no logging is performed.
 type Logger interface {
-	Infof(format string, args ...interface{})
-	Errorf(format string, args ...interface{})
+	Infof(ctx context.Context, format string, args ...interface{})
+	Errorf(ctx context.Context, format string, args ...interface{})
 }
 
 // New creates a new Shutdown instance with default settings.
 func New() *Shutdown {
 	return &Shutdown{
-		timeout:        MinShutdownTimeout,
-		firstSweep:     func() result.VoidResult { return result.OkVoid() },
-		beforeExiting:  func() result.VoidResult { return result.OkVoid() },
-		processStarter: nil, // nil means use default implementation
-		signalCh:       make(chan os.Signal, 1),
-		stopCh:         make(chan struct{}),
-		listening:      0,
-		stopped:        0,
+		timeout:       MinShutdownTimeout,
+		firstSweep:    func() result.VoidResult { return result.OkVoid() },
+		beforeExiting: func() result.VoidResult { return result.OkVoid() },
+		signalCh:      make(chan os.Signal, 1),
+		stopCh:        make(chan struct{}),
+		listening:     0,
+		stopped:       0,
 	}
-}
-
-// SetProcessStarter sets a custom process starter for dependency injection.
-// This is primarily useful for testing to avoid actually spawning processes.
-// If nil, the default implementation (os.StartProcess) will be used.
-func (s *Shutdown) SetProcessStarter(starter ProcessStarter) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.processStarter = starter
 }
 
 // SetTimeout sets the timeout for graceful shutdown.
@@ -152,16 +161,9 @@ func (s *Shutdown) Logger() Logger {
 	return s.logger
 }
 
-// Shutdown gracefully shuts down the application.
-// It executes the hooks within the specified timeout and then exits with code 0.
-//
-// If ctx is provided, it's used instead of the configured timeout.
-// The function will block until shutdown is complete or timeout occurs.
-func (s *Shutdown) Shutdown(ctx context.Context) {
-	defer os.Exit(0)
-
-	s.logf("shutting down process...")
-
+// shutdownInternal contains the internal shutdown logic without os.Exit.
+// This allows testing the logic without terminating the test process.
+func (s *Shutdown) shutdownInternal(ctx context.Context) {
 	// Use provided context or create one with timeout
 	shutdownCtx := ctx
 	if shutdownCtx == nil {
@@ -169,6 +171,8 @@ func (s *Shutdown) Shutdown(ctx context.Context) {
 		shutdownCtx, cancel = context.WithTimeout(context.Background(), s.Timeout())
 		defer cancel()
 	}
+
+	s.logf(shutdownCtx, "shutting down process...")
 
 	// Execute shutdown in a goroutine
 	done := make(chan struct{})
@@ -181,13 +185,23 @@ func (s *Shutdown) Shutdown(ctx context.Context) {
 	select {
 	case <-shutdownCtx.Done():
 		if err := shutdownCtx.Err(); err != nil {
-			s.logf("shutdown timeout: %v", err)
+			s.logf(shutdownCtx, "shutdown timeout: %v", err)
 		}
 	case <-done:
 		// Shutdown completed
 	}
 
-	s.logf("process shutdown complete")
+	s.logf(shutdownCtx, "process shutdown complete")
+}
+
+// Shutdown gracefully shuts down the application.
+// It executes the hooks within the specified timeout and then exits with code 0.
+//
+// If ctx is provided, it's used instead of the configured timeout.
+// The function will block until shutdown is complete or timeout occurs.
+func (s *Shutdown) Shutdown(ctx context.Context) {
+	defer globalDeps.exit(0)
+	s.shutdownInternal(ctx)
 }
 
 // executeShutdown executes the shutdown hooks.
@@ -195,22 +209,22 @@ func (s *Shutdown) executeShutdown(ctx context.Context) (r result.VoidResult) {
 	defer r.Catch()
 
 	// Execute first sweep
-	s.logf("executing first sweep...")
+	s.logf(ctx, "executing first sweep...")
 	firstSweepRes := s.getFirstSweep()()
 	if firstSweepRes.IsErr() {
-		s.logf("first sweep failed: %v", firstSweepRes.Err())
+		s.logf(ctx, "first sweep failed: %v", firstSweepRes.Err())
 		return firstSweepRes
 	}
 
 	// Execute before exiting
-	s.logf("executing before exiting...")
+	s.logf(ctx, "executing before exiting...")
 	beforeExitingRes := s.getBeforeExiting()()
 	if beforeExitingRes.IsErr() {
-		s.logf("before exiting failed: %v", beforeExitingRes.Err())
+		s.logf(ctx, "before exiting failed: %v", beforeExitingRes.Err())
 		return beforeExitingRes
 	}
 
-	s.logf("process shut down gracefully")
+	s.logf(ctx, "process shut down gracefully")
 	return result.OkVoid()
 }
 
@@ -229,18 +243,18 @@ func (s *Shutdown) getBeforeExiting() func() result.VoidResult {
 }
 
 // logf logs a message if logger is set.
-func (s *Shutdown) logf(format string, args ...interface{}) {
+func (s *Shutdown) logf(ctx context.Context, format string, args ...interface{}) {
 	logger := s.Logger()
 	if logger != nil {
-		logger.Infof(format, args...)
+		logger.Infof(ctx, format, args...)
 	}
 }
 
 // logErrorf logs an error message if logger is set.
-func (s *Shutdown) logErrorf(format string, args ...interface{}) {
+func (s *Shutdown) logErrorf(ctx context.Context, format string, args ...interface{}) {
 	logger := s.Logger()
 	if logger != nil {
-		logger.Errorf(format, args...)
+		logger.Errorf(ctx, format, args...)
 	}
 }
 

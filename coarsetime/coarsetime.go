@@ -10,10 +10,15 @@
 //	// Use default instance (100ms precision)
 //	now := coarsetime.Now()
 //
-//	// Use custom precision
-//	ct := coarsetime.New(10 * time.Millisecond)
+//	// Create instance with default precision (100ms)
+//	ct := coarsetime.New()  // Uses default 100ms precision
 //	defer ct.Stop()
 //	now := ct.Now()
+//
+//	// Use custom precision
+//	ct2 := coarsetime.New(10 * time.Millisecond)  // 10ms precision
+//	defer ct2.Stop()
+//	now2 := ct2.Now()
 //
 //	// Use monotonic time for performance measurement
 //	start := coarsetime.Monotonic()
@@ -43,24 +48,33 @@ type CoarseTime struct {
 }
 
 // New creates a new CoarseTime instance with the specified frequency.
-// Frequency must be positive. If frequency <= 0, it defaults to 100ms.
+// If no frequency is provided, it defaults to 100ms (industry standard for coarse-grained time).
+// If frequency <= 0, it also defaults to 100ms.
 //
 // The frequency determines how often the time is updated. Smaller values provide
 // higher precision but use more CPU. Typical values are 10ms, 100ms, or 1s.
-func New(frequency time.Duration) *CoarseTime {
-	if frequency <= 0 {
-		frequency = 100 * time.Millisecond // default
+//
+// Examples:
+//   - New() - uses default 100ms precision
+//   - New(10 * time.Millisecond) - uses 10ms precision
+func New(frequency ...time.Duration) *CoarseTime {
+	var freq time.Duration
+	if len(frequency) > 0 {
+		freq = frequency[0]
+	}
+	if freq <= 0 {
+		freq = 100 * time.Millisecond // default
 	}
 
 	ct := &CoarseTime{
-		frequency:     frequency,
+		frequency:     freq,
 		stopCh:        make(chan struct{}),
 		baseMonotonic: time.Now(),
 	}
 
 	// Initialize with current time
 	now := time.Now()
-	truncated := now.Truncate(frequency)
+	truncated := now.Truncate(freq)
 	ct.wallTime.Store(&truncated)
 	ct.monotonicTime.Store(&truncated)
 

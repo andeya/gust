@@ -759,8 +759,19 @@ fileutil.TarGz("src/", "archive.tar.gz", false, nil, ".git")
 ```go
 import "github.com/andeya/gust/coarsetime"
 
-now := coarsetime.Now()  // 100ms precision (default)
+// Use default instance (100ms precision)
+now := coarsetime.Now()
 elapsed := coarsetime.Since(start)  // Monotonic time
+
+// Create instance with default precision (100ms)
+ct := coarsetime.New()  // Uses default 100ms precision
+defer ct.Stop()
+now := ct.Now()
+
+// Create custom precision instance
+ct2 := coarsetime.New(10 * time.Millisecond)  // 10ms precision
+defer ct2.Stop()
+now2 := ct2.Now()
 ```
 
 **Key Features:** Wall clock & monotonic time, configurable precision, 30x faster

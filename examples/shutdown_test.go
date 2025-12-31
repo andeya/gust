@@ -47,11 +47,11 @@ func ExampleShutdown_withLogger() {
 	// Set hooks
 	s.SetHooks(
 		func() result.VoidResult {
-			logger.Infof("Executing first sweep...")
+			logger.Infof(context.Background(), "Executing first sweep...")
 			return result.OkVoid()
 		},
 		func() result.VoidResult {
-			logger.Infof("Executing final cleanup...")
+			logger.Infof(context.Background(), "Executing final cleanup...")
 			return result.OkVoid()
 		},
 	)
@@ -193,10 +193,10 @@ func someCondition() bool {
 // exampleLogger is a simple logger implementation for examples
 type exampleLogger struct{}
 
-func (l *exampleLogger) Infof(format string, args ...interface{}) {
+func (l *exampleLogger) Infof(ctx context.Context, format string, args ...interface{}) {
 	fmt.Printf("[INFO] "+format+"\n", args...)
 }
 
-func (l *exampleLogger) Errorf(format string, args ...interface{}) {
+func (l *exampleLogger) Errorf(ctx context.Context, format string, args ...interface{}) {
 	fmt.Printf("[ERROR] "+format+"\n", args...)
 }
