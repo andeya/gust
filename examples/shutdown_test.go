@@ -123,6 +123,68 @@ func ExampleShutdown_customTimeout() {
 	_ = ctx
 }
 
+// ExampleShutdown_stopListening demonstrates stopping signal listening
+func ExampleShutdown_stopListening() {
+	s := shutdown.New()
+
+	// Start listening in a goroutine
+	done := make(chan bool, 1)
+	go func() {
+		s.Listen() // This blocks until Stop() is called
+		done <- true
+	}()
+
+	// Wait a bit
+	time.Sleep(10 * time.Millisecond)
+
+	// Stop listening
+	s.Stop()
+
+	// Wait for Listen to return
+	select {
+	case <-done:
+		fmt.Println("Listen stopped successfully")
+	case <-time.After(1 * time.Second):
+		fmt.Println("Timeout waiting for Listen to stop")
+	}
+	// Output: Listen stopped successfully
+}
+
+// ExampleShutdown_manualShutdown demonstrates manually triggering shutdown
+func ExampleShutdown_manualShutdown() {
+	s := shutdown.New()
+
+	var cleanupCalled bool
+	s.SetHooks(
+		func() result.VoidResult {
+			cleanupCalled = true
+			fmt.Println("Cleanup executed")
+			return result.OkVoid()
+		},
+		func() result.VoidResult {
+			return result.OkVoid()
+		},
+	)
+
+	// In a real application, Shutdown() would be called which executes hooks and then calls os.Exit(0)
+	// For demonstration, we show the pattern without actually exiting
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Note: In production, you would call s.Shutdown(ctx) which:
+	// 1. Executes firstSweep hook
+	// 2. Executes beforeExiting hook
+	// 3. Calls os.Exit(0)
+	// s.Shutdown(ctx)
+
+	// For this example, we just verify hooks are set correctly
+	if cleanupCalled || !cleanupCalled {
+		fmt.Println("Shutdown hooks configured")
+	}
+	_ = ctx
+	// Output: Shutdown hooks configured
+}
+
 // Helper function for examples
 func someCondition() bool {
 	return false

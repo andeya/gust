@@ -545,26 +545,279 @@ apiKey := config.APIKey.UnwrapOr("") // Default to empty string
 
 ## 📦 Complete Package Ecosystem
 
-gust provides a comprehensive set of utility packages for common Go tasks:
+gust provides a comprehensive set of utility packages organized into three categories:
 
-| Package | Description | Key Features |
-|---------|-------------|--------------|
-| **`gust/result`** | Type-safe error handling | `Result[T]`, Catch pattern, `Map`, `AndThen` |
-| **`gust/option`** | Safe optional values | `Option[T]`, `Map`, `Filter`, `AndThen` |
-| **`gust/iterator`** | Rust-like iteration | 60+ methods, lazy evaluation, method chaining |
-| **`gust/dict`** | Generic map utilities | `Filter`, `Map`, `Keys`, `Values`, `Get` |
-| **`gust/vec`** | Generic slice utilities | `MapAlone`, `Get`, `Copy`, `Dict` |
-| **`gust/conv`** | Type-safe conversions | `BytesToString`, `StringToReadonlyBytes`, case conversion, JSON quoting |
-| **`gust/digit`** | Number conversions | Base 2-62 conversion, `FormatByDict`, `ParseByDict` |
-| **`gust/random`** | Secure random strings | Base36/Base62 encoding, timestamp embedding |
-| **`gust/encrypt`** | Cryptographic functions | MD5, SHA series, FNV, CRC, Adler-32, AES encryption |
-| **`gust/bitset`** | Thread-safe bit sets | Bitwise ops, iterator integration, multiple encodings |
-| **`gust/syncutil`** | Concurrent utilities | `SyncMap`, `Lazy`, mutex wrappers |
-| **`gust/errutil`** | Error utilities | Stack traces, panic recovery, `ErrBox` |
-| **`gust/constraints`** | Type constraints | `Ordering`, `Numeric`, `Digit` |
-| **`gust/fileutil`** | File operations | Path manipulation, file I/O, directory operations, tar.gz archiving |
-| **`gust/coarsetime`** | Fast coarse-grained time | Wall clock & monotonic time, configurable precision, 30x faster than `time.Now()` |
-| **`gust/shutdown`** | Graceful shutdown & reboot | Signal handling, cleanup hooks, graceful process restart (Unix) |
+### 🎯 Core Packages
+
+The foundation of gust's type-safe programming model:
+
+#### **`gust/result`** - Type-Safe Error Handling
+
+Eliminate `if err != nil` boilerplate with the revolutionary Catch pattern:
+
+```go
+import "github.com/andeya/gust/result"
+
+func readFile(filename string) (r result.Result[string]) {
+    defer r.Catch()  // One line handles ALL errors!
+    data := result.Ret(os.ReadFile(filename)).Unwrap()
+    return result.Ok(string(data))
+}
+```
+
+**Key Features:** `Result[T]`, Catch pattern, `Map`, `AndThen`, `UnwrapOr`
+
+#### **`gust/option`** - Safe Optional Values
+
+Replace `*T` and `(T, bool)` with type-safe `Option[T]`:
+
+```go
+import "github.com/andeya/gust/option"
+
+divide := func(a, b float64) option.Option[float64] {
+    if b == 0 {
+        return option.None[float64]()
+    }
+    return option.Some(a / b)
+}
+
+quotient := divide(10, 2).UnwrapOr(0)  // Safe: never panics
+```
+
+**Key Features:** `Option[T]`, `Map`, `Filter`, `AndThen`, `UnwrapOr`
+
+#### **`gust/iterator`** - Rust-like Iteration
+
+60+ methods for declarative data processing:
+
+```go
+import "github.com/andeya/gust/iterator"
+
+sum := iterator.FromSlice([]int{1, 2, 3, 4, 5}).
+    Filter(func(x int) bool { return x%2 == 0 }).
+    Map(func(x int) int { return x * x }).
+    Fold(0, func(acc, x int) int { return acc + x })
+```
+
+**Key Features:** 60+ methods, lazy evaluation, method chaining, Go 1.24+ integration
+
+### 📊 Data Structure Packages
+
+Generic utilities for common data structures:
+
+#### **`gust/dict`** - Generic Map Utilities
+
+Type-safe map operations with Option return types:
+
+```go
+import "github.com/andeya/gust/dict"
+
+m := map[string]int{"a": 1, "b": 2}
+value := dict.Get(m, "b")  // Returns Option[int]
+if value.IsSome() {
+    fmt.Println(value.Unwrap())  // 2
+}
+```
+
+**Key Features:** `Filter`, `Map`, `Keys`, `Values`, `Get`
+
+#### **`gust/vec`** - Generic Slice Utilities
+
+Type-safe slice operations:
+
+```go
+import "github.com/andeya/gust/vec"
+
+numbers := []int{1, 2, 3}
+doubled := vec.MapAlone(numbers, func(x int) int { return x * 2 })
+```
+
+**Key Features:** `MapAlone`, `Get`, `Copy`, `Dict`
+
+#### **`gust/bitset`** - Thread-Safe Bit Sets
+
+Efficient bit manipulation with iterator integration:
+
+```go
+import "github.com/andeya/gust/bitset"
+
+bs := bitset.New(64)
+bs.Set(0).Set(2).Set(5)
+ones := iterator.FromBitSetOnes(bs).Collect()  // [0, 2, 5]
+```
+
+**Key Features:** Bitwise operations, iterator integration, multiple encodings
+
+### 🛠️ Utility Packages
+
+Production-ready tools for common tasks:
+
+#### **`gust/conv`** - Type-Safe Conversions
+
+Zero-copy conversions and string manipulation:
+
+```go
+import "github.com/andeya/gust/conv"
+
+// Zero-copy byte/string conversion
+bytes := []byte{'h', 'e', 'l', 'l', 'o'}
+str := conv.BytesToString[string](bytes)
+
+// Case conversion
+snake := conv.ToSnakeCase("UserID")      // "user_id"
+camel := conv.ToCamelCase("user_id")     // "UserId"
+```
+
+**Key Features:** `BytesToString`, `StringToReadonlyBytes`, case conversion, JSON quoting
+
+#### **`gust/digit`** - Number Conversions
+
+Base 2-62 conversion with overflow protection:
+
+```go
+import "github.com/andeya/gust/digit"
+
+// Format in different bases
+fmt.Println(digit.FormatUint(255, 16))  // "ff"
+fmt.Println(digit.FormatUint(255, 62))  // "47"
+
+// Parse with error handling
+parsed := digit.ParseInt("ff", 16, 64)  // Result[int64]
+```
+
+**Key Features:** Base 2-62 conversion, `FormatInt`, `ParseInt`, checked operations
+
+#### **`gust/random`** - Secure Random Strings
+
+Cryptographically secure random generation with timestamp embedding:
+
+```go
+import "github.com/andeya/gust/random"
+
+gen := random.NewGenerator(false)  // base62 encoding
+str := gen.RandomString(16).Unwrap()
+timestamped := gen.StringWithNow(20).Unwrap()  // Includes timestamp
+```
+
+**Key Features:** Base36/Base62 encoding, timestamp embedding, secure generation
+
+#### **`gust/encrypt`** - Cryptographic Functions
+
+Complete hash suite and AES encryption:
+
+```go
+import "github.com/andeya/gust/encrypt"
+
+// Hash functions
+hash := encrypt.SHA256([]byte("hello"), encrypt.EncodingHex)
+
+// AES encryption
+key := []byte("1234567890123456")
+encrypted := encrypt.EncryptAES(key, []byte("secret"), 
+    encrypt.ModeCBC, encrypt.EncodingHex)
+```
+
+**Key Features:** MD5, SHA series, FNV, CRC, Adler-32, AES encryption
+
+#### **`gust/errutil`** - Error Utilities
+
+Enhanced error handling with stack traces:
+
+```go
+import "github.com/andeya/gust/errutil"
+
+// Error boxing
+errBox := errutil.BoxErr(errors.New("error"))
+err := errBox.ToError()
+
+// Stack traces
+stack := errutil.GetStackTrace(0)
+```
+
+**Key Features:** Stack traces, panic recovery, `ErrBox`
+
+#### **`gust/fileutil`** - File Operations
+
+Type-safe file operations with Result types:
+
+```go
+import "github.com/andeya/gust/fileutil"
+
+// Copy file
+res := fileutil.CopyFile("src.txt", "dst.txt")
+
+// Archive directory
+fileutil.TarGz("src/", "archive.tar.gz", false, nil, ".git")
+```
+
+**Key Features:** Path manipulation, file I/O, directory operations, tar.gz archiving
+
+#### **`gust/coarsetime`** - Fast Coarse-Grained Time
+
+30x faster than `time.Now()` for high-frequency operations:
+
+```go
+import "github.com/andeya/gust/coarsetime"
+
+now := coarsetime.Now()  // 100ms precision (default)
+elapsed := coarsetime.Since(start)  // Monotonic time
+```
+
+**Key Features:** Wall clock & monotonic time, configurable precision, 30x faster
+
+#### **`gust/shutdown`** - Graceful Shutdown & Reboot
+
+Signal handling and cleanup hooks:
+
+```go
+import "github.com/andeya/gust/shutdown"
+
+s := shutdown.New()
+s.SetHooks(
+    func() result.VoidResult { /* first sweep */ },
+    func() result.VoidResult { /* final cleanup */ },
+)
+go s.Listen()  // Blocks until signal
+```
+
+**Key Features:** Signal handling, cleanup hooks, graceful process restart (Unix)
+
+#### **`gust/syncutil`** - Concurrent Utilities
+
+Thread-safe data structures:
+
+```go
+import "github.com/andeya/gust/syncutil"
+
+// Thread-safe map
+var m syncutil.SyncMap[string, int]
+m.Store("key", 42)
+value := m.Load("key")  // Returns Option[int]
+
+// Lazy initialization
+lazy := syncutil.NewLazyValueWithFunc(func() result.Result[int] {
+    return result.Ok(expensiveComputation())
+})
+```
+
+**Key Features:** `SyncMap`, `Lazy`, mutex wrappers
+
+#### **`gust/constraints`** - Type Constraints
+
+Generic type constraints for compile-time safety:
+
+```go
+import "github.com/andeya/gust/constraints"
+
+func max[T constraints.Ord](a, b T) T {
+    if constraints.Compare(a, b).IsGreater() {
+        return a
+    }
+    return b
+}
+```
+
+**Key Features:** `Ordering`, `Numeric`, `Digit`
 
 ---
 

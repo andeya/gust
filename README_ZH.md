@@ -545,26 +545,279 @@ apiKey := config.APIKey.UnwrapOr("") // 如果未设置，默认为空字符串
 
 ## 📦 完整包生态系统
 
-gust 为常见的 Go 任务提供了一套全面的工具包：
+gust 提供了全面的工具包集合，按三个类别组织：
 
-| 包 | 描述 | 关键功能 |
-|---------|-------------|--------------|
-| **`gust/result`** | 类型安全的错误处理 | `Result[T]`, Catch 模式, `Map`, `AndThen` |
-| **`gust/option`** | 安全的可选值 | `Option[T]`, `Map`, `Filter`, `AndThen` |
-| **`gust/iterator`** | Rust 风格的迭代 | 60+ 方法，惰性求值，方法链式调用 |
-| **`gust/dict`** | 泛型 map 工具 | `Filter`, `Map`, `Keys`, `Values`, `Get` |
-| **`gust/vec`** | 泛型 slice 工具 | `MapAlone`, `Get`, `Copy`, `Dict` |
-| **`gust/conv`** | 类型安全转换 | `BytesToString`, `StringToReadonlyBytes`, 大小写转换, JSON 引用 |
-| **`gust/digit`** | 数字转换 | Base 2-62 转换, `FormatByDict`, `ParseByDict` |
-| **`gust/random`** | 安全随机字符串 | Base36/Base62 编码, 时间戳嵌入 |
-| **`gust/encrypt`** | 加密哈希函数 | MD5, SHA 系列, FNV, CRC, Adler-32, AES 加密 |
-| **`gust/bitset`** | 线程安全位集合 | 位运算, 迭代器集成, 多种编码 |
-| **`gust/syncutil`** | 并发工具 | `SyncMap`, `Lazy`, mutex 包装器 |
-| **`gust/errutil`** | 错误工具 | 堆栈跟踪, panic 恢复, `ErrBox` |
-| **`gust/constraints`** | 类型约束 | `Ordering`, `Numeric`, `Digit` |
-| **`gust/fileutil`** | 文件操作 | 路径操作, 文件 I/O, 目录操作, tar.gz 归档 |
-| **`gust/coarsetime`** | 快速粗粒度时间 | 实时时间 & 单调时间, 可配置精度, 比 `time.Now()` 快 30 倍 |
-| **`gust/shutdown`** | 优雅关闭与重启 | 信号处理, 清理钩子, 优雅进程重启 (Unix) |
+### 🎯 核心包
+
+gust 类型安全编程模型的基础：
+
+#### **`gust/result`** - 类型安全的错误处理
+
+使用革命性的 Catch 模式消除 `if err != nil` 样板代码：
+
+```go
+import "github.com/andeya/gust/result"
+
+func readFile(filename string) (r result.Result[string]) {
+    defer r.Catch()  // 一行代码处理所有错误！
+    data := result.Ret(os.ReadFile(filename)).Unwrap()
+    return result.Ok(string(data))
+}
+```
+
+**核心特性：** `Result[T]`、Catch 模式、`Map`、`AndThen`、`UnwrapOr`
+
+#### **`gust/option`** - 安全的可选值
+
+用类型安全的 `Option[T]` 替代 `*T` 和 `(T, bool)`：
+
+```go
+import "github.com/andeya/gust/option"
+
+divide := func(a, b float64) option.Option[float64] {
+    if b == 0 {
+        return option.None[float64]()
+    }
+    return option.Some(a / b)
+}
+
+quotient := divide(10, 2).UnwrapOr(0)  // 安全：永不 panic
+```
+
+**核心特性：** `Option[T]`、`Map`、`Filter`、`AndThen`、`UnwrapOr`
+
+#### **`gust/iterator`** - Rust 风格迭代器
+
+60+ 方法用于声明式数据处理：
+
+```go
+import "github.com/andeya/gust/iterator"
+
+sum := iterator.FromSlice([]int{1, 2, 3, 4, 5}).
+    Filter(func(x int) bool { return x%2 == 0 }).
+    Map(func(x int) int { return x * x }).
+    Fold(0, func(acc, x int) int { return acc + x })
+```
+
+**核心特性：** 60+ 方法、惰性求值、方法链、Go 1.24+ 集成
+
+### 📊 数据结构包
+
+通用数据结构的泛型工具：
+
+#### **`gust/dict`** - 泛型 Map 工具
+
+类型安全的 map 操作，返回 Option 类型：
+
+```go
+import "github.com/andeya/gust/dict"
+
+m := map[string]int{"a": 1, "b": 2}
+value := dict.Get(m, "b")  // 返回 Option[int]
+if value.IsSome() {
+    fmt.Println(value.Unwrap())  // 2
+}
+```
+
+**核心特性：** `Filter`、`Map`、`Keys`、`Values`、`Get`
+
+#### **`gust/vec`** - 泛型 Slice 工具
+
+类型安全的 slice 操作：
+
+```go
+import "github.com/andeya/gust/vec"
+
+numbers := []int{1, 2, 3}
+doubled := vec.MapAlone(numbers, func(x int) int { return x * 2 })
+```
+
+**核心特性：** `MapAlone`、`Get`、`Copy`、`Dict`
+
+#### **`gust/bitset`** - 线程安全位集合
+
+高效的位操作，集成迭代器：
+
+```go
+import "github.com/andeya/gust/bitset"
+
+bs := bitset.New(64)
+bs.Set(0).Set(2).Set(5)
+ones := iterator.FromBitSetOnes(bs).Collect()  // [0, 2, 5]
+```
+
+**核心特性：** 位运算、迭代器集成、多种编码
+
+### 🛠️ 工具包
+
+生产就绪的常用工具：
+
+#### **`gust/conv`** - 类型安全转换
+
+零拷贝转换和字符串操作：
+
+```go
+import "github.com/andeya/gust/conv"
+
+// 零拷贝字节/字符串转换
+bytes := []byte{'h', 'e', 'l', 'l', 'o'}
+str := conv.BytesToString[string](bytes)
+
+// 大小写转换
+snake := conv.ToSnakeCase("UserID")      // "user_id"
+camel := conv.ToCamelCase("user_id")     // "UserId"
+```
+
+**核心特性：** `BytesToString`、`StringToReadonlyBytes`、大小写转换、JSON 引用
+
+#### **`gust/digit`** - 数字转换
+
+Base 2-62 转换，带溢出保护：
+
+```go
+import "github.com/andeya/gust/digit"
+
+// 不同进制格式化
+fmt.Println(digit.FormatUint(255, 16))  // "ff"
+fmt.Println(digit.FormatUint(255, 62))  // "47"
+
+// 带错误处理的解析
+parsed := digit.ParseInt("ff", 16, 64)  // Result[int64]
+```
+
+**核心特性：** Base 2-62 转换、`FormatInt`、`ParseInt`、检查操作
+
+#### **`gust/random`** - 安全随机字符串
+
+加密安全的随机生成，支持时间戳嵌入：
+
+```go
+import "github.com/andeya/gust/random"
+
+gen := random.NewGenerator(false)  // base62 编码
+str := gen.RandomString(16).Unwrap()
+timestamped := gen.StringWithNow(20).Unwrap()  // 包含时间戳
+```
+
+**核心特性：** Base36/Base62 编码、时间戳嵌入、安全生成
+
+#### **`gust/encrypt`** - 加密函数
+
+完整的哈希套件和 AES 加密：
+
+```go
+import "github.com/andeya/gust/encrypt"
+
+// 哈希函数
+hash := encrypt.SHA256([]byte("hello"), encrypt.EncodingHex)
+
+// AES 加密
+key := []byte("1234567890123456")
+encrypted := encrypt.EncryptAES(key, []byte("secret"), 
+    encrypt.ModeCBC, encrypt.EncodingHex)
+```
+
+**核心特性：** MD5、SHA 系列、FNV、CRC、Adler-32、AES 加密
+
+#### **`gust/errutil`** - 错误工具
+
+增强的错误处理，带堆栈跟踪：
+
+```go
+import "github.com/andeya/gust/errutil"
+
+// 错误装箱
+errBox := errutil.BoxErr(errors.New("error"))
+err := errBox.ToError()
+
+// 堆栈跟踪
+stack := errutil.GetStackTrace(0)
+```
+
+**核心特性：** 堆栈跟踪、panic 恢复、`ErrBox`
+
+#### **`gust/fileutil`** - 文件操作
+
+类型安全的文件操作，使用 Result 类型：
+
+```go
+import "github.com/andeya/gust/fileutil"
+
+// 复制文件
+res := fileutil.CopyFile("src.txt", "dst.txt")
+
+// 归档目录
+fileutil.TarGz("src/", "archive.tar.gz", false, nil, ".git")
+```
+
+**核心特性：** 路径操作、文件 I/O、目录操作、tar.gz 归档
+
+#### **`gust/coarsetime`** - 快速粗粒度时间
+
+比 `time.Now()` 快 30 倍，适用于高频操作：
+
+```go
+import "github.com/andeya/gust/coarsetime"
+
+now := coarsetime.Now()  // 100ms 精度（默认）
+elapsed := coarsetime.Since(start)  // 单调时间
+```
+
+**核心特性：** 实时时间 & 单调时间、可配置精度、快 30 倍
+
+#### **`gust/shutdown`** - 优雅关闭与重启
+
+信号处理和清理钩子：
+
+```go
+import "github.com/andeya/gust/shutdown"
+
+s := shutdown.New()
+s.SetHooks(
+    func() result.VoidResult { /* 首次清理 */ },
+    func() result.VoidResult { /* 最终清理 */ },
+)
+go s.Listen()  // 阻塞直到信号
+```
+
+**核心特性：** 信号处理、清理钩子、优雅进程重启（Unix）
+
+#### **`gust/syncutil`** - 并发工具
+
+线程安全的数据结构：
+
+```go
+import "github.com/andeya/gust/syncutil"
+
+// 线程安全 map
+var m syncutil.SyncMap[string, int]
+m.Store("key", 42)
+value := m.Load("key")  // 返回 Option[int]
+
+// 惰性初始化
+lazy := syncutil.NewLazyValueWithFunc(func() result.Result[int] {
+    return result.Ok(expensiveComputation())
+})
+```
+
+**核心特性：** `SyncMap`、`Lazy`、mutex 包装器
+
+#### **`gust/constraints`** - 类型约束
+
+泛型类型约束，提供编译时安全：
+
+```go
+import "github.com/andeya/gust/constraints"
+
+func max[T constraints.Ord](a, b T) T {
+    if constraints.Compare(a, b).IsGreater() {
+        return a
+    }
+    return b
+}
+```
+
+**核心特性：** `Ordering`、`Numeric`、`Digit`
 
 ---
 
