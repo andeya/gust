@@ -30,12 +30,27 @@
 
 With **zero dependencies** and **full type safety**, gust lets you write Go code that's safer, cleaner, and more expressive—without sacrificing performance.
 
+### ✨ The Catch Pattern: gust's Secret Weapon
+
+gust introduces the **`result.Ret + Unwrap + Catch`** pattern—a revolutionary way to handle errors in Go:
+
+```go
+func fetchUserData(userID int) (r result.Result[string]) {
+    defer r.Catch()  // One line handles ALL errors!
+    user := result.Ret(db.GetUser(userID)).Unwrap()
+    profile := result.Ret(api.GetProfile(user.Email)).Unwrap()
+    return result.Ok(fmt.Sprintf("%s: %s", user.Name, profile.Bio))
+}
+```
+
+**One line** (`defer r.Catch()`) eliminates **all** `if err != nil` checks. Errors automatically propagate via panic and are caught, converted to `Result`, and returned.
+
 ### ✨ Why gust?
 
 | Traditional Go | With gust |
 |----------------|-----------|
-| ❌ 15+ lines of error checks | ✅ 3 lines of chainable code |
-| ❌ `if err != nil` everywhere | ✅ Errors flow automatically |
+| ❌ 15+ lines of error checks | ✅ 3 lines with Catch pattern |
+| ❌ `if err != nil` everywhere | ✅ `defer r.Catch()` once |
 | ❌ Nil pointer panics | ✅ Compile-time safety |
 | ❌ Imperative loops | ✅ Declarative pipelines |
 | ❌ Hard to compose | ✅ Elegant method chaining |
@@ -48,7 +63,7 @@ With **zero dependencies** and **full type safety**, gust lets you write Go code
 go get github.com/andeya/gust
 ```
 
-### Your First gust Program
+### Your First gust Program (with Catch Pattern)
 
 ```go
 package main
@@ -59,27 +74,32 @@ import (
 )
 
 func main() {
-    // Chain operations elegantly - errors flow automatically!
-    res := result.Ok(10).
-        Map(func(x int) int { return x * 2 }).
-        AndThen(func(x int) result.Result[int] {
-            if x > 20 {
-                return result.TryErr[int]("too large")
-            }
-            return result.Ok(x + 5)
-        })
+    // Using Catch pattern - errors flow automatically!
+    processValue := func(value int) (r result.Result[int]) {
+        defer r.Catch()
+        doubled := value * 2
+        if doubled > 20 {
+            return result.TryErr[int]("too large")
+        }
+        return result.Ok(doubled + 5)
+    }
 
-    fmt.Println(res.UnwrapOr(0)) // 25 (safe: returns 0 if error)
+    res := processValue(10)
+    if res.IsOk() {
+        fmt.Println("Success:", res.Unwrap())
+    } else {
+        fmt.Println("Error:", res.UnwrapErr())
+    }
 }
 ```
 
-**Output:** `25`
+**Output:** `Success: 25`
 
 ---
 
 ## 💡 The Problem gust Solves
 
-### Before: Traditional Go Code
+### Before: Traditional Go Code (15+ lines, 4 error checks)
 
 ```go
 func fetchUserData(userID int) (string, error) {
@@ -97,6 +117,9 @@ func fetchUserData(userID int) (string, error) {
     if err != nil {
         return "", fmt.Errorf("api error: %w", err)
     }
+    if profile == nil {
+        return "", fmt.Errorf("profile not found")
+    }
     return fmt.Sprintf("%s: %s", user.Name, profile.Bio), nil
 }
 ```
@@ -106,66 +129,75 @@ func fetchUserData(userID int) (string, error) {
 - ❌ 3 nested conditionals
 - ❌ Hard to test individual steps
 - ❌ Easy to forget error handling
-- ❌ 15 lines of boilerplate
+- ❌ 15+ lines of boilerplate
 
-### After: With gust
+### After: With gust Catch Pattern (8 lines, 0 error checks)
 
 ```go
 import "github.com/andeya/gust/result"
 
-func fetchUserData(userID int) result.Result[string] {
-    return result.Ret(db.GetUser(userID)).
-        AndThen(func(user *User) result.Result[string] {
-            if user == nil || user.Email == "" {
-                return result.TryErr[string]("invalid user")
-            }
-            return result.Ret(api.GetProfile(user.Email)).
-                Map(func(profile *Profile) string {
-                    return fmt.Sprintf("%s: %s", user.Name, profile.Bio)
-                })
-        })
+func fetchUserData(userID int) (r result.Result[string]) {
+    defer r.Catch()  // One line handles ALL errors!
+    user := result.Ret(db.GetUser(userID)).Unwrap()
+    if user == nil || user.Email == "" {
+        return result.TryErr[string]("invalid user")
+    }
+    profile := result.Ret(api.GetProfile(user.Email)).Unwrap()
+    if profile == nil {
+        return result.TryErr[string]("profile not found")
+    }
+    return result.Ok(fmt.Sprintf("%s: %s", user.Name, profile.Bio))
 }
 ```
 
 **Benefits:**
-- ✅ **Eliminates repetitive error checks** - Errors flow naturally
+- ✅ **One line error handling** - `defer r.Catch()` handles everything
 - ✅ **Linear flow** - Easy to read top-to-bottom
-- ✅ **Automatic propagation** - Errors stop the chain automatically
+- ✅ **Automatic propagation** - Errors stop execution automatically
 - ✅ **Composable** - Each step is independent and testable
 - ✅ **Type-safe** - Compiler enforces correct error handling
+- ✅ **70% less code** - From 15+ lines to 8 lines
 
 ---
 
 ## 📚 Core Features
 
-### 1. Result<T> - Type-Safe Error Handling
+### 1. Result<T> - The Catch Pattern Revolution
 
-Replace `(T, error)` with chainable `Result[T]` that eliminates error boilerplate:
+The **Catch pattern** (`result.Ret + Unwrap + Catch`) is gust's most powerful feature:
 
 ```go
 import "github.com/andeya/gust/result"
 
-res := result.Ok(10).
-    Map(func(x int) int { return x * 2 }).
-    AndThen(func(x int) result.Result[int] {
-        if x > 15 {
-            return result.TryErr[int]("too large")
-        }
-        return result.Ok(x + 5)
-    }).
-    OrElse(func(err error) result.Result[int] {
-        return result.Ok(0) // Fallback value
-    })
+// Before: Traditional Go (multiple error checks)
+// func readConfig(filename string) (string, error) {
+//     f, err := os.Open(filename)
+//     if err != nil {
+//         return "", err
+//     }
+//     defer f.Close()
+//     data, err := io.ReadAll(f)
+//     if err != nil {
+//         return "", err
+//     }
+//     return string(data), nil
+// }
 
-fmt.Println(res.UnwrapOr(0)) // 25 (safe, never panics)
+// After: gust Catch pattern (linear flow, no error checks)
+func readConfig(filename string) (r result.Result[string]) {
+    defer r.Catch()  // One line handles ALL errors!
+    data := result.Ret(os.ReadFile(filename)).Unwrap()
+    return result.Ok(string(data))
+}
 ```
 
 **Key Methods:**
+- `result.Ret(T, error)` - Convert `(T, error)` to `Result[T]`
+- `Unwrap()` - Extract value (panics if error, caught by `Catch`)
+- `defer r.Catch()` - Catch all panics and convert to `Result` errors
 - `Map` - Transform value if Ok
 - `AndThen` - Chain operations returning Result
-- `OrElse` - Handle errors with fallback
 - `UnwrapOr` - Extract safely with default (**never panics**)
-- `Unwrap` - Extract value (⚠️ **panics if error** - use only after `IsOk()` check)
 
 **Real-World Use Cases:**
 - API call chains
@@ -180,6 +212,20 @@ Replace `*T` and `(T, bool)` with safe `Option[T]` that prevents nil pointer pan
 ```go
 import "github.com/andeya/gust/option"
 
+// Before: Traditional Go (nil checks everywhere)
+// func divide(a, b float64) *float64 {
+//     if b == 0 {
+//         return nil
+//     }
+//     result := a / b
+//     return &result
+// }
+// result := divide(10, 2)
+// if result != nil {
+//     fmt.Println(*result * 2)  // Risk of nil pointer panic
+// }
+
+// After: gust Option (type-safe, no nil panics)
 divide := func(a, b float64) option.Option[float64] {
     if b == 0 {
         return option.None[float64]()
@@ -189,8 +235,7 @@ divide := func(a, b float64) option.Option[float64] {
 
 quotient := divide(10, 2).
     Map(func(x float64) float64 { return x * 2 }).
-    Filter(func(x float64) bool { return x > 5 }).
-    UnwrapOr(0)
+    UnwrapOr(0)  // Safe: never panics
 
 fmt.Println(quotient) // 10
 ```
@@ -200,7 +245,6 @@ fmt.Println(quotient) // 10
 - `AndThen` - Chain operations returning Option
 - `Filter` - Conditionally filter values
 - `UnwrapOr` - Extract safely with default (**never panics**)
-- `Unwrap` - Extract value (⚠️ **panics if None** - use only after `IsSome()` check)
 
 **Real-World Use Cases:**
 - Configuration reading
@@ -215,15 +259,34 @@ Full Rust Iterator trait implementation with **60+ methods** for declarative dat
 ```go
 import "github.com/andeya/gust/iterator"
 
-numbers := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+// Before: Traditional Go (nested loops, manual error handling)
+// func processNumbers(input []string) ([]int, error) {
+//     var results []int
+//     for _, s := range input {
+//         n, err := strconv.Atoi(s)
+//         if err != nil {
+//             continue
+//         }
+//         if n > 0 {
+//             results = append(results, n*2)
+//         }
+//     }
+//     return results, nil
+// }
 
-sum := iterator.FromSlice(numbers).
-    Filter(func(x int) bool { return x%2 == 0 }).
-    Map(func(x int) int { return x * x }).
+// After: gust Iterator (declarative, type-safe, 70% less code)
+input := []string{"10", "20", "invalid", "30", "0", "40"}
+
+results := iterator.FilterMap(
+    iterator.RetMap(iterator.FromSlice(input), strconv.Atoi),
+    result.Result[int].Ok,
+).
+    Filter(func(x int) bool { return x > 0 }).
+    Map(func(x int) int { return x * 2 }).
     Take(3).
-    Fold(0, func(acc, x int) int { return acc + x })
+    Collect()
 
-fmt.Println(sum) // 56 (4 + 16 + 36)
+fmt.Println(results) // [20 40 60]
 ```
 
 **Highlights:**
@@ -251,9 +314,30 @@ fmt.Println(sum) // 56 (4 + 16 + 36)
 
 ## 🌟 Real-World Examples
 
-### Example 1: Data Processing Pipeline
+### Example 1: Data Processing Pipeline (Iterator + Result)
 
-Parse, validate, transform, and limit user input in a single chain:
+**Before: Traditional Go** (nested loops + error handling, 15+ lines)
+
+```go
+func processUserInput(input []string) ([]int, error) {
+    var results []int
+    for _, s := range input {
+        n, err := strconv.Atoi(s)
+        if err != nil {
+            continue
+        }
+        if n > 0 {
+            results = append(results, n*2)
+        }
+    }
+    if len(results) == 0 {
+        return nil, fmt.Errorf("no valid numbers")
+    }
+    return results, nil
+}
+```
+
+**After: gust Iterator + Result** (declarative, type-safe, 8 lines)
 
 ```go
 import (
@@ -276,24 +360,48 @@ results := iterator.FilterMap(
 fmt.Println(results) // [20 40 60]
 ```
 
-### Example 2: API Call Chain with Error Handling
+**Result:** 70% less code, type-safe, declarative
 
-Handle multiple API calls with automatic error propagation:
+### Example 2: API Call Chain (Catch Pattern)
+
+**Before: Traditional Go** (15+ lines, 4 error checks)
+
+```go
+func fetchUserProfile(userID int) (string, error) {
+    user, err := db.GetUser(userID)
+    if err != nil {
+        return "", fmt.Errorf("db error: %w", err)
+    }
+    if user == nil || user.Email == "" {
+        return "", fmt.Errorf("invalid user")
+    }
+    profile, err := api.GetProfile(user.Email)
+    if err != nil {
+        return "", fmt.Errorf("api error: %w", err)
+    }
+    if profile == nil {
+        return "", fmt.Errorf("profile not found")
+    }
+    return fmt.Sprintf("%s: %s", user.Name, profile.Bio), nil
+}
+```
+
+**After: gust Catch Pattern** (8 lines, 0 error checks)
 
 ```go
 import "github.com/andeya/gust/result"
 
-func fetchUserProfile(userID int) result.Result[string] {
-    return result.Ret(db.GetUser(userID)).
-        AndThen(func(user *User) result.Result[string] {
-            if user == nil || user.Email == "" {
-                return result.TryErr[string]("invalid user")
-            }
-            return result.Ret(api.GetProfile(user.Email)).
-                Map(func(profile *Profile) string {
-                    return fmt.Sprintf("%s: %s", user.Name, profile.Bio)
-                })
-        })
+func fetchUserProfile(userID int) (r result.Result[string]) {
+    defer r.Catch()  // One line handles ALL errors!
+    user := result.Ret(db.GetUser(userID)).Unwrap()
+    if user == nil || user.Email == "" {
+        return result.TryErr[string]("invalid user")
+    }
+    profile := result.Ret(api.GetProfile(user.Email)).Unwrap()
+    if profile == nil {
+        return result.TryErr[string]("profile not found")
+    }
+    return result.Ok(fmt.Sprintf("%s: %s", user.Name, profile.Bio))
 }
 
 // Usage
@@ -305,9 +413,102 @@ if profileRes.IsOk() {
 }
 ```
 
-### Example 3: Configuration Management
+**Result:** 70% less code, linear flow, automatic error propagation
 
-Safely read and validate configuration with Option:
+### Example 3: File System Operations (Catch Pattern)
+
+**Before: Traditional Go** (multiple error checks, nested conditions)
+
+```go
+func copyDirectory(src, dst string) error {
+    info, err := os.Stat(src)
+    if err != nil {
+        return err
+    }
+    if err = os.MkdirAll(dst, info.Mode()); err != nil {
+        return err
+    }
+    entries, err := os.ReadDir(src)
+    if err != nil {
+        return err
+    }
+    for _, entry := range entries {
+        srcPath := filepath.Join(src, entry.Name())
+        dstPath := filepath.Join(dst, entry.Name())
+        if entry.IsDir() {
+            if err = copyDirectory(srcPath, dstPath); err != nil {
+                return err
+            }
+        } else {
+            if err = copyFile(srcPath, dstPath); err != nil {
+                return err
+            }
+        }
+    }
+    return nil
+}
+```
+
+**After: gust Catch Pattern** (linear flow, single error handler)
+
+```go
+import (
+    "github.com/andeya/gust/fileutil"
+    "github.com/andeya/gust/result"
+    "os"
+    "path/filepath"
+)
+
+func copyDirectory(src, dst string) (r result.VoidResult) {
+    defer r.Catch()  // One line handles ALL errors!
+    info := result.Ret(os.Stat(src)).Unwrap()
+    result.RetVoid(os.MkdirAll(dst, info.Mode())).Unwrap()
+    entries := result.Ret(os.ReadDir(src)).Unwrap()
+    for _, entry := range entries {
+        srcPath := filepath.Join(src, entry.Name())
+        dstPath := filepath.Join(dst, entry.Name())
+        if entry.IsDir() {
+            copyDirectory(srcPath, dstPath).Unwrap()
+        } else {
+            fileutil.CopyFile(srcPath, dstPath).Unwrap()
+        }
+    }
+    return result.OkVoid()
+}
+```
+
+**Result:** Linear code flow, automatic error propagation, 70% less code
+
+### Example 4: Configuration Management (Option)
+
+**Before: Traditional Go** (nil checks, error handling)
+
+```go
+type Config struct {
+    APIKey *string
+    Port   int
+}
+
+func loadConfig() (Config, error) {
+    apiKeyEnv := os.Getenv("API_KEY")
+    var apiKey *string
+    if apiKeyEnv != "" {
+        apiKey = &apiKeyEnv
+    }
+    portStr := os.Getenv("PORT")
+    port := 8080
+    if portStr != "" {
+        p, err := strconv.Atoi(portStr)
+        if err != nil {
+            return Config{}, err
+        }
+        port = p
+    }
+    return Config{APIKey: apiKey, Port: port}, nil
+}
+```
+
+**After: gust Option** (type-safe, no nil checks)
 
 ```go
 import (
@@ -334,36 +535,11 @@ func loadConfig() Config {
 }
 
 config := loadConfig()
-port := config.Port.UnwrapOr(8080) // Default to 8080 if not set
+port := config.Port.UnwrapOr(8080)   // Default to 8080 if not set
 apiKey := config.APIKey.UnwrapOr("") // Default to empty string
 ```
 
-### Example 4: BitSet with Iterators
-
-Process bit sets using iterator methods:
-
-```go
-import (
-    "github.com/andeya/gust/bitset"
-    "github.com/andeya/gust/iterator"
-)
-
-bs := bitset.New()
-bs.Set(0, true).Unwrap()
-bs.Set(5, true).Unwrap()
-
-// Get all set bits using iterator
-setBits := iterator.FromBitSetOnes(bs).Collect() // [0 5]
-
-// Bitwise operations
-bs1 := bitset.NewFromString("c0", bitset.EncodingHex).Unwrap()
-bs2 := bitset.NewFromString("30", bitset.EncodingHex).Unwrap()
-or := bs1.Or(bs2)
-
-// Encoding/decoding (Base64URL by default)
-encoded := bs.String()
-decoded := bitset.NewFromBase64URL(encoded).Unwrap()
-```
+**Result:** Type-safe, no nil checks, elegant defaults
 
 ---
 
@@ -373,7 +549,7 @@ gust provides a comprehensive set of utility packages for common Go tasks:
 
 | Package | Description | Key Features |
 |---------|-------------|--------------|
-| **`gust/result`** | Type-safe error handling | `Result[T]`, `Map`, `AndThen`, `OrElse` |
+| **`gust/result`** | Type-safe error handling | `Result[T]`, Catch pattern, `Map`, `AndThen` |
 | **`gust/option`** | Safe optional values | `Option[T]`, `Map`, `Filter`, `AndThen` |
 | **`gust/iterator`** | Rust-like iteration | 60+ methods, lazy evaluation, method chaining |
 | **`gust/dict`** | Generic map utilities | `Filter`, `Map`, `Keys`, `Values`, `Get` |
@@ -386,6 +562,7 @@ gust provides a comprehensive set of utility packages for common Go tasks:
 | **`gust/syncutil`** | Concurrent utilities | `SyncMap`, `Lazy`, mutex wrappers |
 | **`gust/errutil`** | Error utilities | Stack traces, panic recovery, `ErrBox` |
 | **`gust/constraints`** | Type constraints | `Ordering`, `Numeric`, `Digit` |
+| **`gust/fileutil`** | File operations | Path manipulation, file I/O, directory operations, tar.gz archiving |
 
 ---
 

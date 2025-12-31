@@ -551,6 +551,23 @@ func TestResult_FmtErr(t *testing.T) {
 	assert.Contains(t, r2.Err().Error(), "error: 42 test")
 }
 
+func TestResult_FmtErrVoid(t *testing.T) {
+	// Test FmtErrVoid with format string
+	r1 := result.FmtErrVoid("error: %s", "test")
+	assert.True(t, r1.IsErr())
+	assert.Contains(t, r1.Err().Error(), "error: test")
+
+	// Test FmtErrVoid with multiple arguments
+	r2 := result.FmtErrVoid("error: %d %s", 42, "test")
+	assert.True(t, r2.IsErr())
+	assert.Contains(t, r2.Err().Error(), "error: 42 test")
+
+	// Test FmtErrVoid with no arguments
+	r3 := result.FmtErrVoid("simple error")
+	assert.True(t, r3.IsErr())
+	assert.Equal(t, "simple error", r3.Err().Error())
+}
+
 func TestResult_Ret(t *testing.T) {
 	// Test Ret with nil error
 	r1 := result.Ret(42, nil)

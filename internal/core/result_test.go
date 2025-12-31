@@ -88,6 +88,28 @@ func TestResult_FmtErr(t *testing.T) {
 	assert.Equal(t, "simple error", r3.Err().Error())
 }
 
+func TestResult_FmtErrVoid(t *testing.T) {
+	// Test FmtErrVoid with format string
+	r1 := core.FmtErrVoid("error: %s", "test")
+	assert.True(t, r1.IsErr())
+	assert.Contains(t, r1.Err().Error(), "error: test")
+
+	// Test FmtErrVoid with multiple arguments
+	r2 := core.FmtErrVoid("error: %d %s", 42, "test")
+	assert.True(t, r2.IsErr())
+	assert.Contains(t, r2.Err().Error(), "error: 42 test")
+
+	// Test FmtErrVoid with no arguments
+	r3 := core.FmtErrVoid("simple error")
+	assert.True(t, r3.IsErr())
+	assert.Equal(t, "simple error", r3.Err().Error())
+
+	// Test FmtErrVoid returns VoidResult
+	assert.IsType(t, core.VoidResult{}, r1)
+	assert.IsType(t, core.VoidResult{}, r2)
+	assert.IsType(t, core.VoidResult{}, r3)
+}
+
 func TestResult_TryErr_EmptyError(t *testing.T) {
 	// Test TryErr with nil error (should return Ok with default value)
 	r1 := core.TryErr[int](nil)
@@ -163,17 +185,17 @@ func TestResultIsValid(t *testing.T) {
 }
 
 func TestResultUnwrapOrThrow(t *testing.T) {
-	// Test UnwrapOrThrow with Ok value
+	// Test Unwrap with Ok value
 	var r1 = core.Ok(1)
-	var v1 = r1.UnwrapOrThrow()
+	var v1 = r1.Unwrap()
 	assert.Equal(t, 1, v1)
 
-	// Test UnwrapOrThrow with Err value (should panic and be caught)
+	// Test Unwrap with Err value (should panic and be caught)
 	var r core.Result[string]
 	func() {
 		defer r.Catch()
 		var r2 = core.TryErr[int]("err")
-		_ = r2.UnwrapOrThrow() // This will panic
+		_ = r2.Unwrap() // This will panic
 	}()
 	assert.True(t, r.IsErr())
 	// Error() should only return error message, not stack trace
@@ -569,7 +591,7 @@ func TestResult_Catch(t *testing.T) {
 	var ret core.Result[int]
 	func() {
 		defer ret.Catch()
-		core.TryErr[int]("test error").UnwrapOrThrow()
+		core.TryErr[int]("test error").Unwrap()
 	}()
 	assert.True(t, ret.IsErr())
 	// Error() should only return error message, not stack trace
@@ -588,7 +610,7 @@ func TestResult_Catch_IsSomeBranch(t *testing.T) {
 	var ret core.Result[int] = core.Ok(42)
 	func() {
 		defer ret.Catch()
-		core.TryErr[int]("panic error").UnwrapOrThrow()
+		core.TryErr[int]("panic error").Unwrap()
 	}()
 	assert.True(t, ret.IsErr())
 	// Error() should only return error message, not stack trace
@@ -946,7 +968,7 @@ func TestResult_Catch_NilReceiver(t *testing.T) {
 	}()
 	var nilResult *core.Result[int]
 	defer nilResult.Catch()
-	core.TryErr[int]("test error").UnwrapOrThrow()
+	core.TryErr[int]("test error").Unwrap()
 }
 
 func TestResult_Catch_NonPanicValue(t *testing.T) {
@@ -974,7 +996,7 @@ func TestResult_Catch_OkValue(t *testing.T) {
 	var ret core.Result[int] = core.Ok(42)
 	func() {
 		defer ret.Catch()
-		core.TryErr[string]("test error").UnwrapOrThrow()
+		core.TryErr[string]("test error").Unwrap()
 	}()
 	// Result should be updated to Err
 	assert.True(t, ret.IsErr())
@@ -996,7 +1018,7 @@ func TestResult_Catch_WithStackTrace(t *testing.T) {
 		var ret core.Result[int]
 		func() {
 			defer ret.Catch()
-			core.TryErr[int]("test error").UnwrapOrThrow()
+			core.TryErr[int]("test error").Unwrap()
 		}()
 		assert.True(t, ret.IsErr())
 		err := ret.Err()
@@ -1074,7 +1096,7 @@ func TestResult_Catch_StackTraceAccess(t *testing.T) {
 	var ret core.Result[int]
 	func() {
 		defer ret.Catch()
-		core.TryErr[int]("test error").UnwrapOrThrow()
+		core.TryErr[int]("test error").Unwrap()
 	}()
 	assert.True(t, ret.IsErr())
 
@@ -1173,7 +1195,7 @@ func TestResult_Catch_WithStackTraceFalse(t *testing.T) {
 	var ret core.Result[int]
 	func() {
 		defer ret.Catch(false)
-		core.TryErr[int]("test error").UnwrapOrThrow()
+		core.TryErr[int]("test error").Unwrap()
 	}()
 	assert.True(t, ret.IsErr())
 	err := ret.Err()
@@ -1194,7 +1216,7 @@ func TestResult_Catch_WithStackTraceTrue(t *testing.T) {
 			t.Logf("error with panic stack trace: %+v", ret.Err())
 		}()
 		defer ret.Catch(true)
-		core.TryErr[int]("test error").UnwrapOrThrow()
+		core.TryErr[int]("test error").Unwrap()
 	}()
 	assert.True(t, ret.IsErr())
 	err := ret.Err()
@@ -1215,7 +1237,7 @@ func TestResult_Catch_WithStackTraceDefault(t *testing.T) {
 	var ret core.Result[int]
 	func() {
 		defer ret.Catch()
-		core.TryErr[int]("test error").UnwrapOrThrow()
+		core.TryErr[int]("test error").Unwrap()
 	}()
 	assert.True(t, ret.IsErr())
 	err := ret.Err()
@@ -1268,7 +1290,7 @@ func TestResult_Catch_FormatOptions(t *testing.T) {
 	var ret core.Result[int]
 	func() {
 		defer ret.Catch()
-		core.TryErr[int]("format test error").UnwrapOrThrow()
+		core.TryErr[int]("format test error").Unwrap()
 	}()
 	assert.True(t, ret.IsErr())
 	err := ret.Err()
@@ -1345,7 +1367,7 @@ func TestResult_Catch_WithStackTraceFalse_Verification(t *testing.T) {
 	var ret core.Result[int]
 	func() {
 		defer ret.Catch(false)
-		core.TryErr[int]("no stack error").UnwrapOrThrow()
+		core.TryErr[int]("no stack error").Unwrap()
 	}()
 	assert.True(t, ret.IsErr())
 	err := ret.Err()

@@ -120,6 +120,13 @@ func FmtErr[T any](format string, a ...any) Result[T] {
 	return TryErr[T](fmt.Errorf(format, a...))
 }
 
+// FmtErrVoid wraps a failure result with a formatted error as VoidResult.
+//
+//go:inline
+func FmtErrVoid(format string, a ...any) VoidResult {
+	return FmtErr[void.Void](format, a...)
+}
+
 // AssertRet returns the Result[T] of asserting `i` to type `T`
 func AssertRet[T any](i any) Result[T] {
 	value, ok := i.(T)
@@ -395,7 +402,7 @@ func (r Result[T]) Expect(msg string) T {
 // Unwrap returns the contained Ok value.
 // Because this function may panic, its use is generally discouraged.
 // Instead, prefer to use pattern matching and handle the error case explicitly, or call UnwrapOr or UnwrapOrElse.
-// NOTE: This panics with error interface (from r.e.ToError()) to be consistent with Result.UnwrapOrThrow() and allow Result.Catch() to properly handle it.
+// NOTE: This panics with error interface (from r.e.ToError()) to allow Result.Catch() to properly handle it.
 func (r Result[T]) Unwrap() T {
 	if r.IsErr() {
 		panic(r.e.ToError())
@@ -683,17 +690,6 @@ func (r *Result[T]) SizeHint() (uint, Option[uint]) {
 	return r.t.SizeHint()
 }
 
-// UnwrapOrThrow returns the contained T or panic returns error interface.
-// NOTE:
-//
-//	If there is an error, that panic should be caught with `Result.Catch()`
-func (r Result[T]) UnwrapOrThrow() T {
-	if r.IsErr() {
-		panic(r.e.ToError())
-	}
-	return r.safeGetT()
-}
-
 // Catch catches any panic and converts it to a Result error.
 // It catches:
 //   - errutil.ErrBox (gust's own error type, value type)
@@ -710,13 +706,13 @@ func (r Result[T]) UnwrapOrThrow() T {
 //	```go
 //	func example() (result Result[string]) {
 //	   defer result.Catch()  // With stack trace (default)
-//	   Err[int]("int error").UnwrapOrThrow()
+//	   Err[int]("int error").Unwrap()
 //	   return Ok[string]("ok")
 //	}
 //
 //	func exampleNoStack() (result Result[string]) {
 //	   defer result.Catch(false)  // Without stack trace
-//	   Err[int]("int error").UnwrapOrThrow()
+//	   Err[int]("int error").Unwrap()
 //	   return Ok[string]("ok")
 //	}
 //	```

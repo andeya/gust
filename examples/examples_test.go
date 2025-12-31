@@ -14,7 +14,7 @@ import (
 
 // TestExamples runs all examples to ensure they work correctly.
 func TestExamples(t *testing.T) {
-	// Test Result example
+	// Test Result with Iterator integration
 	numbers := []string{"1", "2", "three", "4"}
 	results := iterator.FilterMap(
 		iterator.RetMap(iterator.FromSlice(numbers), strconv.Atoi),
@@ -24,7 +24,7 @@ func TestExamples(t *testing.T) {
 
 	assert.Equal(t, []int{1, 2, 4}, results)
 
-	// Test Option example
+	// Test Option chaining
 	divide := func(a, b float64) option.Option[float64] {
 		if b == 0 {
 			return option.None[float64]()
@@ -34,7 +34,7 @@ func TestExamples(t *testing.T) {
 	quotient := divide(10, 2).UnwrapOr(0)
 	assert.Equal(t, 5.0, quotient)
 
-	// Test Iterator example
+	// Test Iterator chain operations
 	sum := iterator.FromSlice([]int{1, 2, 3, 4, 5, 6}).
 		Filter(func(x int) bool { return x%2 == 0 }).
 		Map(func(x int) int { return x * x }).

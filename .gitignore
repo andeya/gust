@@ -18,5 +18,5 @@
 .vscode
 .cursor
 .DS_Store
-cover.html
+*.html
 coverage-tmp

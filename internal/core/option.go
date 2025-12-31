@@ -595,5 +595,5 @@ func (o Option[T]) ToResult() VoidResult {
 //
 //go:inline
 func (r Option[T]) UnwrapOrThrow(err any) T {
-	return r.OkOr(err).UnwrapOrThrow()
+	return r.OkOr(err).Unwrap()
 }

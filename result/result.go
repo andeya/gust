@@ -91,6 +91,22 @@ func FmtErr[T any](format string, args ...any) Result[T] {
 	return core.FmtErr[T](format, args...)
 }
 
+// FmtErrVoid wraps a failure result with a formatted error as VoidResult.
+//
+// Example:
+//
+//	```go
+//	var res result.VoidResult = result.FmtErrVoid("operation failed: %s", "file not found")
+//	if res.IsErr() {
+//		fmt.Println(res.Err())
+//	}
+//	```
+//
+//go:inline
+func FmtErrVoid(format string, args ...any) VoidResult {
+	return core.FmtErrVoid(format, args...)
+}
+
 // AssertRet returns the Result[T] of asserting `i` to type `T`
 //
 //go:inline

@@ -2,29 +2,207 @@ package examples_test
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 
 	"github.com/andeya/gust/iterator"
 	"github.com/andeya/gust/result"
 )
 
-// ExampleResult demonstrates elegant error handling with Result.
-func ExampleResult() {
-	// Parse numbers with automatic error handling
-	numbers := []string{"1", "2", "three", "4", "five"}
+// ExampleResult_catchPattern demonstrates the powerful Catch pattern that eliminates all error checks.
+func ExampleResult_catchPattern() {
+	// Before: Traditional Go (15+ lines, 4 error checks)
+	// func fetchUserData(userID int) (string, error) {
+	//     user, err := db.GetUser(userID)
+	//     if err != nil {
+	//         return "", fmt.Errorf("db error: %w", err)
+	//     }
+	//     if user == nil {
+	//         return "", fmt.Errorf("user not found")
+	//     }
+	//     if user.Email == "" {
+	//         return "", fmt.Errorf("invalid user: no email")
+	//     }
+	//     profile, err := api.GetProfile(user.Email)
+	//     if err != nil {
+	//         return "", fmt.Errorf("api error: %w", err)
+	//     }
+	//     if profile == nil {
+	//         return "", fmt.Errorf("profile not found")
+	//     }
+	//     return fmt.Sprintf("%s: %s", user.Name, profile.Bio), nil
+	// }
 
-	resList := iterator.FilterMap(
-		iterator.RetMap(iterator.FromSlice(numbers), strconv.Atoi),
-		result.Result[int].Ok,
-	).
-		Collect()
+	// After: gust Catch pattern (8 lines, 0 error checks)
+	type User struct {
+		Name  string
+		Email string
+	}
+	type Profile struct {
+		Bio string
+	}
 
-	fmt.Println("Parsed numbers:", resList)
-	// Output: Parsed numbers: [1 2 4]
+	getUser := func(userID int) (*User, error) {
+		if userID <= 0 {
+			return nil, fmt.Errorf("invalid user ID")
+		}
+		return &User{Name: "Alice", Email: "alice@example.com"}, nil
+	}
+
+	getProfile := func(email string) (*Profile, error) {
+		if email == "" {
+			return nil, fmt.Errorf("email required")
+		}
+		return &Profile{Bio: "Software developer"}, nil
+	}
+
+	fetchUserData := func(userID int) (r result.Result[string]) {
+		defer r.Catch()
+		user := result.Ret(getUser(userID)).Unwrap()
+		if user == nil || user.Email == "" {
+			return result.TryErr[string]("invalid user")
+		}
+		profile := result.Ret(getProfile(user.Email)).Unwrap()
+		if profile == nil {
+			return result.TryErr[string]("profile not found")
+		}
+		return result.Ok(fmt.Sprintf("%s: %s", user.Name, profile.Bio))
+	}
+
+	res := fetchUserData(1)
+	if res.IsOk() {
+		fmt.Println(res.Unwrap())
+	} else {
+		fmt.Println("Error:", res.UnwrapErr())
+	}
+	// Output: Alice: Software developer
 }
 
-// ExampleResult_AndThen demonstrates chaining Result operations elegantly.
-func ExampleResult_AndThen() {
+// ExampleResult_fileIO demonstrates Catch pattern for file operations.
+func ExampleResult_fileIO() {
+	// Before: Traditional Go (multiple error checks)
+	// func readConfigFile(filename string) (string, error) {
+	//     f, err := os.Open(filename)
+	//     if err != nil {
+	//         return "", err
+	//     }
+	//     defer f.Close()
+	//     data, err := io.ReadAll(f)
+	//     if err != nil {
+	//         return "", err
+	//     }
+	//     return string(data), nil
+	// }
+
+	// After: gust Catch pattern (linear flow, no error checks)
+	readConfigFile := func(filename string) (r result.Result[string]) {
+		defer r.Catch()
+		f := result.Ret(os.Open(filename)).Unwrap()
+		defer f.Close()
+		data := result.Ret(os.ReadFile(filename)).Unwrap()
+		return result.Ok(string(data))
+	}
+
+	// Create a temporary file for demonstration
+	tmpfile, _ := os.CreateTemp("", "example")
+	tmpfile.WriteString("config data")
+	tmpfile.Close()
+	defer os.Remove(tmpfile.Name())
+
+	res := readConfigFile(tmpfile.Name())
+	if res.IsOk() {
+		fmt.Println("Config:", res.Unwrap())
+	} else {
+		fmt.Println("Error:", res.UnwrapErr())
+	}
+	// Output: Config: config data
+}
+
+// ExampleResult_validationChain demonstrates chaining validations with Catch pattern.
+func ExampleResult_validationChain() {
+	// Before: Traditional Go (nested validations)
+	// func validateAndProcess(input string) (int, error) {
+	//     n, err := strconv.Atoi(input)
+	//     if err != nil {
+	//         return 0, err
+	//     }
+	//     if n < 0 {
+	//         return 0, fmt.Errorf("negative not allowed")
+	//     }
+	//     if n > 100 {
+	//         return 0, fmt.Errorf("too large")
+	//     }
+	//     return n * 2, nil
+	// }
+
+	// After: gust Catch pattern (linear validations)
+	validateAndProcess := func(input string) (r result.Result[int]) {
+		defer r.Catch()
+		n := result.Ret(strconv.Atoi(input)).Unwrap()
+		if n < 0 {
+			return result.TryErr[int]("negative not allowed")
+		}
+		if n > 100 {
+			return result.TryErr[int]("too large")
+		}
+		return result.Ok(n * 2)
+	}
+
+	res := validateAndProcess("42")
+	if res.IsOk() {
+		fmt.Println("Result:", res.Unwrap())
+	} else {
+		fmt.Println("Error:", res.UnwrapErr())
+	}
+	// Output: Result: 84
+}
+
+// ExampleResult_iteratorIntegration demonstrates Result with Iterator for data processing.
+func ExampleResult_iteratorIntegration() {
+	// Before: Traditional Go (nested loops + error handling)
+	// func parseNumbers(input []string) ([]int, error) {
+	//     var results []int
+	//     for _, s := range input {
+	//         n, err := strconv.Atoi(s)
+	//         if err != nil {
+	//             continue // Skip invalid
+	//         }
+	//         if n > 0 {
+	//             results = append(results, n*2)
+	//         }
+	//     }
+	//     if len(results) == 0 {
+	//         return nil, fmt.Errorf("no valid numbers")
+	//     }
+	//     return results, nil
+	// }
+
+	// After: gust Iterator + Result (declarative, type-safe)
+	parseNumbers := func(input []string) result.Result[[]int] {
+		resList := iterator.FilterMap(
+			iterator.RetMap(iterator.FromSlice(input), strconv.Atoi),
+			result.Result[int].Ok,
+		).Filter(func(x int) bool { return x > 0 }).
+			Map(func(x int) int { return x * 2 }).
+			Collect()
+
+		if len(resList) == 0 {
+			return result.TryErr[[]int]("no valid numbers")
+		}
+		return result.Ok(resList)
+	}
+
+	res := parseNumbers([]string{"1", "2", "three", "4", "five", "6"})
+	if res.IsOk() {
+		fmt.Println("Parsed:", res.Unwrap())
+	} else {
+		fmt.Println("Error:", res.UnwrapErr())
+	}
+	// Output: Parsed: [2 4 8 12]
+}
+
+// ExampleResult_chainOperations demonstrates chaining Result operations elegantly.
+func ExampleResult_chainOperations() {
 	// Chain multiple operations that can fail
 	res := result.Ok(10).
 		Map(func(x int) int { return x * 2 }).
@@ -44,112 +222,23 @@ func ExampleResult_AndThen() {
 	// Final value: 0
 }
 
-// ExampleAndThen demonstrates elegant error handling patterns.
-func ExampleAndThen() {
-	// Handle multiple operations with automatic error propagation
-	res := result.AndThen(
-		result.Ret(strconv.Atoi("42")),
-		func(n int) result.Result[string] {
-			return result.Ok(fmt.Sprintf("Number: %d", n))
-		},
-	)
-
-	fmt.Println(res.Unwrap())
-	// Output: Number: 42
-}
-
-// ExampleResult_beforeAfter demonstrates the power of Result in real-world scenarios.
-func ExampleResult_beforeAfter() {
-	// This example shows how Result simplifies error handling
-	// compared to traditional Go error handling patterns
-
-	// Traditional approach would require multiple if err != nil checks
-	// With Result, errors flow naturally through the chain
-
-	multiplied := result.Ok(42).
-		Map(func(x int) int { return x * 2 })
-
-	res := result.AndThen(multiplied, func(x int) result.Result[string] {
-		if x > 100 {
-			return result.TryErr[string]("value too large")
+// ExampleResult_quickStart demonstrates the first gust program with Catch pattern.
+func ExampleResult_quickStart() {
+	// Using Catch pattern for simple operations
+	processValue := func(value int) (r result.Result[int]) {
+		defer r.Catch()
+		doubled := value * 2
+		if doubled > 20 {
+			return result.TryErr[int]("too large")
 		}
-		return result.Ok(fmt.Sprintf("Result: %d", x))
-	})
-
-	if res.IsOk() {
-		fmt.Println(res.Unwrap())
-	} else {
-		fmt.Println("Error:", res.UnwrapErr())
+		return result.Ok(doubled + 5)
 	}
-	// Output: Result: 84
-}
 
-// Example_quickStart demonstrates the first gust program from README.
-func Example_quickStart() {
-	// Chain operations elegantly
-	res := result.Ok(10).
-		Map(func(x int) int { return x * 2 }).
-		AndThen(func(x int) result.Result[int] {
-			if x > 20 {
-				return result.TryErr[int]("too large")
-			}
-			return result.Ok(x + 5)
-		})
-
+	res := processValue(10)
 	if res.IsOk() {
 		fmt.Println("Success:", res.Unwrap())
 	} else {
 		fmt.Println("Error:", res.UnwrapErr())
 	}
 	// Output: Success: 25
-}
-
-// ExampleResult_fetchUserData demonstrates a real-world error handling scenario
-// similar to fetching user data from a database and API.
-func ExampleResult_fetchUserData() {
-	// Simulate database and API calls
-	type User struct {
-		ID    int
-		Name  string
-		Email string
-	}
-	type Profile struct {
-		Bio string
-	}
-
-	// Simulate database call
-	getUser := func(userID int) (*User, error) {
-		if userID <= 0 {
-			return nil, fmt.Errorf("invalid user ID")
-		}
-		return &User{ID: userID, Name: "Alice", Email: "alice@example.com"}, nil
-	}
-
-	// Simulate API call
-	getProfile := func(email string) (*Profile, error) {
-		if email == "" {
-			return nil, fmt.Errorf("email required")
-		}
-		return &Profile{Bio: "Software developer"}, nil
-	}
-
-	// Using result.Result for elegant error handling
-	fetchUserData := func(userID int) result.Result[string] {
-		return result.AndThen(result.Ret(getUser(userID)), func(user *User) result.Result[string] {
-			if user == nil || user.Email == "" {
-				return result.TryErr[string]("invalid user")
-			}
-			return result.Map(result.Ret(getProfile(user.Email)), func(profile *Profile) string {
-				return fmt.Sprintf("%s: %s", user.Name, profile.Bio)
-			})
-		})
-	}
-
-	res := fetchUserData(1)
-	if res.IsOk() {
-		fmt.Println(res.Unwrap())
-	} else {
-		fmt.Println("Error:", res.UnwrapErr())
-	}
-	// Output: Alice: Software developer
 }
